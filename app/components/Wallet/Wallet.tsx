@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+"use client";
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Wallet as WalletIcon, ArrowUpRight, ArrowDownRight, History } from 'lucide-react';
 import WalletBalance from './WalletBalance';
 import ChargeWallet from './ChargeWallet';
@@ -7,9 +8,14 @@ import WithdrawWallet from './WithdrawWallet';
 import TransactionHistory from './TransactionHistory';
 
 const Wallet: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') || 'balance';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState('balance');
+
+  // دریافت tab از URL در useEffect
+  useEffect(() => {
+    const tab = searchParams.get('tab') || 'balance';
+    setActiveTab(tab);
+  }, [searchParams]);
 
   const tabs = [
     { id: 'balance', name: 'موجودی', icon: WalletIcon },
