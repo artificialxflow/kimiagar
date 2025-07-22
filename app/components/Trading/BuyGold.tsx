@@ -1,150 +1,227 @@
+"use client";
 import React, { useState } from 'react';
-import { Calculator, ShoppingCart, AlertCircle } from 'lucide-react';
+import { ShoppingCart, Calculator, AlertCircle } from 'lucide-react';
 
-const BuyGold: React.FC = () => {
-  const [selectedType, setSelectedType] = useState('gold');
+interface BuyGoldProps {
+  prices?: any[];
+}
+
+export default function BuyGold({ prices = [] }: BuyGoldProps) {
+  const [selectedProduct, setSelectedProduct] = useState('');
   const [amount, setAmount] = useState('');
-  const [orderType, setOrderType] = useState('automatic');
+  const [isAutomatic, setIsAutomatic] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const goldTypes = [
-    { id: 'gold', name: 'طلای 18 عیار', price: 2850000, unit: 'تومان/گرم' },
-    { id: 'coin_bahar', name: 'سکه بهار آزادی', price: 28500000, unit: 'تومان' },
-    { id: 'coin_half', name: 'نیم سکه', price: 15200000, unit: 'تومان' },
-    { id: 'coin_quarter', name: 'ربع سکه', price: 8750000, unit: 'تومان' }
-  ];
+  const selectedPrice = prices.find(p => p.productType === selectedProduct);
 
-  const selectedGold = goldTypes.find(g => g.id === selectedType);
-  const totalPrice = selectedGold ? selectedGold.price * (parseFloat(amount) || 0) : 0;
+  const calculateTotal = () => {
+    if (!selectedPrice || !amount) return 0;
+    const numAmount = parseFloat(amount);
+    return numAmount * Number(selectedPrice.buyPrice);
+  };
 
-  const handleBuy = () => {
-    // Buy logic here
-    console.log('Buy order:', { selectedType, amount, orderType, totalPrice });
+  const calculateCommission = () => {
+    const total = calculateTotal();
+    // کمیسیون 1% برای خرید
+    return total * 0.01;
+  };
+
+  const calculateFinalTotal = () => {
+    return calculateTotal() + calculateCommission();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProduct || !amount) {
+      setError('لطفاً تمام فیلدها را پر کنید');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // دریافت اطلاعات کاربر از localStorage
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setError('کاربر یافت نشد');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+
+      const response = await fetch('/api/trading/buy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          productType: selectedProduct,
+          amount: parseFloat(amount),
+          isAutomatic
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('سفارش خرید با موفقیت ثبت شد!');
+        setSelectedProduct('');
+        setAmount('');
+        // به‌روزرسانی صفحه بعد از 2 ثانیه
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 2000);
+      } else {
+        setError(data.error || 'خطا در ثبت سفارش');
+      }
+    } catch (error) {
+      setError('خطا در اتصال به سرور');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Gold Type Selection */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">انتخاب نوع طلا</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {goldTypes.map((type) => (
-            <button
-              key={type.id}
-              onClick={() => setSelectedType(type.id)}
-              className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                selectedType === type.id
-                  ? 'border-gold bg-gold/10'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <div className="text-right">
-                <div className="font-medium text-slate-900 mb-1">{type.name}</div>
-                <div className="text-lg font-bold text-gold mb-1">
-                  {type.price.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-500">{type.unit}</div>
-              </div>
-            </button>
-          ))}
+      <div className="text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <ShoppingCart className="w-8 h-8 text-green-600" />
         </div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">خرید طلا</h2>
+        <p className="text-slate-600">انتخاب محصول و مقدار مورد نظر</p>
       </div>
 
-      {/* Amount Input */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">مقدار خرید</h3>
-        <div className="flex items-center space-x-4 space-x-reverse">
-          <div className="flex-1">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Product Selection */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            انتخاب محصول
+          </label>
+          <select
+            value={selectedProduct}
+            onChange={(e) => setSelectedProduct(e.target.value)}
+            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+            required
+          >
+            <option value="">انتخاب کنید</option>
+            {prices.map((price) => (
+              <option key={price.id} value={price.productType}>
+                {price.productType === 'GOLD_18K' && 'طلای 18 عیار'}
+                {price.productType === 'COIN_BAHAR' && 'سکه بهار آزادی'}
+                {price.productType === 'COIN_NIM' && 'نیم سکه'}
+                {price.productType === 'COIN_ROBE' && 'ربع سکه'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Amount Input */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            مقدار
+          </label>
+          <div className="relative">
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder={selectedGold?.id === 'gold' ? 'مقدار به گرم' : 'تعداد سکه'}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent outline-none"
+              placeholder="مقدار را وارد کنید"
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+              required
+              min="0.01"
+              step="0.01"
             />
-          </div>
-          <div className="w-12 h-12 bg-gold/10 rounded-lg flex items-center justify-center">
-            <Calculator className="w-6 h-6 text-gold" />
-          </div>
-        </div>
-      </div>
-
-      {/* Order Type */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">نوع سفارش</h3>
-        <div className="space-y-3">
-          <label className="flex items-center space-x-3 space-x-reverse">
-            <input
-              type="radio"
-              value="automatic"
-              checked={orderType === 'automatic'}
-              onChange={(e) => setOrderType(e.target.value)}
-              className="w-4 h-4 text-gold focus:ring-gold"
-            />
-            <div>
-              <div className="font-medium text-slate-900">خرید اتوماتیک</div>
-              <div className="text-sm text-gray-500">سفارش فوری با قیمت فعلی</div>
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+              {selectedProduct === 'GOLD_18K' ? 'گرم' : 'عدد'}
             </div>
-          </label>
-          <label className="flex items-center space-x-3 space-x-reverse">
-            <input
-              type="radio"
-              value="manual"
-              checked={orderType === 'manual'}
-              onChange={(e) => setOrderType(e.target.value)}
-              className="w-4 h-4 text-gold focus:ring-gold"
+          </div>
+        </div>
+
+        {/* Automatic/Manual Toggle */}
+        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+          <div>
+            <h3 className="font-medium text-slate-800">نوع معامله</h3>
+            <p className="text-sm text-slate-600">
+              {isAutomatic ? 'اتوماتیک (فوری)' : 'دستی (تایید اپراتور)'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAutomatic(!isAutomatic)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              isAutomatic ? 'bg-gold' : 'bg-slate-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                isAutomatic ? 'translate-x-6' : 'translate-x-1'
+              }`}
             />
-            <div>
-              <div className="font-medium text-slate-900">خرید دستی</div>
-              <div className="text-sm text-gray-500">سفارش با تایید اپراتور</div>
+          </button>
+        </div>
+
+        {/* Price Calculation */}
+        {selectedProduct && selectedPrice && (
+          <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+            <h3 className="font-medium text-slate-800 flex items-center">
+              <Calculator className="w-4 h-4 mr-2" />
+              محاسبه قیمت
+            </h3>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-600">قیمت واحد:</span>
+                <span className="font-medium">
+                  {Number(selectedPrice.buyPrice).toLocaleString('fa-IR')} تومان
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-slate-600">قیمت کل:</span>
+                <span className="font-medium">
+                  {calculateTotal().toLocaleString('fa-IR')} تومان
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-slate-600">کمیسیون (1%):</span>
+                <span className="font-medium text-red-600">
+                  {calculateCommission().toLocaleString('fa-IR')} تومان
+                </span>
+              </div>
+              
+              <div className="border-t border-slate-200 pt-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-slate-800">قیمت نهایی:</span>
+                  <span className="font-bold text-lg text-slate-800">
+                    {calculateFinalTotal().toLocaleString('fa-IR')} تومان
+                  </span>
+                </div>
+              </div>
             </div>
-          </label>
-        </div>
-      </div>
+          </div>
+        )}
 
-      {/* Summary */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-slate-900 mb-3">خلاصه سفارش</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-600">نوع طلا:</span>
-            <span className="font-medium">{selectedGold?.name}</span>
+        {/* Error Display */}
+        {error && (
+          <div className="flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">مقدار:</span>
-            <span className="font-medium">{amount || '0'} {selectedGold?.id === 'gold' ? 'گرم' : 'عدد'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">قیمت واحد:</span>
-            <span className="font-medium">{selectedGold?.price.toLocaleString()} تومان</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold border-t pt-2">
-            <span>مجموع:</span>
-            <span className="text-gold">{totalPrice.toLocaleString()} تومان</span>
-          </div>
-        </div>
-      </div>
+        )}
 
-      {/* Warning */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-center space-x-2 space-x-reverse">
-          <AlertCircle className="w-5 h-5 text-yellow-600" />
-          <span className="text-sm text-yellow-800">
-            موجودی کیف پول ریالی: 45,250,000 تومان
-          </span>
-        </div>
-      </div>
-
-      {/* Buy Button */}
-      <button
-        onClick={handleBuy}
-        disabled={!amount || totalPrice === 0}
-        className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse"
-      >
-        <ShoppingCart className="w-5 h-5" />
-        <span>ثبت سفارش خرید</span>
-      </button>
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading || !selectedProduct || !amount}
+          className="w-full bg-gold text-white py-3 px-4 rounded-lg font-semibold hover:bg-gold-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? 'در حال پردازش...' : 'ثبت سفارش خرید'}
+        </button>
+      </form>
     </div>
   );
-};
-
-export default BuyGold;
+}
