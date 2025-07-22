@@ -7,8 +7,9 @@ export default function LoginPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
 
-  const handleLogin = () => {
+  const handleLogin = (userData: any) => {
     setIsAuthenticated(true);
+    // ذخیره اطلاعات کاربر در localStorage (در LoginForm انجام شده)
     router.push("/dashboard");
   };
 
