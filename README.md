@@ -1,36 +1,185 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# کیمیاگر - پلتفرم مدیریت طلا و کیف پول دیجیتال
 
-## Getting Started
+## 🚀 قابلیت‌ها
 
-First, run the development server:
+- ✅ **سیستم ثبت‌نام و ورود** - فرم 6 مرحله‌ای با اعتبارسنجی کامل
+- ✅ **مدیریت کیف پول** - واریز، برداشت، موجودی ریالی و طلایی
+- ✅ **خرید و فروش طلا/سکه** - با قیمت‌های لحظه‌ای
+- ✅ **تاریخچه تراکنش‌ها** - با pagination
+- ✅ **پروفایل کاربری** - ویرایش اطلاعات شخصی
+- ✅ **منوی ناوبری** - رابط کاربری کامل
+- ✅ **API کامل** - 9 API Route
+- ✅ **دیتابیس PostgreSQL** - با Prisma ORM
+
+## 🛠️ تکنولوژی‌ها
+
+- **Frontend:** Next.js 15, React 19, TypeScript
+- **Styling:** Tailwind CSS, Vazirmatn Font
+- **Backend:** Next.js API Routes
+- **Database:** PostgreSQL
+- **ORM:** Prisma
+- **Icons:** Lucide React
+- **Charts:** Recharts
+- **Deployment:** Docker, Liara
+
+## 🐳 Docker Deployment
+
+### ساخت و اجرای محلی
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# ساخت image
+docker build -t kimiagar .
+
+# اجرا با docker run
+docker run -p 3000:3000 \
+  -e DATABASE_URL="postgresql://root:ANG5guAtXXLBvOLKJ7vqnAk2@tirich-mir.liara.cloud:32252/postgres" \
+  kimiagar
+
+# یا با docker-compose
+docker-compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Deploy در Liara
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **ساخت image:**
+```bash
+docker build -t kimiagar .
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Push به Liara:**
+```bash
+# Login به Liara
+liara login
 
-## Learn More
+# Deploy
+liara deploy --image kimiagar --port 3000
+```
 
-To learn more about Next.js, take a look at the following resources:
+3. **تنظیم Environment Variables در Liara:**
+```env
+DATABASE_URL=postgresql://root:ANG5guAtXXLBvOLKJ7vqnAk2@tirich-mir.liara.cloud:32252/postgres
+NODE_ENV=production
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🚀 اجرای محلی
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### پیش‌نیازها
+- Node.js 18+
+- PostgreSQL
+- npm یا yarn
 
-## Deploy on Vercel
+### نصب و اجرا
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Clone پروژه
+git clone <repository-url>
+cd kimiagar
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# نصب dependencies
+npm install
+
+# تنظیم environment variables
+cp .env.example .env
+# ویرایش .env و قرار دادن DATABASE_URL
+
+# اجرای migration
+npx prisma migrate deploy
+
+# اجرای development server
+npm run dev
+```
+
+## 📁 ساختار پروژه
+
+```
+kimiagar/
+├── app/
+│   ├── api/                 # API Routes
+│   ├── components/          # React Components
+│   ├── dashboard/          # Dashboard Page
+│   ├── login/              # Login Page
+│   ├── profile/            # Profile Page
+│   ├── trading/            # Trading Page
+│   ├── wallet/             # Wallet Page
+│   ├── globals.css         # Global Styles
+│   ├── layout.tsx          # Root Layout
+│   └── page.tsx            # Home Page
+├── prisma/
+│   └── schema.prisma       # Database Schema
+├── public/                 # Static Files
+├── Dockerfile              # Docker Configuration
+├── docker-compose.yml      # Docker Compose
+├── next.config.ts          # Next.js Config
+├── tailwind.config.js      # Tailwind Config
+└── package.json            # Dependencies
+```
+
+## 🔧 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - ثبت‌نام کاربر
+
+### Profile
+- `PUT /api/profile/update` - به‌روزرسانی پروفایل
+
+### Wallet
+- `GET /api/wallet/balance` - دریافت موجودی
+- `POST /api/wallet/deposit` - واریز
+- `POST /api/wallet/withdraw` - برداشت
+
+### Trading
+- `POST /api/trading/buy` - خرید
+- `POST /api/trading/sell` - فروش
+
+### Data
+- `GET /api/prices` - قیمت‌های لحظه‌ای
+- `GET /api/transactions` - تاریخچه تراکنش‌ها
+- `GET /api/health` - Health Check
+
+## 🎨 UI/UX Features
+
+- **RTL Support** - پشتیبانی کامل از راست‌چین
+- **Persian Font** - فونت Vazirmatn
+- **Responsive Design** - سازگار با تمام دستگاه‌ها
+- **Modern UI** - طراحی مدرن و زیبا
+- **Loading States** - نمایش وضعیت بارگذاری
+- **Error Handling** - مدیریت خطاها
+- **Form Validation** - اعتبارسنجی فرم‌ها
+
+## 🔒 Security
+
+- **Input Validation** - اعتبارسنجی ورودی‌ها
+- **Database Constraints** - محدودیت‌های دیتابیس
+- **Error Handling** - مدیریت خطاها
+- **Environment Variables** - متغیرهای محیطی
+
+## 📊 Database Schema
+
+### Tables
+- **users** - اطلاعات کاربران
+- **wallets** - کیف پول‌های ریالی و طلایی
+- **transactions** - تراکنش‌های مالی
+- **orders** - سفارش‌های خرید و فروش
+- **prices** - قیمت‌های لحظه‌ای
+- **commissions** - تنظیمات کمیسیون
+- **system_settings** - تنظیمات سیستم
+
+## 🚀 Deployment Checklist
+
+- [x] Dockerfile آماده
+- [x] docker-compose.yml آماده
+- [x] Health Check API
+- [x] Environment Variables
+- [x] Database Migration
+- [x] Production Build
+- [x] Security Headers
+- [x] Error Handling
+
+## 📝 License
+
+MIT License
+
+---
+
+**توسعه‌دهنده:** تیم کیمیاگر  
+**آخرین به‌روزرسانی:** 22 تیر 1403
