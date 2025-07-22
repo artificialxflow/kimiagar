@@ -1,171 +1,259 @@
-import React, { useState } from 'react';
-import { ArrowDownRight, Shield, AlertCircle, CreditCard } from 'lucide-react';
+"use client";
+import React, { useState, useEffect } from 'react';
+import { ArrowDownRight, Shield, AlertCircle, CreditCard, CheckCircle } from 'lucide-react';
 
-const WithdrawWallet: React.FC = () => {
+export default function WithdrawWallet() {
   const [amount, setAmount] = useState('');
   const [bankAccount, setBankAccount] = useState('');
-  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
 
-  const handleWithdraw = () => {
-    // Withdraw logic here
-    console.log('Withdraw:', { amount, bankAccount, twoFactorCode });
+  // دریافت موجودی کیف پول
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) return;
+
+        const user = JSON.parse(userData);
+        const response = await fetch(`/api/wallet/balance?userId=${user.id}`);
+        const data = await response.json();
+
+        if (response.ok && data.wallets) {
+          const rialWallet = data.wallets.find((w: any) => w.type === 'RIAL');
+          if (rialWallet) {
+            setWalletBalance(Number(rialWallet.balance));
+          }
+        }
+      } catch (error) {
+        console.error('خطا در دریافت موجودی:', error);
+      }
+    };
+
+    fetchBalance();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || !bankAccount) {
+      setError('لطفاً تمام فیلدها را پر کنید');
+      return;
+    }
+
+    if (parseFloat(amount) < 10000) {
+      setError('حداقل مبلغ برداشت 10,000 تومان است');
+      return;
+    }
+
+    if (parseFloat(amount) > walletBalance) {
+      setError('موجودی کافی نیست');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess(false);
+
+    try {
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setError('کاربر یافت نشد');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+
+      const response = await fetch('/api/wallet/withdraw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          amount: parseFloat(amount),
+          bankAccount,
+          description: description || `برداشت به حساب ${bankAccount}`
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(true);
+        setAmount('');
+        setBankAccount('');
+        setDescription('');
+        // به‌روزرسانی موجودی
+        setWalletBalance(prev => prev - parseFloat(amount));
+        // به‌روزرسانی صفحه بعد از 3 ثانیه
+        setTimeout(() => {
+          window.location.href = '/wallet';
+        }, 3000);
+      } else {
+        setError(data.error || 'خطا در ثبت درخواست');
+      }
+    } catch (error) {
+      setError('خطا در اتصال به سرور');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Current Balance */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-blue-700">موجودی قابل برداشت</div>
-            <div className="text-2xl font-bold text-blue-900">45,250,000 تومان</div>
+    <div className="min-h-screen bg-slate-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-md mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <ArrowDownRight className="w-8 h-8 text-red-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">برداشت از کیف پول</h1>
+            <p className="text-slate-600">برداشت مبلغ از کیف پول ریالی</p>
           </div>
-          <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold">ر</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Withdraw Amount */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">مبلغ برداشت</h3>
-        <div className="space-y-4">
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="مبلغ به تومان"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent outline-none"
-          />
-          
-          {/* Quick Amount Buttons */}
-          <div className="flex flex-wrap gap-2">
-            {[1000000, 5000000, 10000000, 'all'].map((quickAmount) => (
+          {/* Current Balance */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-blue-700">موجودی قابل برداشت</div>
+                <div className="text-2xl font-bold text-blue-900">
+                  {walletBalance.toLocaleString()} تومان
+                </div>
+              </div>
+              <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold">ر</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Form */}
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Amount Input */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  مبلغ (تومان)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="مبلغ را وارد کنید"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    required
+                    min="10000"
+                    step="1000"
+                    max={walletBalance}
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+                    تومان
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  حداقل مبلغ: 10,000 تومان
+                </p>
+                
+                {/* Quick Amount Buttons */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {[100000, 500000, 1000000, walletBalance].map((quickAmount) => (
+                    <button
+                      key={quickAmount}
+                      type="button"
+                      onClick={() => setAmount(quickAmount.toString())}
+                      className="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs transition-colors"
+                    >
+                      {quickAmount === walletBalance ? 'تمام موجودی' : `${quickAmount.toLocaleString()}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bank Account Input */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  شماره شبا
+                </label>
+                <input
+                  type="text"
+                  value={bankAccount}
+                  onChange={(e) => setBankAccount(e.target.value)}
+                  placeholder="IR123456789012345678901234"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  required
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  شماره شبا 24 رقمی را وارد کنید
+                </p>
+              </div>
+
+              {/* Description Input */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  توضیحات (اختیاری)
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="توضیحات برداشت"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  rows={3}
+                />
+              </div>
+
+              {/* Error Display */}
+              {error && (
+                <div className="flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
+                  <p className="text-red-600 text-sm">{error}</p>
+                </div>
+              )}
+
+              {/* Success Display */}
+              {success && (
+                <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                  <p className="text-green-600 text-sm">درخواست برداشت با موفقیت ثبت شد!</p>
+                </div>
+              )}
+
+              {/* Submit Button */}
               <button
-                key={quickAmount}
-                onClick={() => setAmount(quickAmount === 'all' ? '45250000' : quickAmount.toString())}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
+                type="submit"
+                disabled={loading || !amount || !bankAccount || parseFloat(amount) < 10000 || parseFloat(amount) > walletBalance}
+                className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {quickAmount === 'all' ? 'تمام موجودی' : `${quickAmount.toLocaleString()} تومان`}
+                {loading ? 'در حال پردازش...' : 'درخواست برداشت'}
               </button>
-            ))}
+            </form>
           </div>
-        </div>
-      </div>
 
-      {/* Bank Account */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">حساب مقصد</h3>
-        <div className="space-y-4">
-          <input
-            type="text"
-            value={bankAccount}
-            onChange={(e) => setBankAccount(e.target.value)}
-            placeholder="شماره شبا (IR123456789012345678901234)"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent outline-none"
-          />
-          
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2 space-x-reverse mb-2">
-              <CreditCard className="w-5 h-5 text-gray-600" />
-              <span className="font-medium text-gray-800">حساب پیش‌فرض</span>
+          {/* Info Cards */}
+          <div className="mt-6 space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="font-medium text-yellow-800 mb-2">نکات مهم:</h3>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>• زمان پردازش برداشت 24 تا 48 ساعت کاری است</li>
+                <li>• حداقل مبلغ برداشت 10,000 تومان است</li>
+                <li>• کارمزد برداشت 5,000 تومان است</li>
+              </ul>
             </div>
-            <div className="text-sm text-gray-600">
-              <p>شماره شبا: IR123456789012345678901234</p>
-              <p>بانک: ملت</p>
-              <p>صاحب حساب: علی احمدی</p>
-            </div>
-            <button
-              onClick={() => setBankAccount('IR123456789012345678901234')}
-              className="mt-2 text-sm text-gold hover:text-yellow-600"
-            >
-              استفاده از این حساب
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Two-Factor Authentication */}
-      <div>
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">تایید دو مرحله‌ای</h3>
-        <div className="space-y-4">
-          <div className="flex items-center space-x-4 space-x-reverse">
-            <input
-              type="text"
-              value={twoFactorCode}
-              onChange={(e) => setTwoFactorCode(e.target.value)}
-              placeholder="کد تایید 6 رقمی"
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent outline-none"
-            />
-            <button className="px-4 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
-              ارسال کد
-            </button>
-          </div>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center space-x-2 space-x-reverse">
-              <Shield className="w-5 h-5 text-blue-600" />
-              <span className="text-sm text-blue-800">
-                کد تایید به شماره موبایل 09121234567 ارسال شد
-              </span>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-blue-800 mb-2">امنیت:</h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• تمام تراکنش‌ها رمزگذاری شده‌اند</li>
+                <li>• درخواست‌ها توسط اپراتور بررسی می‌شوند</li>
+                <li>• در صورت مشکوک بودن، تراکنش لغو می‌شود</li>
+              </ul>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Summary */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-slate-900 mb-3">خلاصه برداشت</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-600">مبلغ برداشت:</span>
-            <span className="font-medium">{amount ? parseInt(amount).toLocaleString() : '0'} تومان</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">کارمزد:</span>
-            <span className="font-medium">5,000 تومان</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold border-t pt-2">
-            <span>قابل پرداخت:</span>
-            <span className="text-red-600">
-              {amount ? (parseInt(amount) - 5000).toLocaleString() : '0'} تومان
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Warnings */}
-      <div className="space-y-3">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <AlertCircle className="w-5 h-5 text-yellow-600" />
-            <span className="text-sm text-yellow-800">
-              زمان پردازش برداشت 24 تا 48 ساعت کاری است
-            </span>
-          </div>
-        </div>
-        
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center space-x-2 space-x-reverse">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span className="text-sm text-red-800">
-              حداقل مبلغ برداشت 100,000 تومان است
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Withdraw Button */}
-      <button
-        onClick={handleWithdraw}
-        disabled={!amount || !bankAccount || !twoFactorCode || parseInt(amount) < 100000}
-        className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 space-x-reverse"
-      >
-        <ArrowDownRight className="w-5 h-5" />
-        <span>درخواست برداشت</span>
-      </button>
     </div>
   );
-};
-
-export default WithdrawWallet;
+}
