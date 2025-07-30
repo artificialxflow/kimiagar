@@ -9,36 +9,36 @@ export async function PUT(request: NextRequest) {
     const { userId, firstName, lastName, phoneNumber, nationalId, bankAccount, postalCode } = body;
 
     // اعتبارسنجی ورودی‌ها
-    if (!userId || !firstName || !lastName || !phoneNumber || !nationalId || !bankAccount || !postalCode) {
+    if (!userId || !firstName || !lastName) {
       return NextResponse.json(
-        { error: 'تمام فیلدها الزامی هستند' },
+        { error: 'نام و نام خانوادگی الزامی هستند' },
         { status: 400 }
       );
     }
 
-    // اعتبارسنجی فرمت‌ها
-    if (!/^09\d{9}$/.test(phoneNumber)) {
+    // اعتبارسنجی فرمت‌ها (فقط اگر مقدار وارد شده باشد)
+    if (phoneNumber && !/^09\d{9}$/.test(phoneNumber)) {
       return NextResponse.json(
         { error: 'شماره موبایل نامعتبر است' },
         { status: 400 }
       );
     }
 
-    if (!/^\d{10}$/.test(nationalId)) {
+    if (nationalId && !/^\d{10}$/.test(nationalId)) {
       return NextResponse.json(
         { error: 'کد ملی نامعتبر است' },
         { status: 400 }
       );
     }
 
-    if (!/^IR\d{22}$/.test(bankAccount)) {
+    if (bankAccount && !/^IR\d{22}$/.test(bankAccount)) {
       return NextResponse.json(
         { error: 'شماره شبا نامعتبر است' },
         { status: 400 }
       );
     }
 
-    if (!/^\d{10}$/.test(postalCode)) {
+    if (postalCode && !/^\d{10}$/.test(postalCode)) {
       return NextResponse.json(
         { error: 'کد پستی نامعتبر است' },
         { status: 400 }
@@ -57,21 +57,23 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // بررسی تکراری نبودن شماره موبایل و کد ملی
-    const duplicateCheck = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { phoneNumber, id: { not: userId } },
-          { nationalId, id: { not: userId } }
-        ]
-      }
-    });
+    // بررسی تکراری نبودن شماره موبایل و کد ملی (فقط اگر مقدار وارد شده باشد)
+    if (phoneNumber || nationalId) {
+      const duplicateCheck = await prisma.user.findFirst({
+        where: {
+          OR: [
+            ...(phoneNumber ? [{ phoneNumber, id: { not: userId } }] : []),
+            ...(nationalId ? [{ nationalId, id: { not: userId } }] : [])
+          ]
+        }
+      });
 
-    if (duplicateCheck) {
-      return NextResponse.json(
-        { error: 'شماره موبایل یا کد ملی قبلاً ثبت شده است' },
-        { status: 400 }
-      );
+      if (duplicateCheck) {
+        return NextResponse.json(
+          { error: 'شماره موبایل یا کد ملی قبلاً ثبت شده است' },
+          { status: 400 }
+        );
+      }
     }
 
     // به‌روزرسانی اطلاعات کاربر
