@@ -2,16 +2,11 @@
 import React, { useState } from 'react';
 import { Menu, X, Bell, User, LogOut, Wallet, TrendingUp, History, Home } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/hooks/useAuth';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const router = useRouter();
-
-  const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/login');
-  };
+  const { user, logout } = useAuth();
 
   const navigationItems = [
     { name: 'داشبورد', href: '/dashboard', icon: Home },
@@ -72,8 +67,12 @@ export default function Navbar() {
               {isMenuOpen && (
                 <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
                   <div className="px-4 py-2 border-b border-slate-200">
-                    <p className="text-sm font-medium text-slate-800">کاربر کیمیاگر</p>
-                    <p className="text-xs text-slate-500">کاربر عادی</p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {user ? `${user.firstName || 'کاربر'} ${user.lastName || ''}` : 'کاربر کیمیاگر'}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {user?.username ? `@${user.username}` : 'کاربر عادی'}
+                    </p>
                   </div>
                   
                   <Link
@@ -85,7 +84,7 @@ export default function Navbar() {
                   </Link>
                   
                   <button
-                    onClick={handleLogout}
+                    onClick={logout}
                     className="flex items-center space-x-2 space-x-reverse px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-right"
                   >
                     <LogOut className="w-4 h-4" />
@@ -126,7 +125,7 @@ export default function Navbar() {
               
               <div className="border-t border-slate-200 pt-2 mt-2">
                 <button
-                  onClick={handleLogout}
+                  onClick={logout}
                   className="flex items-center space-x-2 space-x-reverse text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors w-full text-right"
                 >
                   <LogOut className="w-4 h-4" />
