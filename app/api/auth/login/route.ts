@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { generateTokens } from '@/app/lib/jwt';
+
+const prisma = new PrismaClient();
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { username, password } = body;
+
+    // اعتبارسنجی ورودی‌ها
+    if (!username || !password) {
+      return NextResponse.json(
+        { error: 'یوزرنیم و پسورد الزامی هستند' },
+        { status: 400 }
+      );
+    }
+
+    // بررسی وجود کاربر
+    const user = await prisma.user.findUnique({
+      where: { username }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'یوزرنیم یا پسورد اشتباه است' },
+        { status: 401 }
+      );
+    }
+
+    // بررسی پسورد
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: 'یوزرنیم یا پسورد اشتباه است' },
+        { status: 401 }
+      );
+    }
+
+    // ایجاد JWT tokens
+    const tokens = generateTokens({
+      userId: user.id,
+      username: user.username
+    });
+
+    // ایجاد response
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
+        nationalId: user.nationalId,
+        bankAccount: user.bankAccount,
+        postalCode: user.postalCode,
+        isVerified: user.isVerified
+      }
+    });
+
+    // تنظیم cookies
+    response.cookies.set('accessToken', tokens.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 15 * 60 // 15 دقیقه
+    });
+
+    response.cookies.set('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 // 7 روز
+    });
+
+    return response;
+
+  } catch (error) {
+    console.error('خطا در ورود:', error);
+    return NextResponse.json(
+      { error: 'خطا در ورود کاربر' },
+      { status: 500 }
+    );
+  }
+} 
