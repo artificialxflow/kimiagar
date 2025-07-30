@@ -15,12 +15,14 @@ datasource db {
 
 model User {
   id          String   @id @default(cuid())
-  phoneNumber String   @unique
-  nationalId  String   @unique
-  bankAccount String   // شماره شبا
-  postalCode  String   // کد پستی
+  username    String   @unique
+  password    String
   firstName   String?
   lastName    String?
+  phoneNumber String?  @unique
+  nationalId  String?  @unique
+  bankAccount String?  // شماره شبا
+  postalCode  String?  // کد پستی
   isVerified  Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
