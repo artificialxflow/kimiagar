@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database for Development
   postgres:
     image: postgres:15-alpine
     container_name: kimiagar_postgres_dev
@@ -15,18 +15,28 @@ services:
     ports:
       - "5432:5432"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kimiagar_user -d kimiagar_dev"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Redis for caching and sessions
+  # Redis for Development
   redis:
     image: redis:7-alpine
     container_name: kimiagar_redis_dev
     ports:
       - "6379:6379"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Main Application (Development)
+  # Development Application
   app:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.dev
     container_name: kimiagar_app_dev
@@ -38,17 +48,19 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=dev-secret-key
       - JWT_REFRESH_SECRET=dev-refresh-secret-key
-      - SMS_API_KEY=dev-key
-      - SMS_API_SECRET=dev-secret
-      - SMS_FROM_NUMBER=dev-number
+      - SMS_API_KEY=${SMS_API_KEY:-dev-key}
+      - SMS_API_SECRET=${SMS_API_SECRET:-dev-secret}
+      - SMS_FROM_NUMBER=${SMS_FROM_NUMBER:-09123456789}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
     volumes:
       - .:/app
       - /app/node_modules
       - /app/.next
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
     command: npm run dev
 
 volumes:
