@@ -259,13 +259,16 @@ export async function POST(request: NextRequest) {
     // TODO: ارسال کد تایید ایمیل
     if (email && emailVerificationCode) {
       console.log(`📧 کد تایید ایمیل برای ${email}: ${emailVerificationCode}`);
-      console.log(`⏰ انقضا: ${emailVerificationExpires.toLocaleString('fa-IR')}`);
+      if (emailVerificationExpires) {
+        console.log(`⏰ انقضا: ${emailVerificationExpires.toLocaleString('fa-IR')}`);
+      }
     }
 
     // ایجاد JWT tokens
     const tokens = generateTokens({
       userId: user.id,
-      username: user.username
+      username: user.username,
+      isAdmin: false
     });
 
     // ایجاد response
