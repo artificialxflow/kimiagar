@@ -47,15 +47,20 @@ export async function POST(request: NextRequest) {
     }
 
     // ایجاد تراکنش پرداخت
-    const paymentTransaction = await prisma.paymentTransaction.create({
+    const paymentTransaction = await prisma.transaction.create({
       data: {
         userId,
-        orderId,
+        walletId: rialWallet.id,
+        type: 'ORDER_PAYMENT',
         amount,
-        paymentMethod,
+        description: `پرداخت سفارش ${orderId}`,
         status: 'PENDING',
-        callbackUrl,
-        createdAt: new Date()
+        referenceId: orderId,
+        metadata: {
+          paymentMethod,
+          callbackUrl,
+          orderId
+        }
       }
     });
 
@@ -97,7 +102,7 @@ export async function GET(request: NextRequest) {
 
     if (transactionId) {
       // دریافت تراکنش خاص
-      const transaction = await prisma.paymentTransaction.findFirst({
+      const transaction = await prisma.transaction.findFirst({
         where: {
           id: transactionId,
           userId
@@ -117,7 +122,7 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // دریافت تمام تراکنش‌های کاربر
-      const transactions = await prisma.paymentTransaction.findMany({
+      const transactions = await prisma.transaction.findMany({
         where: {
           userId
         },
