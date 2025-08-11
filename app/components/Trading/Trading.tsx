@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import BuyGold from './BuyGold';
 import SellGold from './SellGold';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import PhysicalDelivery from './PhysicalDelivery';
+import { TrendingUp, TrendingDown, Truck } from 'lucide-react';
 
 export default function Trading() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
+  const [activeTab, setActiveTab] = useState<'buy' | 'sell' | 'delivery'>('buy');
   const [prices, setPrices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -15,7 +16,7 @@ export default function Trading() {
   // خواندن tab از URL
   useEffect(() => {
     const tab = searchParams.get('tab') || 'buy';
-    setActiveTab(tab as 'buy' | 'sell');
+    setActiveTab(tab as 'buy' | 'sell' | 'delivery');
   }, [searchParams]);
 
   useEffect(() => {
@@ -129,14 +130,14 @@ export default function Trading() {
                 // به‌روزرسانی URL
                 window.history.pushState({}, '', '/trading?tab=buy');
               }}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+              className={`flex-1 px-4 py-4 text-center font-medium transition-colors ${
                 activeTab === 'buy'
                   ? 'text-gold border-b-2 border-gold bg-gold-50'
                   : 'text-slate-600 hover:text-slate-800'
               }`}
             >
               <div className="flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 mr-2" />
+                <TrendingUp className="w-4 h-4 mr-2" />
                 خرید طلا
               </div>
             </button>
@@ -146,15 +147,32 @@ export default function Trading() {
                 // به‌روزرسانی URL
                 window.history.pushState({}, '', '/trading?tab=sell');
               }}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
+              className={`flex-1 px-4 py-4 text-center font-medium transition-colors ${
                 activeTab === 'sell'
                   ? 'text-gold border-b-2 border-gold bg-gold-50'
                   : 'text-slate-600 hover:text-slate-800'
               }`}
             >
               <div className="flex items-center justify-center">
-                <TrendingDown className="w-5 h-5 mr-2" />
+                <TrendingDown className="w-4 h-4 mr-2" />
                 فروش طلا
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('delivery');
+                // به‌روزرسانی URL
+                window.history.pushState({}, '', '/trading?tab=delivery');
+              }}
+              className={`flex-1 px-4 py-4 text-center font-medium transition-colors ${
+                activeTab === 'delivery'
+                  ? 'text-gold border-b-2 border-gold bg-gold-50'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              <div className="flex items-center justify-center">
+                <Truck className="w-4 h-4 mr-2" />
+                تحویل فیزیکی
               </div>
             </button>
           </div>
@@ -163,8 +181,10 @@ export default function Trading() {
           <div className="p-6">
             {activeTab === 'buy' ? (
               <BuyGold prices={prices} />
-            ) : (
+            ) : activeTab === 'sell' ? (
               <SellGold prices={prices} />
+            ) : (
+              <PhysicalDelivery prices={prices} />
             )}
           </div>
         </div>
