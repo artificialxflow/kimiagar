@@ -54,8 +54,10 @@ USER nextjs
 EXPOSE 3000
 
 ENV PORT 3000
-# set hostname to localhost
+# set host to 0.0.0.0 to listen on all interfaces
+ENV HOST "0.0.0.0"
 ENV HOSTNAME "0.0.0.0"
+ENV NEXT_TELEMETRY_DISABLED 1
 
 # server.js is created by next build from the standalone output
 # https://nextjs.org/docs/pages/api-reference/next-config-js/output
