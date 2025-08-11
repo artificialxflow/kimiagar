@@ -71,35 +71,48 @@ export async function POST(request: NextRequest) {
     }
 
     // به‌روزرسانی یا ایجاد تنظیمات کارمزد
-    const commission = await prisma.commission.upsert({
-      where: { productType },
-      update: {
-        buyRate: parseFloat(buyRate),
-        sellRate: parseFloat(sellRate),
-        minAmount: minAmount ? parseFloat(minAmount) : 0,
-        maxAmount: maxAmount ? parseFloat(maxAmount) : 999999999,
-        updatedAt: new Date()
-      },
-      create: {
-        productType,
-        buyRate: parseFloat(buyRate),
-        sellRate: parseFloat(sellRate),
-        minAmount: minAmount ? parseFloat(minAmount) : 0,
-        maxAmount: maxAmount ? parseFloat(maxAmount) : 999999999,
-        createdBy: user.id
-      }
+    let commission;
+    const existingCommission = await prisma.commission.findFirst({
+      where: { productType }
     });
 
+    if (existingCommission) {
+      // به‌روزرسانی کارمزد موجود
+      commission = await prisma.commission.update({
+        where: { id: existingCommission.id },
+        data: {
+          buyRate: parseFloat(buyRate),
+          sellRate: parseFloat(sellRate),
+          minAmount: minAmount ? parseFloat(minAmount) : 0,
+          maxAmount: maxAmount ? parseFloat(maxAmount) : 999999999,
+          updatedAt: new Date()
+        }
+      });
+    } else {
+      // ایجاد کارمزد جدید
+      commission = await prisma.commission.create({
+        data: {
+          productType,
+          buyRate: parseFloat(buyRate),
+          sellRate: parseFloat(sellRate),
+          minAmount: minAmount ? parseFloat(minAmount) : 0,
+          maxAmount: maxAmount ? parseFloat(maxAmount) : 999999999,
+          createdBy: user.id
+        }
+      });
+    }
+
     // ایجاد اعلان برای کاربران
-    await prisma.notification.createMany({
-      data: {
-        type: 'SYSTEM',
-        title: 'تغییر نرخ کارمزد',
-        message: `نرخ کارمزد ${productType} به‌روزرسانی شد. نرخ خرید: ${buyRate}%، نرخ فروش: ${sellRate}%`,
-        isRead: false,
-        isSent: false
-      }
-    });
+    // TODO: در آینده می‌توان اعلان‌ها را برای کاربران فعال ارسال کرد
+    // await prisma.notification.createMany({
+    //   data: {
+    //     type: 'SYSTEM',
+    //     title: 'تغییر نرخ کارمزد',
+    //     message: `نرخ کارمزد ${productType} به‌روزرسانی شد. نرخ خرید: ${buyRate}%، نرخ فروش: ${sellRate}%`,
+    //     isRead: false,
+    //     isSent: false
+    //   }
+    // });
 
     return NextResponse.json({ 
       message: 'تنظیمات کارمزد با موفقیت به‌روزرسانی شد',
