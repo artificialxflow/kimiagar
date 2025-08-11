@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
         price: unitPrice,
         totalPrice,
         commission,
+        commissionRate: commissionRateValue,
         status: isAutomatic ? 'COMPLETED' : 'PENDING',
         isAutomatic
       }
