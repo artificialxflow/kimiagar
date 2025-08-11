@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { BookOpen, Play, CheckCircle, ArrowRight, Download, Video, FileText } from 'lucide-react';
+import { BookOpen, Play, CheckCircle, ArrowRight, Download, Video, FileText, ChevronRight } from 'lucide-react';
 
 interface GuideStep {
   id: number;
