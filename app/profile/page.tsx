@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from "../components/Layout/Layout";
-import { User, Phone, CreditCard, MapPin, Edit, Save, X } from 'lucide-react';
+import { User, Phone, CreditCard, MapPin, Edit, Save, X, Mail } from 'lucide-react';
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -22,6 +22,7 @@ export default function ProfilePage() {
       setEditData({
         firstName: parsedUser.firstName || '',
         lastName: parsedUser.lastName || '',
+        email: parsedUser.email || '',
         phoneNumber: parsedUser.phoneNumber || '',
         nationalId: parsedUser.nationalId || '',
         bankAccount: parsedUser.bankAccount || '',
@@ -44,6 +45,7 @@ export default function ProfilePage() {
     setEditData({
       firstName: user?.firstName || '',
       lastName: user?.lastName || '',
+      email: user?.email || '',
       phoneNumber: user?.phoneNumber || '',
       nationalId: user?.nationalId || '',
       bankAccount: user?.bankAccount || '',
@@ -94,10 +96,10 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto"></div>
-          <p className="mt-4 text-slate-600">در حال بارگذاری...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold-500 mx-auto"></div>
+          <p className="mt-4 text-text-600">در حال بارگذاری...</p>
         </div>
       </div>
     );
@@ -112,14 +114,14 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">پروفایل کاربری</h1>
-          <p className="text-slate-600">مدیریت اطلاعات شخصی</p>
+          <h1 className="text-3xl font-bold text-text-800 mb-2">پروفایل کاربری</h1>
+          <p className="text-text-600">مدیریت اطلاعات شخصی</p>
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-background-50 rounded-2xl shadow-lg border border-border-100 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-gold to-yellow-500 px-6 py-8">
+          <div className="bg-gradient-to-r from-gold-500 to-gold-600 px-6 py-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4 space-x-reverse">
                 <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
@@ -163,94 +165,109 @@ export default function ProfilePage() {
             <div className="grid md:grid-cols-2 gap-6">
               {/* Personal Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">اطلاعات شخصی</h3>
+                <h3 className="text-lg font-semibold text-text-800 mb-4">اطلاعات شخصی</h3>
                 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">نام</label>
+                  <label className="block text-sm font-medium text-text-700 mb-2">نام</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editData.firstName}
                       onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border-200 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-slate-800">{user.firstName}</p>
+                    <p className="text-text-800">{user.firstName}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">نام خانوادگی</label>
+                  <label className="block text-sm font-medium text-text-700 mb-2">نام خانوادگی</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editData.lastName}
                       onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border-200 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-slate-800">{user.lastName}</p>
+                    <p className="text-text-800">{user.lastName}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">کد ملی</label>
+                  <label className="block text-sm font-medium text-text-700 mb-2">کد ملی</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editData.nationalId}
                       onChange={(e) => handleInputChange('nationalId', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border-200 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-slate-800">{user.nationalId}</p>
+                    <p className="text-text-800">{user.nationalId || 'تنظیم نشده'}</p>
                   )}
                 </div>
               </div>
 
               {/* Contact Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-slate-800 mb-4">اطلاعات تماس</h3>
+                <h3 className="text-lg font-semibold text-text-800 mb-4">اطلاعات تماس</h3>
                 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">شماره موبایل</label>
+                  <label className="block text-sm font-medium text-text-700 mb-2">ایمیل</label>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      value={editData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className="w-full px-3 py-2 border border-border-200 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent"
+                      placeholder="example@email.com"
+                    />
+                  ) : (
+                    <p className="text-text-800">{user.email || 'تنظیم نشده'}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-text-700 mb-2">شماره موبایل</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editData.phoneNumber}
                       onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border-200 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-slate-800">{user.phoneNumber}</p>
+                    <p className="text-text-800">{user.phoneNumber || 'تنظیم نشده'}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">شماره شبا</label>
+                  <label className="block text-sm font-medium text-text-700 mb-2">شماره شبا</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editData.bankAccount}
                       onChange={(e) => handleInputChange('bankAccount', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border-200 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-slate-800">{user.bankAccount}</p>
+                    <p className="text-text-800">{user.bankAccount || 'تنظیم نشده'}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">کد پستی</label>
+                  <label className="block text-sm font-medium text-text-700 mb-2">کد پستی</label>
                   {isEditing ? (
                     <input
                       type="text"
                       value={editData.postalCode}
                       onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                      className="w-full px-3 py-2 border border-border-200 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-slate-800">{user.postalCode}</p>
+                    <p className="text-text-800">{user.postalCode || 'تنظیم نشده'}</p>
                   )}
                 </div>
               </div>
