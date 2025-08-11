@@ -55,12 +55,9 @@ export async function POST(request: NextRequest) {
         productType,
         amount,
         deliveryAddress,
-        deliveryDate: new Date(deliveryDate),
-        deliveryTime,
-        contactPhone,
-        deliveryFee,
+        commission: deliveryFee,
         status: 'PENDING',
-        requestDate: new Date()
+        requestedAt: new Date()
       }
     });
 
@@ -71,11 +68,9 @@ export async function POST(request: NextRequest) {
         productType: deliveryRequest.productType,
         amount: deliveryRequest.amount,
         deliveryAddress: deliveryRequest.deliveryAddress,
-        deliveryDate: deliveryRequest.deliveryDate,
-        deliveryTime: deliveryRequest.deliveryTime,
-        deliveryFee: deliveryRequest.deliveryFee,
+        commission: deliveryRequest.commission,
         status: deliveryRequest.status,
-        requestDate: deliveryRequest.requestDate
+        requestedAt: deliveryRequest.requestedAt
       }
     });
 
@@ -106,7 +101,7 @@ export async function GET(request: NextRequest) {
         userId
       },
       orderBy: {
-        requestDate: 'desc'
+        requestedAt: 'desc'
       }
     });
 
