@@ -33,6 +33,13 @@ const protectedPaths = [
   '/api/payment'
 ];
 
+// مسیرهایی که فقط ادمین‌ها می‌توانند به آن‌ها دسترسی داشته باشند
+const adminPaths = [
+  '/admin',
+  '/api/admin',
+  '/api/settings/commission'
+];
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -42,7 +49,7 @@ export function middleware(request: NextRequest) {
   }
 
   // بررسی API routes (به جز مسیرهای عمومی)
-  if (pathname.startsWith('/api/') && !protectedPaths.some(path => pathname.startsWith(path))) {
+  if (pathname.startsWith('/api/') && !protectedPaths.some(path => pathname.startsWith(path)) && !adminPaths.some(path => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
@@ -64,7 +71,7 @@ export function middleware(request: NextRequest) {
     }
     
     // برای API ها، خطای 401 برگردان
-    if (pathname.startsWith('/api/') && protectedPaths.some(path => pathname.startsWith(path))) {
+    if (pathname.startsWith('/api/') && (protectedPaths.some(path => pathname.startsWith(path)) || adminPaths.some(path => pathname.startsWith(path)))) {
       return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
@@ -86,7 +93,7 @@ export function middleware(request: NextRequest) {
     }
     
     // برای API ها، خطای 401 برگردان
-    if (pathname.startsWith('/api/') && protectedPaths.some(path => pathname.startsWith(path))) {
+    if (pathname.startsWith('/api/') && (protectedPaths.some(path => pathname.startsWith(path)) || adminPaths.some(path => pathname.startsWith(path)))) {
       return new NextResponse(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
@@ -96,10 +103,27 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // بررسی دسترسی ادمین برای مسیرهای ادمین
+  if (adminPaths.some(path => pathname.startsWith(path))) {
+    if (!payload.isAdmin) {
+      // اگر کاربر ادمین نیست، خطای 403 برگردان
+      if (pathname.startsWith('/api/')) {
+        return new NextResponse(JSON.stringify({ error: 'Access denied. Admin privileges required.' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        // برای صفحات frontend، به داشبورد هدایت شود
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+    }
+  }
+
   // اضافه کردن اطلاعات کاربر به header برای استفاده در API ها
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', payload.userId);
   requestHeaders.set('x-username', payload.username);
+  requestHeaders.set('x-is-admin', payload.isAdmin ? 'true' : 'false');
 
   return NextResponse.next({
     request: {
