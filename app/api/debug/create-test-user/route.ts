@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         lastName: user.lastName,
         isVerified: user.isVerified
       },
-      message: 'کاربر تست با موفقیت ایجاد شد. یوزرنیم: testuser، پسورد: 123456'
+      message: 'کاربر تست با موفقیت ایجاد شد. نام کاربری: testuser، رمز عبور: 123456'
     });
 
   } catch (error) {
