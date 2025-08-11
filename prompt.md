@@ -26,10 +26,13 @@
 - **Middleware** - Route protection
 
 ### **Deployment & Infrastructure**
-- **Docker** - Containerization
+- **Docker** - Multi-stage containerization
 - **Docker Compose** - Multi-container orchestration
+- **Docker Compose Dev** - Development environment
 - **Environment Variables** - Configuration management
 - **Health Checks** - Service monitoring
+- **Volume Management** - Data persistence
+- **Network Isolation** - Container networking
 
 ## 🏗️ معماری سیستم
 
@@ -188,14 +191,26 @@ SMS_FROM_NUMBER="your-sms-from-number"
 NODE_ENV="production"
 PORT=3000
 HOST="0.0.0.0"
+HOSTNAME="0.0.0.0"
+NEXT_TELEMETRY_DISABLED=1
 ```
 
+### **Docker Environment Files**
+- **docker-compose.yml** - Production environment
+- **docker-compose.dev.yml** - Development environment
+- **Dockerfile** - Production multi-stage build
+- **Dockerfile.dev** - Development build
+
 ### **Docker Configuration**
-- **Multi-stage builds** برای بهینه‌سازی
+- **Multi-stage builds** برای بهینه‌سازی image size
+- **Production & Development** environments جداگانه
 - **Health checks** برای همه سرویس‌ها
-- **Volume mapping** برای persistence
+- **Volume mapping** برای data persistence
 - **Environment variables** مدیریت شده
-- **Port mapping** قابل تنظیم
+- **Port mapping** قابل تنظیم (8000:3000 production, 3000:3000 dev)
+- **Network isolation** برای امنیت
+- **Prisma migrations** خودکار در startup
+- **Makefile** برای دستورات ساده Docker
 
 ## 📱 Responsive Design
 
@@ -232,6 +247,24 @@ HOST="0.0.0.0"
 4. **Building** - Next.js production build
 5. **Docker Image** - Multi-stage build
 6. **Deployment** - Docker Compose یا Kubernetes
+
+### **Docker Commands (Makefile)**
+```bash
+# Production
+make build          # ساخت images
+make run            # اجرای production
+make stop           # توقف سرویس‌ها
+make clean          # پاک کردن کامل
+make logs           # نمایش لاگ‌ها
+make migrate        # اجرای migrations
+make seed           # اجرای seed data
+
+# Development
+make dev            # اجرای development
+make dev-stop       # توقف development
+make dev-logs       # لاگ‌های development
+make dev-migrate    # migrations در development
+```
 
 ### **Monitoring & Logging**
 - **Application Logs** - Winston یا Pino
@@ -331,5 +364,30 @@ HOST="0.0.0.0"
 ✅ **UI/UX components** قابل استفاده مجدد  
 ✅ **Dockerization کامل** برای deployment  
 ✅ **Best practices** برای توسعه و deployment  
+
+## 🐳 وضعیت Dockerization
+
+### **✅ فایل‌های Docker موجود:**
+- **Dockerfile** - Production multi-stage build
+- **Dockerfile.dev** - Development environment
+- **docker-compose.yml** - Production services
+- **docker-compose.dev.yml** - Development services
+- **Makefile** - Docker commands
+- **.dockerignore** - Build optimization
+
+### **✅ سرویس‌های Docker:**
+- **PostgreSQL** - Database با health checks
+- **Redis** - Caching و sessions
+- **App** - Next.js application
+- **Networks** - Container isolation
+- **Volumes** - Data persistence
+
+### **✅ ویژگی‌های پیشرفته:**
+- **Multi-stage builds** برای بهینه‌سازی
+- **Health checks** برای همه سرویس‌ها
+- **Automatic migrations** در startup
+- **Environment separation** (prod/dev)
+- **Port mapping** قابل تنظیم
+- **Volume management** برای data
 
 با پیروی از این پرامپت، می‌توانید پروژه‌های مشابه با کیفیت بالا و قابلیت‌های کامل ایجاد کنید. 🚀
