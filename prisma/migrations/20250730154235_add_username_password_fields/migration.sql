@@ -15,7 +15,7 @@ ALTER COLUMN "nationalId" DROP NOT NULL,
 ALTER COLUMN "bankAccount" DROP NOT NULL,
 ALTER COLUMN "postalCode" DROP NOT NULL;
 
--- برای کاربران موجود یوزرنیم و پسورد پیش‌فرض تنظیم می‌کنیم
+-- برای کاربران موجود نام کاربری و رمز عبور پیش‌فرض تنظیم می‌کنیم
 UPDATE "users" SET 
   "username" = CONCAT('user_', id),
   "password" = '$2b$10$defaultpasswordhash'
