@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     // ایجاد access token جدید
     const newAccessToken = generateAccessToken({
       userId: payload.userId,
-      username: payload.username
+      username: payload.username,
+      isAdmin: payload.isAdmin
     });
 
     // ایجاد response
