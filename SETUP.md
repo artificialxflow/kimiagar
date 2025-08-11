@@ -1,214 +1,331 @@
-# 🚀 راهنمای تنظیمات کیمیاگر
+# راهنمای راه‌اندازی - Kimiagar Project
 
-## 📋 پیش‌نیازها
+این راهنما مراحل کامل راه‌اندازی پروژه کیمی‌آگار را توضیح می‌دهد.
 
-- Node.js 18+ 
-- PostgreSQL 14+
-- Redis (اختیاری)
-- npm یا yarn
+## پیش‌نیازها
 
-## 🔧 نصب و راه‌اندازی
+### نرم‌افزارهای مورد نیاز
+- **Node.js**: نسخه 18 یا بالاتر
+- **npm**: نسخه 8 یا بالاتر
+- **Docker**: نسخه 20 یا بالاتر
+- **Docker Compose**: نسخه 2 یا بالاتر
+- **Git**: برای clone کردن پروژه
 
-### 1. نصب وابستگی‌ها
+### بررسی نسخه‌ها
 ```bash
-npm install
+node --version    # باید 18+ باشد
+npm --version     # باید 8+ باشد
+docker --version  # باید 20+ باشد
+docker-compose --version  # باید 2+ باشد
 ```
 
-### 2. تنظیم متغیرهای محیطی
-فایل `.env.local` را در ریشه پروژه ایجاد کنید:
+## مرحله 1: Clone کردن پروژه
 
+```bash
+# Clone کردن پروژه
+git clone <repository-url>
+cd kimiagar
+
+# یا اگر پروژه را دانلود کرده‌اید
+cd kimiagar
+```
+
+## مرحله 2: نصب Dependencies
+
+```bash
+# نصب تمام dependencies
+npm install
+
+# یا با yarn
+yarn install
+```
+
+## مرحله 3: تنظیم متغیرهای محیطی
+
+### ایجاد فایل .env.local
+```bash
+# در ریشه پروژه فایل .env.local ایجاد کنید
+touch .env.local
+```
+
+### محتوای فایل .env.local
 ```env
 # Database Configuration
-DATABASE_URL="postgresql://username:password@localhost:5432/kimiagar"
+DATABASE_URL="postgresql://kimiagar_user:kimiagar_password@localhost:5432/kimiagar_dev"
 
 # JWT Configuration
-JWT_SECRET="your-super-secret-jwt-key-change-in-production"
-JWT_REFRESH_SECRET="your-super-secret-refresh-jwt-key-change-in-production"
+JWT_SECRET="your-super-secret-key-change-in-production"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-in-production"
 
-# SMS Service Configuration
-KAVENEGAR_API_KEY="your-kavenegar-api-key"
-KAVENEGAR_TEMPLATE_ID="your-kavenegar-template-id"
+# SMS Configuration (for development)
+SMS_API_KEY="dev-key"
+SMS_API_SECRET="dev-secret"
+SMS_FROM_NUMBER="dev-number"
 
-# Email Service Configuration
-SENDGRID_API_KEY="your-sendgrid-api-key"
-SENDGRID_FROM_EMAIL="noreply@kimiagar.com"
+# Redis Configuration
+REDIS_URL="redis://localhost:6379"
 
-# Payment Gateway Configuration
-ZARINPAL_MERCHANT_ID="your-zarinpal-merchant-id"
-ZARINPAL_SANDBOX=true
-
-# Application Configuration
+# Environment
 NODE_ENV="development"
-APP_URL="http://localhost:3000"
 ```
 
-### 3. راه‌اندازی دیتابیس
-```bash
-# ایجاد جداول
-npx prisma db push
+## مرحله 4: راه‌اندازی دیتابیس
 
-# یا استفاده از migrations
-npx prisma migrate dev
+### روش A: استفاده از Docker (توصیه شده)
+
+```bash
+# شروع سرویس دیتابیس
+docker-compose up postgres -d
+
+# بررسی وضعیت
+docker-compose ps postgres
+
+# مشاهده لاگ‌ها
+docker-compose logs postgres
 ```
 
-### 4. اجرای پروژه
+### روش B: نصب دستی PostgreSQL
+
+#### Windows
+1. دانلود و نصب PostgreSQL از [postgresql.org](https://www.postgresql.org/download/windows/)
+2. تنظیم رمز عبور برای کاربر postgres
+3. ایجاد دیتابیس و کاربر
+
+#### macOS
 ```bash
+# با Homebrew
+brew install postgresql
+brew services start postgresql
+
+# ایجاد دیتابیس
+createdb kimiagar_dev
+```
+
+#### Linux (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# تغییر به کاربر postgres
+sudo -u postgres psql
+
+# ایجاد دیتابیس و کاربر
+CREATE DATABASE kimiagar_dev;
+CREATE USER kimiagar_user WITH PASSWORD 'kimiagar_password';
+GRANT ALL PRIVILEGES ON DATABASE kimiagar_dev TO kimiagar_user;
+\q
+```
+
+## مرحله 5: تولید Prisma Client
+
+```bash
+# تولید Prisma Client
+npx prisma generate
+
+# بررسی schema
+npx prisma studio
+```
+
+## مرحله 6: اجرای Database Migrations
+
+```bash
+# اجرای migrations
+npm run db:migrate
+
+# یا دستی
+npx prisma migrate deploy
+```
+
+## مرحله 7: Seeding دیتابیس
+
+```bash
+# seeding دیتابیس با داده‌های تست
+npm run db:seed
+
+# یا دستی
+npx tsx prisma/seed.ts
+```
+
+## مرحله 8: راه‌اندازی Redis (اختیاری)
+
+### با Docker
+```bash
+docker-compose up redis -d
+```
+
+### نصب دستی
+```bash
+# macOS
+brew install redis
+brew services start redis
+
+# Linux
+sudo apt install redis-server
+sudo systemctl start redis-server
+```
+
+## مرحله 9: تست اتصال دیتابیس
+
+```bash
+# بررسی health check
+curl http://localhost:3000/api/health
+
+# یا در مرورگر
+http://localhost:3000/api/health
+```
+
+## مرحله 10: راه‌اندازی پروژه
+
+### محیط توسعه
+```bash
+# شروع سرور توسعه
 npm run dev
+
+# یا با Docker
+make dev
 ```
 
-## 📱 تنظیم سرویس SMS
-
-### کاوه‌نگار (پیشنهادی)
-1. در [کاوه‌نگار](https://kavenegar.com) ثبت‌نام کنید
-2. API Key دریافت کنید
-3. قالب SMS ایجاد کنید
-4. متغیرهای زیر را تنظیم کنید:
-```env
-KAVENEGAR_API_KEY="your-api-key"
-KAVENEGAR_TEMPLATE_ID="your-template-id"
-```
-
-### ملی پیامک
-1. در [ملی پیامک](https://melipayamak.com) ثبت‌نام کنید
-2. نام کاربری و رمز عبور دریافت کنید
-3. متغیرهای زیر را تنظیم کنید:
-```env
-MELIPAYAMAK_USERNAME="your-username"
-MELIPAYAMAK_PASSWORD="your-password"
-MELIPAYAMAK_FROM="5000xxx"
-```
-
-### قاصدک
-1. در [قاصدک](https://ghasedak.me) ثبت‌نام کنید
-2. API Key دریافت کنید
-3. متغیرهای زیر را تنظیم کنید:
-```env
-GHASEDAK_API_KEY="your-api-key"
-GHASEDAK_LINE_NUMBER="10008566"
-```
-
-## 📧 تنظیم سرویس ایمیل
-
-### SendGrid (پیشنهادی)
-1. در [SendGrid](https://sendgrid.com) ثبت‌نام کنید
-2. API Key ایجاد کنید
-3. دامنه خود را تایید کنید
-4. متغیرهای زیر را تنظیم کنید:
-```env
-SENDGRID_API_KEY="your-api-key"
-SENDGRID_FROM_EMAIL="noreply@yourdomain.com"
-```
-
-### Mailgun
-1. در [Mailgun](https://mailgun.com) ثبت‌نام کنید
-2. دامنه خود را اضافه کنید
-3. API Key دریافت کنید
-4. متغیرهای زیر را تنظیم کنید:
-```env
-MAILGUN_API_KEY="your-api-key"
-MAILGUN_DOMAIN="mg.yourdomain.com"
-```
-
-### SMTP
-برای استفاده از SMTP، متغیرهای زیر را تنظیم کنید:
-```env
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USERNAME="your-email@gmail.com"
-SMTP_PASSWORD="your-app-password"
-```
-
-## 💳 تنظیم درگاه پرداخت
-
-### زرپال
-1. در [زرپال](https://zarinpal.com) ثبت‌نام کنید
-2. Merchant ID دریافت کنید
-3. متغیرهای زیر را تنظیم کنید:
-```env
-ZARINPAL_MERCHANT_ID="your-merchant-id"
-ZARINPAL_SANDBOX=true  # برای تست
-```
-
-## 🔒 تنظیمات امنیتی
-
-### JWT
-```env
-JWT_SECRET="your-super-secret-jwt-key-change-in-production"
-JWT_REFRESH_SECRET="your-super-secret-refresh-jwt-key-change-in-production"
-```
-
-### رمزنگاری
-```env
-BCRYPT_ROUNDS=12
-```
-
-### Rate Limiting
-```env
-RATE_LIMIT_WINDOW_MS=900000  # 15 دقیقه
-RATE_LIMIT_MAX_REQUESTS=100  # حداکثر 100 درخواست
-```
-
-## 📊 مانیتورینگ و لاگ
-
-### Sentry
-```env
-SENTRY_DSN="your-sentry-dsn"
-```
-
-### New Relic
-```env
-NEW_RELIC_LICENSE_KEY="your-new-relic-license-key"
-```
-
-### لاگ
-```env
-LOG_LEVEL="info"
-LOG_FILE="logs/app.log"
-```
-
-## 🧪 تست
-
-### تست SMS
+### محیط تولید
 ```bash
-# تست ارسال SMS
-curl -X POST http://localhost:3000/api/sms/send \
-  -H "Content-Type: application/json" \
-  -d '{"phone": "09123456789", "message": "تست SMS"}'
+# ساخت پروژه
+npm run build
+
+# شروع سرور تولید
+npm run start
+
+# یا با Docker
+make build
+make prod
 ```
 
-### تست ایمیل
+## مرحله 11: تست عملکرد
+
+### 1. تست API endpoints
 ```bash
-# تست ارسال ایمیل
-curl -X POST http://localhost:3000/api/email/send \
+# Health check
+curl http://localhost:3000/api/health
+
+# Test registration
+curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"to": "test@example.com", "subject": "تست", "content": "محتوی تست"}'
+  -d '{
+    "username": "testuser",
+    "password": "test123",
+    "firstName": "کاربر",
+    "lastName": "تست"
+  }'
 ```
 
-## 🚨 مشکلات رایج
+### 2. تست در مرورگر
+- باز کردن `http://localhost:3000`
+- تست فرم ثبت‌نام
+- تست ورود کاربر
 
-### خطای اتصال به دیتابیس
-- بررسی صحت DATABASE_URL
-- اطمینان از اجرای PostgreSQL
-- بررسی دسترسی‌های کاربر دیتابیس
+## مرحله 12: تنظیمات اضافی
 
-### خطای ارسال SMS
-- بررسی صحت API Key
-- بررسی موجودی اعتبار
-- بررسی تنظیمات قالب (برای کاوه‌نگار)
+### تنظیم CORS (در صورت نیاز)
+```typescript
+// next.config.ts
+const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+        ],
+      },
+    ];
+  },
+};
+```
 
-### خطای ارسال ایمیل
-- بررسی صحت API Key
-- بررسی تایید دامنه
-- بررسی تنظیمات SPF و DKIM
+### تنظیم SSL (برای production)
+```bash
+# ایجاد self-signed certificate
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+```
 
-## 📞 پشتیبانی
+## دستورات مفید
 
-برای دریافت کمک:
-- **ایمیل:** support@kimiagar.com
-- **مستندات:** [docs.kimiagar.com](https://docs.kimiagar.com)
-- **GitHub Issues:** [github.com/kimiagar/issues](https://github.com/kimiagar/issues)
+### مدیریت دیتابیس
+```bash
+# باز کردن Prisma Studio
+npm run db:studio
 
----
+# بازنشانی دیتابیس
+npm run db:reset
 
-*آخرین به‌روزرسانی: 31 تیر 1403*
+# اجرای migrations
+npm run db:migrate
+
+# seeding
+npm run db:seed
+```
+
+### مدیریت Docker
+```bash
+# شروع سرویس‌ها
+make up
+
+# توقف سرویس‌ها
+make down
+
+# مشاهده لاگ‌ها
+make logs
+
+# بررسی وضعیت
+make status
+```
+
+### مدیریت پروژه
+```bash
+# نصب dependencies
+npm install
+
+# build پروژه
+npm run build
+
+# linting
+npm run lint
+
+# تست
+npm test
+```
+
+## عیب‌یابی
+
+### مشکلات رایج
+1. **خطای اتصال دیتابیس**: بررسی `DATABASE_URL` و وضعیت PostgreSQL
+2. **خطای Prisma**: اجرای `npx prisma generate`
+3. **خطای JWT**: بررسی متغیرهای `JWT_SECRET`
+4. **خطای پورت**: بررسی پورت‌های استفاده شده
+
+### راهنمای کامل عیب‌یابی
+برای اطلاعات بیشتر به فایل `README-Troubleshooting.md` مراجعه کنید.
+
+## نکات مهم
+
+1. **همیشه ابتدا health check را بررسی کنید**
+2. **متغیرهای محیطی را درست تنظیم کنید**
+3. **Prisma Client را بعد از تغییرات schema تولید کنید**
+4. **از Docker logs برای عیب‌یابی استفاده کنید**
+5. **دیتابیس را قبل از شروع پروژه راه‌اندازی کنید**
+
+## پشتیبانی
+
+در صورت بروز مشکل:
+1. فایل `README-Troubleshooting.md` را مطالعه کنید
+2. لاگ‌های سرور و دیتابیس را بررسی کنید
+3. از health check endpoint استفاده کنید
+4. اطلاعات خطا را کامل ثبت کنید
+
+## اطلاعات تماس
+
+- **مستندات**: فایل‌های README موجود در پروژه
+- **عیب‌یابی**: `README-Troubleshooting.md`
+- **Docker**: `README-Docker.md`
