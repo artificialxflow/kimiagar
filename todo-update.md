@@ -57,6 +57,467 @@
 
 ---
 
+## 🗄️ بازطراحی ساختار دیتابیس
+
+### اولویت: **بالا** - پایه و اساس تمام ویژگی‌های جدید
+
+#### 📋 **Migration جدید: 20250731000000_enhance_database_structure**
+
+##### **1. بهبود جدول users**
+- [ ] **فیلدهای امنیتی جدید:**
+  - `lastLoginAt`: زمان آخرین ورود موفق
+  - `loginAttempts`: تعداد تلاش‌های ورود ناموفق
+  - `isBlocked`: وضعیت مسدودیت حساب
+  - `blockedUntil`: زمان پایان مسدودیت
+  - `failedLoginAttempts`: تعداد تلاش‌های ناموفق متوالی
+  - `lastFailedLoginAt`: زمان آخرین تلاش ناموفق
+
+##### **2. بهبود جدول wallets**
+- [ ] **فیلدهای مدیریتی جدید:**
+  - `isActive`: وضعیت فعال بودن کیف پول
+  - `currency`: نوع ارز (پیش‌فرض: IRR)
+  - `walletAddress`: کد 16 رقمی منحصر به فرد کیف پول
+  - `dailyTransferLimit`: محدودیت انتقال روزانه
+  - `monthlyTransferLimit`: محدودیت انتقال ماهانه
+  - `isVerified`: وضعیت تایید کیف پول
+
+##### **3. بهبود جدول transactions**
+- [ ] **فیلدهای ردیابی جدید:**
+  - `referenceId`: شماره مرجع تراکنش (16 رقمی)
+  - `metadata`: اطلاعات اضافی (JSON)
+  - `ipAddress`: آدرس IP کاربر
+  - `userAgent`: مرورگر و سیستم عامل کاربر
+  - `location`: موقعیت جغرافیایی (اختیاری)
+  - `riskScore`: امتیاز ریسک تراکنش
+
+##### **4. بهبود جدول orders**
+- [ ] **فیلدهای مدیریتی جدید:**
+  - `commissionRate`: نرخ کارمزد اعمال شده
+  - `isAutomatic`: نوع معامله (خودکار/دستی)
+  - `notes`: یادداشت‌های کاربر
+  - `adminNotes`: یادداشت‌های ادمین
+  - `processingTime`: زمان پردازش سفارش
+  - `statusHistory`: تاریخچه تغییرات وضعیت (JSON)
+
+##### **5. بهبود جدول prices**
+- [ ] **فیلدهای قیمت‌گذاری جدید:**
+  - `source`: منبع قیمت (API، دستی، محاسباتی)
+  - `lastUpdatedBy`: آخرین کاربر به‌روزرسانی کننده
+  - `priceChange`: تغییر قیمت نسبت به روز قبل
+  - `priceChangePercentage`: درصد تغییر قیمت
+  - `isActive`: وضعیت فعال بودن قیمت
+  - `validFrom`: تاریخ شروع اعتبار
+  - `validTo`: تاریخ پایان اعتبار
+
+##### **6. بهبود جدول commissions**
+- [ ] **فیلدهای مدیریتی جدید:**
+  - `isActive`: وضعیت فعال بودن نرخ
+  - `validFrom`: تاریخ شروع اعتبار
+  - `validTo`: تاریخ پایان اعتبار
+  - `changedBy`: کاربر تغییر دهنده
+  - `changeReason`: دلیل تغییر نرخ
+  - `previousRate`: نرخ قبلی
+  - `changePercentage`: درصد تغییر
+
+##### **7. بهبود جدول transfers**
+- [ ] **فیلدهای امنیتی جدید:**
+  - `referenceId`: شماره مرجع انتقال
+  - `statusHistory`: تاریخچه تغییرات وضعیت
+  - `adminNotes`: یادداشت‌های ادمین
+  - `riskScore`: امتیاز ریسک انتقال
+  - `isVerified`: وضعیت تایید انتقال
+  - `verificationMethod`: روش تایید (SMS، ایمیل، دستی)
+
+##### **8. بهبود جدول deliveryRequests**
+- [ ] **فیلدهای مدیریتی جدید:**
+  - `referenceId`: شماره مرجع درخواست
+  - `deliveryAddress`: آدرس تحویل
+  - `contactPerson`: شخص تماس گیرنده
+  - `contactPhone`: شماره تماس تحویل
+  - `preferredDeliveryDate`: تاریخ ترجیحی تحویل
+  - `deliveryNotes`: یادداشت‌های تحویل
+  - `statusHistory`: تاریخچه تغییرات وضعیت
+  - `adminNotes`: یادداشت‌های ادمین
+
+##### **9. بهبود جدول notifications**
+- [ ] **فیلدهای ارسال جدید:**
+  - `deliveryStatus`: وضعیت ارسال (pending، sent، failed)
+  - `deliveryAttempts`: تعداد تلاش‌های ارسال
+  - `lastDeliveryAttempt`: آخرین تلاش ارسال
+  - `deliveryMethod`: روش ارسال (SMS، ایمیل، push)
+  - `templateId`: شناسه قالب پیام
+  - `metadata`: اطلاعات اضافی (JSON)
+  - `isRead`: وضعیت خوانده شدن
+
+##### **10. بهبود جدول adminUsers**
+- [ ] **فیلدهای امنیتی جدید:**
+  - `lastLoginAt`: زمان آخرین ورود
+  - `loginAttempts`: تعداد تلاش‌های ورود
+  - `isActive`: وضعیت فعال بودن
+  - `permissions`: مجوزهای دسترسی (JSON)
+  - `role`: نقش کاربر (super_admin، admin، moderator)
+  - `department`: بخش کاری
+  - `phoneNumber`: شماره تماس
+
+##### **11. بهبود جدول auditLogs**
+- [ ] **فیلدهای ردیابی جدید:**
+  - `ipAddress`: آدرس IP کاربر
+  - `userAgent`: مرورگر و سیستم عامل
+  - `location`: موقعیت جغرافیایی
+  - `sessionId`: شناسه نشست
+  - `requestId`: شناسه درخواست
+  - `responseTime`: زمان پاسخ‌دهی
+  - `statusCode`: کد وضعیت HTTP
+  - `errorMessage`: پیام خطا (در صورت وجود)
+
+#### 🔧 **تغییرات Prisma Schema**
+
+##### **1. Enum های جدید**
+```prisma
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+  PENDING_VERIFICATION
+}
+
+enum WalletStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+enum TransferStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REVERSED
+}
+
+enum DeliveryStatus {
+  REQUESTED
+  APPROVED
+  PROCESSING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum NotificationType {
+  SMS
+  EMAIL
+  PUSH
+  IN_APP
+}
+
+enum CommissionType {
+  BUY
+  SELL
+  TRANSFER
+  DELIVERY
+}
+```
+
+##### **2. فیلدهای جدید در مدل‌ها**
+```prisma
+model User {
+  // فیلدهای موجود...
+  
+  // فیلدهای جدید
+  lastLoginAt        DateTime?
+  loginAttempts      Int       @default(0)
+  isBlocked          Boolean   @default(false)
+  blockedUntil       DateTime?
+  failedLoginAttempts Int      @default(0)
+  lastFailedLoginAt  DateTime?
+  status             UserStatus @default(ACTIVE)
+  
+  // روابط جدید
+  wallets            Wallet[]
+  transactions       Transaction[]
+  orders             Order[]
+  transfers          Transfer[]
+  deliveryRequests   DeliveryRequest[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+}
+
+model Wallet {
+  // فیلدهای موجود...
+  
+  // فیلدهای جدید
+  isActive           Boolean   @default(true)
+  currency           String    @default("IRR")
+  walletAddress      String    @unique @default(cuid())
+  dailyTransferLimit Decimal   @default(10000000) // 10 میلیون تومان
+  monthlyTransferLimit Decimal @default(100000000) // 100 میلیون تومان
+  isVerified         Boolean   @default(false)
+  status             WalletStatus @default(ACTIVE)
+  
+  // روابط جدید
+  user               User      @relation(fields: [userId], references: [id])
+  transactions       Transaction[]
+  transfers          Transfer[]
+}
+```
+
+#### 📊 **Migration SQL کامل**
+
+##### **1. ایجاد جداول جدید**
+```sql
+-- جدول جدید برای تاریخچه تغییرات
+CREATE TABLE "status_history" (
+  "id" TEXT NOT NULL,
+  "entityType" TEXT NOT NULL,
+  "entityId" TEXT NOT NULL,
+  "oldStatus" TEXT,
+  "newStatus" TEXT NOT NULL,
+  "changedBy" TEXT NOT NULL,
+  "changeReason" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT "status_history_pkey" PRIMARY KEY ("id")
+);
+
+-- جدول جدید برای قالب‌های پیام
+CREATE TABLE "message_templates" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "type" TEXT NOT NULL,
+  "subject" TEXT,
+  "content" TEXT NOT NULL,
+  "variables" JSONB,
+  "isActive" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL,
+  
+  CONSTRAINT "message_templates_pkey" PRIMARY KEY ("id")
+);
+
+-- جدول جدید برای تنظیمات سیستم
+CREATE TABLE "system_settings" (
+  "id" TEXT NOT NULL,
+  "key" TEXT NOT NULL UNIQUE,
+  "value" JSONB NOT NULL,
+  "description" TEXT,
+  "isActive" BOOLEAN NOT NULL DEFAULT true,
+  "updatedBy" TEXT,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  
+  CONSTRAINT "system_settings_pkey" PRIMARY KEY ("id")
+);
+```
+
+##### **2. اضافه کردن فیلدهای جدید**
+```sql
+-- بهبود جدول users
+ALTER TABLE "users" ADD COLUMN "lastLoginAt" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN "loginAttempts" INTEGER DEFAULT 0;
+ALTER TABLE "users" ADD COLUMN "isBlocked" BOOLEAN DEFAULT false;
+ALTER TABLE "users" ADD COLUMN "blockedUntil" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN "failedLoginAttempts" INTEGER DEFAULT 0;
+ALTER TABLE "users" ADD COLUMN "lastFailedLoginAt" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN "status" TEXT DEFAULT 'ACTIVE';
+
+-- بهبود جدول wallets
+ALTER TABLE "wallets" ADD COLUMN "isActive" BOOLEAN DEFAULT true;
+ALTER TABLE "wallets" ADD COLUMN "currency" TEXT DEFAULT 'IRR';
+ALTER TABLE "wallets" ADD COLUMN "walletAddress" TEXT UNIQUE DEFAULT gen_random_uuid()::text;
+ALTER TABLE "wallets" ADD COLUMN "dailyTransferLimit" DECIMAL(20,2) DEFAULT 10000000;
+ALTER TABLE "wallets" ADD COLUMN "monthlyTransferLimit" DECIMAL(20,2) DEFAULT 100000000;
+ALTER TABLE "wallets" ADD COLUMN "isVerified" BOOLEAN DEFAULT false;
+ALTER TABLE "wallets" ADD COLUMN "status" TEXT DEFAULT 'ACTIVE';
+
+-- بهبود جدول transactions
+ALTER TABLE "transactions" ADD COLUMN "referenceId" TEXT UNIQUE DEFAULT gen_random_uuid()::text;
+ALTER TABLE "transactions" ADD COLUMN "metadata" JSONB;
+ALTER TABLE "transactions" ADD COLUMN "ipAddress" TEXT;
+ALTER TABLE "transactions" ADD COLUMN "userAgent" TEXT;
+ALTER TABLE "transactions" ADD COLUMN "location" TEXT;
+ALTER TABLE "transactions" ADD COLUMN "riskScore" INTEGER DEFAULT 0;
+
+-- بهبود جدول orders
+ALTER TABLE "orders" ADD COLUMN "commissionRate" DECIMAL(5,4);
+ALTER TABLE "orders" ADD COLUMN "isAutomatic" BOOLEAN DEFAULT true;
+ALTER TABLE "orders" ADD COLUMN "notes" TEXT;
+ALTER TABLE "orders" ADD COLUMN "adminNotes" TEXT;
+ALTER TABLE "orders" ADD COLUMN "processingTime" INTEGER; -- به ثانیه
+ALTER TABLE "orders" ADD COLUMN "statusHistory" JSONB;
+
+-- بهبود جدول prices
+ALTER TABLE "prices" ADD COLUMN "source" TEXT DEFAULT 'MANUAL';
+ALTER TABLE "prices" ADD COLUMN "lastUpdatedBy" TEXT;
+ALTER TABLE "prices" ADD COLUMN "priceChange" DECIMAL(20,2);
+ALTER TABLE "prices" ADD COLUMN "priceChangePercentage" DECIMAL(5,2);
+ALTER TABLE "prices" ADD COLUMN "isActive" BOOLEAN DEFAULT true;
+ALTER TABLE "prices" ADD COLUMN "validFrom" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "prices" ADD COLUMN "validTo" TIMESTAMP(3);
+
+-- بهبود جدول commissions
+ALTER TABLE "commissions" ADD COLUMN "isActive" BOOLEAN DEFAULT true;
+ALTER TABLE "commissions" ADD COLUMN "validFrom" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE "commissions" ADD COLUMN "validTo" TIMESTAMP(3);
+ALTER TABLE "commissions" ADD COLUMN "changedBy" TEXT;
+ALTER TABLE "commissions" ADD COLUMN "changeReason" TEXT;
+ALTER TABLE "commissions" ADD COLUMN "previousRate" DECIMAL(5,4);
+ALTER TABLE "commissions" ADD COLUMN "changePercentage" DECIMAL(5,2);
+
+-- بهبود جدول transfers
+ALTER TABLE "transfers" ADD COLUMN "referenceId" TEXT UNIQUE DEFAULT gen_random_uuid()::text;
+ALTER TABLE "transfers" ADD COLUMN "statusHistory" JSONB;
+ALTER TABLE "transfers" ADD COLUMN "adminNotes" TEXT;
+ALTER TABLE "transfers" ADD COLUMN "riskScore" INTEGER DEFAULT 0;
+ALTER TABLE "transfers" ADD COLUMN "isVerified" BOOLEAN DEFAULT false;
+ALTER TABLE "transfers" ADD COLUMN "verificationMethod" TEXT;
+
+-- بهبود جدول deliveryRequests
+ALTER TABLE "deliveryRequests" ADD COLUMN "referenceId" TEXT UNIQUE DEFAULT gen_random_uuid()::text;
+ALTER TABLE "deliveryRequests" ADD COLUMN "deliveryAddress" TEXT;
+ALTER TABLE "deliveryRequests" ADD COLUMN "contactPerson" TEXT;
+ALTER TABLE "deliveryRequests" ADD COLUMN "contactPhone" TEXT;
+ALTER TABLE "deliveryRequests" ADD COLUMN "preferredDeliveryDate" DATE;
+ALTER TABLE "deliveryRequests" ADD COLUMN "deliveryNotes" TEXT;
+ALTER TABLE "deliveryRequests" ADD COLUMN "statusHistory" JSONB;
+ALTER TABLE "deliveryRequests" ADD COLUMN "adminNotes" TEXT;
+
+-- بهبود جدول notifications
+ALTER TABLE "notifications" ADD COLUMN "deliveryStatus" TEXT DEFAULT 'PENDING';
+ALTER TABLE "notifications" ADD COLUMN "deliveryAttempts" INTEGER DEFAULT 0;
+ALTER TABLE "notifications" ADD COLUMN "lastDeliveryAttempt" TIMESTAMP(3);
+ALTER TABLE "notifications" ADD COLUMN "deliveryMethod" TEXT DEFAULT 'SMS';
+ALTER TABLE "notifications" ADD COLUMN "templateId" TEXT;
+ALTER TABLE "notifications" ADD COLUMN "metadata" JSONB;
+ALTER TABLE "notifications" ADD COLUMN "isRead" BOOLEAN DEFAULT false;
+
+-- بهبود جدول adminUsers
+ALTER TABLE "adminUsers" ADD COLUMN "lastLoginAt" TIMESTAMP(3);
+ALTER TABLE "adminUsers" ADD COLUMN "loginAttempts" INTEGER DEFAULT 0;
+ALTER TABLE "adminUsers" ADD COLUMN "isActive" BOOLEAN DEFAULT true;
+ALTER TABLE "adminUsers" ADD COLUMN "permissions" JSONB;
+ALTER TABLE "adminUsers" ADD COLUMN "role" TEXT DEFAULT 'ADMIN';
+ALTER TABLE "adminUsers" ADD COLUMN "department" TEXT;
+ALTER TABLE "adminUsers" ADD COLUMN "phoneNumber" TEXT;
+
+-- بهبود جدول auditLogs
+ALTER TABLE "auditLogs" ADD COLUMN "ipAddress" TEXT;
+ALTER TABLE "auditLogs" ADD COLUMN "userAgent" TEXT;
+ALTER TABLE "auditLogs" ADD COLUMN "location" TEXT;
+ALTER TABLE "auditLogs" ADD COLUMN "sessionId" TEXT;
+ALTER TABLE "auditLogs" ADD COLUMN "requestId" TEXT;
+ALTER TABLE "auditLogs" ADD COLUMN "responseTime" INTEGER; -- به میلی‌ثانیه
+ALTER TABLE "auditLogs" ADD COLUMN "statusCode" INTEGER;
+ALTER TABLE "auditLogs" ADD COLUMN "errorMessage" TEXT;
+```
+
+#### 🔍 **Index های جدید برای عملکرد بهتر**
+```sql
+-- Index برای جستجوی سریع
+CREATE INDEX "idx_users_status" ON "users"("status");
+CREATE INDEX "idx_users_email" ON "users"("email");
+CREATE INDEX "idx_users_phone" ON "users"("phone");
+
+CREATE INDEX "idx_wallets_address" ON "wallets"("walletAddress");
+CREATE INDEX "idx_wallets_status" ON "wallets"("status");
+
+CREATE INDEX "idx_transactions_reference" ON "transactions"("referenceId");
+CREATE INDEX "idx_transactions_user_date" ON "transactions"("userId", "createdAt");
+
+CREATE INDEX "idx_orders_status" ON "orders"("status");
+CREATE INDEX "idx_orders_user_date" ON "orders"("userId", "createdAt");
+
+CREATE INDEX "idx_transfers_reference" ON "transfers"("referenceId");
+CREATE INDEX "idx_transfers_status" ON "transfers"("status");
+
+CREATE INDEX "idx_delivery_requests_reference" ON "deliveryRequests"("referenceId");
+CREATE INDEX "idx_delivery_requests_status" ON "deliveryRequests"("status");
+
+CREATE INDEX "idx_notifications_user_status" ON "notifications"("userId", "deliveryStatus");
+CREATE INDEX "idx_notifications_created_at" ON "notifications"("createdAt");
+
+CREATE INDEX "idx_audit_logs_user_date" ON "auditLogs"("userId", "createdAt");
+CREATE INDEX "idx_audit_logs_action" ON "auditLogs"("action");
+```
+
+#### 📝 **دستورات اجرای Migration**
+
+##### **1. ایجاد Migration**
+```bash
+# در پوشه پروژه
+npx prisma migrate dev --name enhance_database_structure
+```
+
+##### **2. بررسی Migration**
+```bash
+# بررسی وضعیت migrations
+npx prisma migrate status
+
+# مشاهده migration های موجود
+npx prisma migrate list
+```
+
+##### **3. اجرای Migration**
+```bash
+# اجرای migration در محیط production
+npx prisma migrate deploy
+
+# یا در محیط development
+npx prisma migrate dev
+```
+
+##### **4. به‌روزرسانی Prisma Client**
+```bash
+# تولید Prisma Client جدید
+npx prisma generate
+```
+
+#### ⚠️ **نکات مهم Migration**
+
+##### **1. Backup دیتابیس**
+- [ ] **قبل از Migration:** ایجاد backup کامل از دیتابیس
+- [ ] **تست Migration:** اجرای Migration در محیط test
+- [ ] **Rollback Plan:** برنامه بازگشت در صورت مشکل
+
+##### **2. Downtime**
+- [ ] **زمان Migration:** برنامه‌ریزی برای کمترین downtime
+- [ ] **اعلان کاربران:** اطلاع‌رسانی از زمان تعمیر و نگهداری
+- [ ] **Maintenance Mode:** فعال‌سازی حالت تعمیر
+
+##### **3. Data Migration**
+- [ ] **فیلدهای موجود:** حفظ داده‌های موجود
+- [ ] **مقادیر پیش‌فرض:** تنظیم مقادیر مناسب برای فیلدهای جدید
+- [ ] **اعتبارسنجی:** بررسی صحت داده‌ها پس از Migration
+
+#### 🎯 **نتیجه Migration**
+
+پس از اجرای موفق Migration جدید:
+
+- **ساختار دیتابیس بهبود یافته** و آماده برای ویژگی‌های جدید
+- **امنیت سیستم افزایش یافته** با فیلدهای امنیتی جدید
+- **عملکرد بهتر** با Index های بهینه
+- **قابلیت ردیابی کامل** تمام عملیات سیستم
+- **انعطاف‌پذیری بیشتر** برای توسعه‌های آینده
+
+---
+
 ## 📱 سیستم اعلان‌های SMS
 
 ### اولویت: **بالا** - برای جلوگیری از دبه و تضمین شفافیت معاملات
