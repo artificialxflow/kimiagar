@@ -63,6 +63,11 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        node server.js
+      "
 
 volumes:
   postgres_data:
