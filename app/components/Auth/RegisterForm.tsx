@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { User, Lock, Mail, Phone, CreditCard, MapPin, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface RegisterFormProps {
   onRegister: (userData: any) => void;
@@ -14,12 +14,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
     password: '',
     confirmPassword: '',
     firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    nationalId: '',
-    bankAccount: '',
-    postalCode: ''
+    lastName: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,31 +48,6 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
       case 'lastName':
         if (value.length < 2) return 'نام خانوادگی باید حداقل 2 کاراکتر باشد';
         if (value.length > 30) return 'نام خانوادگی نمی‌تواند بیش از 30 کاراکتر باشد';
-        return '';
-      case 'email':
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-          return 'فرمت ایمیل نامعتبر است';
-        }
-        return '';
-      case 'phoneNumber':
-        if (value && !/^09\d{9}$/.test(value)) {
-          return 'فرمت شماره موبایل نامعتبر است (مثال: 09123456789)';
-        }
-        return '';
-      case 'nationalId':
-        if (value && !/^\d{10}$/.test(value)) {
-          return 'کد ملی باید 10 رقم باشد';
-        }
-        return '';
-      case 'bankAccount':
-        if (value && !/^IR\d{24}$/.test(value)) {
-          return 'فرمت شماره شبا نامعتبر است (مثال: IR123456789012345678901234)';
-        }
-        return '';
-      case 'postalCode':
-        if (value && !/^\d{10}$/.test(value)) {
-          return 'کد پستی باید 10 رقم باشد';
-        }
         return '';
       default:
         return '';
@@ -172,9 +142,9 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
             onChange={(e) => handleInputChange(field, e.target.value)}
             placeholder={placeholder}
             required={required}
-            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-transparent ${
               error ? 'border-red-500' : 'border-gray-300'
-            } ${icon ? 'pr-10' : ''} ${type === 'password' ? 'pr-12' : ''}`}
+            } ${icon ? 'pr-10' : ''} ${type === 'password' ? 'pl-12' : ''}`}
           />
           {type === 'password' && (
             <button
@@ -203,30 +173,30 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-8 h-8 text-green-600" />
+          <div className="w-16 h-16 bg-gold-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-gold-600" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 mb-2">
+          <h1 className="text-2xl font-bold text-text-800 mb-2">
             ثبت‌نام در کیمیاگر
           </h1>
-          <p className="text-slate-600">
+          <p className="text-text-600">
             حساب کاربری جدید ایجاد کنید
           </p>
         </div>
 
         {/* Form */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="bg-background-50 rounded-2xl shadow-lg p-6 border border-border-100">
           {/* فیلدهای الزامی */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">اطلاعات الزامی</h3>
+            <h3 className="text-lg font-semibold text-text-800 mb-4">اطلاعات الزامی</h3>
             
             {/* نام کاربری */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-text-700 mb-2">
                 نام کاربری <span className="text-red-500">*</span>
               </label>
               {renderInput('username', 'نام کاربری خود را وارد کنید', 'text', <User className="h-5 w-5 text-gray-400" />, true)}
@@ -234,7 +204,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
 
             {/* نام */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-text-700 mb-2">
                 نام <span className="text-red-500">*</span>
               </label>
               {renderInput('firstName', 'نام خود را وارد کنید', 'text', undefined, true)}
@@ -242,7 +212,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
 
             {/* نام خانوادگی */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-text-700 mb-2">
                 نام خانوادگی <span className="text-red-500">*</span>
               </label>
               {renderInput('lastName', 'نام خانوادگی خود را وارد کنید', 'text', undefined, true)}
@@ -250,7 +220,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
 
             {/* رمز عبور */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-text-700 mb-2">
                 رمز عبور <span className="text-red-500">*</span>
               </label>
               {renderInput('password', 'رمز عبور خود را وارد کنید', 'password', <Lock className="h-5 w-5 text-gray-400" />, true)}
@@ -258,45 +228,10 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
 
             {/* تایید رمز عبور */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-text-700 mb-2">
                 تایید رمز عبور <span className="text-red-500">*</span>
               </label>
               {renderInput('confirmPassword', 'رمز عبور خود را مجدداً وارد کنید', 'password', <Lock className="h-5 w-5 text-gray-400" />, true)}
-            </div>
-          </div>
-
-          {/* فیلدهای اختیاری */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">اطلاعات اختیاری</h3>
-            
-            {/* ایمیل */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">ایمیل</label>
-              {renderInput('email', 'ایمیل خود را وارد کنید', 'email', <Mail className="h-5 w-5 text-gray-400" />)}
-            </div>
-
-            {/* شماره موبایل */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">شماره موبایل</label>
-              {renderInput('phoneNumber', '09123456789', 'tel', <Phone className="h-5 w-5 text-gray-400" />)}
-            </div>
-
-            {/* کد ملی */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">کد ملی</label>
-              {renderInput('nationalId', 'کد ملی 10 رقمی', 'text', <CreditCard className="h-5 w-5 text-gray-400" />)}
-            </div>
-
-            {/* شماره شبا */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">شماره شبا</label>
-              {renderInput('bankAccount', 'IR123456789012345678901234', 'text', <CreditCard className="h-5 w-5 text-gray-400" />)}
-            </div>
-
-            {/* کد پستی */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">کد پستی</label>
-              {renderInput('postalCode', 'کد پستی 10 رقمی', 'text', <MapPin className="h-5 w-5 text-gray-400" />)}
             </div>
           </div>
 
@@ -311,7 +246,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
           <button
             onClick={handleSubmit}
             disabled={loading || !canSubmit()}
-            className="w-full mt-6 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full mt-6 px-6 py-3 btn-primary text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'در حال پردازش...' : 'ثبت‌نام'}
           </button>
@@ -321,7 +256,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
             {/* OTP Login Button */}
             <button
               onClick={onSwitchToOTP}
-              className="w-full px-6 py-3 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center"
+              className="w-full px-6 py-3 border border-gold-300 text-gold-600 rounded-lg hover:bg-gold-50 transition-colors flex items-center justify-center"
             >
               <span>ورود با کد تایید (OTP)</span>
             </button>
@@ -330,7 +265,7 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
             <div className="text-center">
               <button
                 onClick={onSwitchToLogin}
-                className="text-blue-600 hover:text-blue-700 text-sm"
+                className="text-gold-600 hover:text-gold-700 text-sm"
               >
                 قبلاً ثبت‌نام کرده‌اید؟ ورود کنید
               </button>
