@@ -30,6 +30,7 @@ model User {
   isVerified               Boolean   @default(false)
   isEmailVerified          Boolean   @default(false)
   isPhoneVerified          Boolean   @default(false)
+  isAdmin                  Boolean   @default(false) // آیا کاربر ادمین است
   emailVerificationCode    String?
   emailVerificationExpires DateTime?
   phoneVerificationCode    String?
