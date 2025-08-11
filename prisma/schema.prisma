@@ -13,40 +13,67 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ===== مدل‌های اصلی =====
+
 model User {
-  id          String   @id @default(cuid())
-  username    String   @unique
-  password    String
-  firstName   String?
-  lastName    String?
-  phoneNumber String?  @unique
-  nationalId  String?  @unique
-  bankAccount String?  // شماره شبا
-  postalCode  String?  // کد پستی
-  isVerified  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                       String    @id @default(cuid())
+  username                 String    @unique
+  password                 String
+  firstName                String
+  lastName                 String
+  phoneNumber              String    @unique
+  nationalId               String    @unique
+  bankAccount              String? // شماره شبا
+  postalCode               String? // کد پستی
+  email                    String?   @unique
+  walletAddress            String    @unique @default(cuid()) // آدرس 16 رقمی کیف پول
+  isVerified               Boolean   @default(false)
+  isEmailVerified          Boolean   @default(false)
+  isPhoneVerified          Boolean   @default(false)
+  emailVerificationCode    String?
+  emailVerificationExpires DateTime?
+  phoneVerificationCode    String?
+  phoneVerificationExpires DateTime?
+  lastLoginAt              DateTime?
+  loginAttempts            Int       @default(0)
+  isBlocked                Boolean   @default(false)
+  blockedUntil             DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
   // Relations
-  wallets       Wallet[]
-  transactions  Transaction[]
-  orders        Order[]
+  wallets          Wallet[]
+  transactions     Transaction[]
+  orders           Order[]
+  transfers        Transfer[]
+  deliveryRequests DeliveryRequest[]
+  notifications    Notification[]
+  userSettings     UserSetting?
+
+  // Reverse relations for transfers
+  transfersFrom Transfer[] @relation("TransferFrom")
+  transfersTo   Transfer[] @relation("TransferTo")
 
   @@map("users")
 }
 
 model Wallet {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   userId    String
   type      WalletType
-  balance   Decimal  @default(0)
-  currency  String   @default("IRR") // IRR for Rial, GOLD for Gold
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  balance   Decimal    @default(0)
+  currency  String     @default("IRR")
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   // Relations
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
+
+  // Reverse relations for transfers
+  transfersFrom Transfer[] @relation("TransferFromWallet")
+  transfersTo   Transfer[] @relation("TransferToWallet")
 
   @@map("wallets")
 }
@@ -59,7 +86,8 @@ model Transaction {
   amount      Decimal
   description String?
   status      TransactionStatus @default(PENDING)
-  referenceId String?           // شماره مرجع تراکنش
+  referenceId String? // شماره مرجع تراکنش
+  metadata    Json? // اطلاعات اضافی (مثل نوع محصول)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
@@ -71,18 +99,23 @@ model Transaction {
 }
 
 model Order {
-  id          String      @id @default(cuid())
-  userId      String
-  type        OrderType   // BUY or SELL
-  productType ProductType // GOLD_18K, COIN_BAHAR, etc.
-  amount      Decimal     // مقدار (گرم برای طلا، عدد برای سکه)
-  price       Decimal     // قیمت واحد
-  totalPrice  Decimal     // قیمت کل
-  commission  Decimal     // کمیسیون
-  status      OrderStatus @default(PENDING)
-  isAutomatic Boolean     @default(false) // دستی یا اتوماتیک
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id             String      @id @default(cuid())
+  userId         String
+  type           OrderType
+  productType    ProductType
+  amount         Decimal // مقدار (گرم برای طلا، عدد برای سکه)
+  price          Decimal // قیمت واحد
+  totalPrice     Decimal // قیمت کل
+  commission     Decimal // کارمزد
+  commissionRate Decimal // نرخ کارمزد (درصد)
+  status         OrderStatus @default(PENDING)
+  isAutomatic    Boolean     @default(false)
+  notes          String? // یادداشت‌های کاربر
+  adminNotes     String? // یادداشت‌های ادمین
+  processedAt    DateTime? // زمان پردازش
+  completedAt    DateTime? // زمان تکمیل
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -93,11 +126,13 @@ model Order {
 model Price {
   id          String      @id @default(cuid())
   productType ProductType
-  buyPrice    Decimal     // قیمت خرید
-  sellPrice   Decimal     // قیمت فروش
-  margin      Decimal     @default(0) // حاشیه سود
-  source      String      // منبع قیمت (API یا دستی)
+  buyPrice    Decimal // قیمت خرید
+  sellPrice   Decimal // قیمت فروش
+  margin      Decimal     @default(0)
+  source      String // منبع قیمت
   isActive    Boolean     @default(true)
+  validFrom   DateTime    @default(now())
+  validTo     DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -107,25 +142,166 @@ model Price {
 model Commission {
   id          String      @id @default(cuid())
   productType ProductType
-  buyRate     Decimal     // نرخ کمیسیون خرید (درصد)
-  sellRate    Decimal     // نرخ کمیسیون فروش (درصد)
-  minAmount   Decimal     // حداقل مبلغ
-  maxAmount   Decimal     // حداکثر مبلغ
+  buyRate     Decimal // نرخ کارمزد خرید (درصد)
+  sellRate    Decimal // نرخ کارمزد فروش (درصد)
+  minAmount   Decimal // حداقل مبلغ
+  maxAmount   Decimal // حداکثر مبلغ
   isActive    Boolean     @default(true)
+  validFrom   DateTime    @default(now())
+  validTo     DateTime?
+  createdBy   String? // ادمین ایجاد کننده
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   @@map("commissions")
 }
 
+// ===== مدل‌های جدید =====
+
+model Transfer {
+  id           String         @id @default(cuid())
+  fromUserId   String
+  toUserId     String
+  fromWalletId String
+  toWalletId   String
+  type         TransferType // RIAL یا GOLD
+  amount       Decimal
+  commission   Decimal // کارمزد انتقال
+  description  String?
+  status       TransferStatus @default(PENDING)
+  referenceId  String? // شماره مرجع
+  processedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relations
+  fromUser   User    @relation("TransferFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User    @relation("TransferTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  fromWallet Wallet  @relation("TransferFromWallet", fields: [fromWalletId], references: [id], onDelete: Cascade)
+  toWallet   Wallet  @relation("TransferToWallet", fields: [toWalletId], references: [id], onDelete: Cascade)
+  User       User?   @relation(fields: [userId], references: [id])
+  userId     String?
+
+  @@map("transfers")
+}
+
+model DeliveryRequest {
+  id              String         @id @default(cuid())
+  userId          String
+  productType     ProductType
+  amount          Decimal // مقدار درخواستی (گرم)
+  deliveryAmount  Decimal? // مقدار قابل تحویل (مضرب 5)
+  commission      Decimal // کارمزد تحویل
+  status          DeliveryStatus @default(PENDING)
+  deliveryAddress String? // آدرس تحویل
+  notes           String? // یادداشت‌های کاربر
+  adminNotes      String? // یادداشت‌های ادمین
+  requestedAt     DateTime       @default(now())
+  approvedAt      DateTime?
+  readyAt         DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_requests")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  isSent    Boolean          @default(false)
+  sentAt    DateTime?
+  readAt    DateTime?
+  metadata  Json? // اطلاعات اضافی
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model UserSetting {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  smsEnabled   Boolean  @default(true)
+  emailEnabled Boolean  @default(true)
+  pushEnabled  Boolean  @default(true)
+  language     String   @default("fa")
+  timezone     String   @default("Asia/Tehran")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model AdminUser {
+  id          String    @id @default(cuid())
+  username    String    @unique
+  password    String
+  firstName   String
+  lastName    String
+  email       String    @unique
+  role        AdminRole @default(STAFF)
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Reverse relations
+  auditLogs      AuditLog[]
+  systemSettings SystemSetting[]
+
+  @@map("admin_users")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  adminUserId String?
+  action      String // عملیات انجام شده
+  table       String // جدول مورد نظر
+  recordId    String? // شناسه رکورد
+  oldValues   Json? // مقادیر قبلی
+  newValues   Json? // مقادیر جدید
+  ipAddress   String? // آدرس IP
+  userAgent   String? // User Agent
+  createdAt   DateTime @default(now())
+
+  // Relations
+  adminUser AdminUser? @relation(fields: [adminUserId], references: [id])
+
+  @@map("audit_logs")
+}
+
 model SystemSetting {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
-  type  String @default("string") // string, number, boolean, json
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  type        String   @default("string")
+  description String?
+  isPublic    Boolean  @default(false) // آیا کاربران عادی می‌توانند ببینند
+  updatedBy   String? // ادمین به‌روزرسانی کننده
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  adminUser AdminUser? @relation(fields: [updatedBy], references: [id])
 
   @@map("system_settings")
 }
+
+// ===== Enums =====
 
 enum WalletType {
   RIAL
@@ -133,11 +309,13 @@ enum WalletType {
 }
 
 enum TransactionType {
-  DEPOSIT      // واریز
-  WITHDRAW     // برداشت
-  TRANSFER     // انتقال
-  COMMISSION   // کمیسیون
+  DEPOSIT // واریز
+  WITHDRAW // برداشت
+  TRANSFER // انتقال
+  COMMISSION // کارمزد
   ORDER_PAYMENT // پرداخت سفارش
+  DELIVERY_FEE // کارمزد تحویل
+  REFUND // بازپرداخت
 }
 
 enum TransactionStatus {
@@ -145,6 +323,7 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   CANCELLED
+  REFUNDED
 }
 
 enum OrderType {
@@ -153,17 +332,59 @@ enum OrderType {
 }
 
 enum ProductType {
-  GOLD_18K     // طلای 18 عیار
-  COIN_BAHAR   // سکه بهار آزادی
-  COIN_NIM     // نیم سکه
-  COIN_ROBE    // ربع سکه
+  GOLD_18K // طلای 18 عیار
+  GOLD_24K // طلای 24 عیار
+  COIN_BAHAR // سکه بهار آزادی
+  COIN_NIM // نیم سکه
+  COIN_ROBE // ربع سکه
+  COIN_BAHAR_86 // سکه بهار آزادی 86
+  COIN_NIM_86 // نیم سکه 86
+  COIN_ROBE_86 // ربع سکه 86
 }
 
 enum OrderStatus {
-  PENDING      // در انتظار
-  CONFIRMED    // تایید شده
-  PROCESSING   // در حال پردازش
-  COMPLETED    // تکمیل شده
-  CANCELLED    // لغو شده
-  FAILED       // ناموفق
+  PENDING // در انتظار
+  CONFIRMED // تایید شده
+  PROCESSING // در حال پردازش
+  COMPLETED // تکمیل شده
+  CANCELLED // لغو شده
+  FAILED // ناموفق
+  REFUNDED // بازپرداخت شده
+}
+
+enum TransferType {
+  RIAL
+  GOLD
+}
+
+enum TransferStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DeliveryStatus {
+  PENDING // در انتظار تایید
+  APPROVED // تایید شده
+  PROCESSING // در حال آماده‌سازی
+  READY // آماده تحویل
+  DELIVERED // تحویل شده
+  CANCELLED // لغو شده
+}
+
+enum NotificationType {
+  TRANSACTION // تراکنش مالی
+  ORDER // سفارش
+  DELIVERY // تحویل
+  SYSTEM // سیستمی
+  SECURITY // امنیتی
+}
+
+enum AdminRole {
+  SUPER_ADMIN // مدیر کل
+  ADMIN // مدیر
+  STAFF // کارمند
+  SUPPORT // پشتیبانی
 }
