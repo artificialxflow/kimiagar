@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     // اعتبارسنجی ورودی‌های الزامی
     if (!username || !password || !firstName || !lastName) {
       return NextResponse.json(
-        { error: 'یوزرنیم، پسورد، نام و نام خانوادگی الزامی هستند' },
+        { error: 'نام کاربری، رمز عبور، نام و نام خانوادگی الزامی هستند' },
         { status: 400 }
       );
     }
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // اعتبارسنجی تایید پسورد
     if (password !== confirmPassword) {
       return NextResponse.json(
-        { error: 'پسورد و تایید پسورد مطابقت ندارند' },
+        { error: 'رمز عبور و تایید رمز عبور مطابقت ندارند' },
         { status: 400 }
       );
     }
@@ -77,49 +77,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // اعتبارسنجی یوزرنیم
+    // اعتبارسنجی نام کاربری
     if (username.length < 3) {
       return NextResponse.json(
-        { error: 'یوزرنیم باید حداقل 3 کاراکتر باشد' },
+        { error: 'نام کاربری باید حداقل 3 کاراکتر باشد' },
         { status: 400 }
       );
     }
 
     if (username.length > 20) {
       return NextResponse.json(
-        { error: 'یوزرنیم نمی‌تواند بیش از 20 کاراکتر باشد' },
+        { error: 'نام کاربری نمی‌تواند بیش از 20 کاراکتر باشد' },
         { status: 400 }
       );
     }
 
-    // بررسی فرمت یوزرنیم
+    // بررسی فرمت نام کاربری
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       return NextResponse.json(
-        { error: 'یوزرنیم فقط می‌تواند شامل حروف، اعداد و _ باشد' },
+        { error: 'نام کاربری فقط می‌تواند شامل حروف، اعداد و _ باشد' },
         { status: 400 }
       );
     }
 
-    // اعتبارسنجی پسورد
+    // اعتبارسنجی رمز عبور
     if (password.length < 8) {
       return NextResponse.json(
-        { error: 'پسورد باید حداقل 8 کاراکتر باشد' },
+        { error: 'رمز عبور باید حداقل 8 کاراکتر باشد' },
         { status: 400 }
       );
     }
 
     if (password.length > 50) {
       return NextResponse.json(
-        { error: 'پسورد نمی‌تواند بیش از 50 کاراکتر باشد' },
+        { error: 'رمز عبور نمی‌تواند بیش از 50 کاراکتر باشد' },
         { status: 400 }
       );
     }
 
-    // اعتبارسنجی پیچیدگی پسورد
+    // اعتبارسنجی پیچیدگی رمز عبور
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
     if (!passwordRegex.test(password)) {
       return NextResponse.json(
-        { error: 'پسورد باید شامل حروف کوچک، بزرگ و اعداد باشد' },
+        { error: 'رمز عبور باید شامل حروف کوچک، بزرگ و اعداد باشد' },
         { status: 400 }
       );
     }
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'این یوزرنیم قبلاً استفاده شده است' },
+        { error: 'این نام کاربری قبلاً استفاده شده است' },
         { status: 400 }
       );
     }
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Hash کردن پسورد
+    // Hash کردن رمز عبور
     const hashedPassword = await bcrypt.hash(password, 12);
 
     // تولید کد تایید ایمیل (اگر ایمیل ارائه شده)
