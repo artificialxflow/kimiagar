@@ -4,6 +4,7 @@ import { User, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface LoginFormProps {
   onLogin: (userData: any) => void;
+  onPhoneSubmit: (phone: string) => void;
 }
 
 export default function LoginForm({ onLogin }: LoginFormProps) {
@@ -12,7 +13,8 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
     username: '',
     password: '',
     firstName: '',
-    lastName: ''
+    lastName: '',
+    phoneNumber: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -182,7 +184,35 @@ export default function LoginForm({ onLogin }: LoginFormProps) {
                 <label className="block text-sm font-medium text-slate-700 mb-2">نام خانوادگی</label>
                 {renderInput('lastName', 'نام خانوادگی خود را وارد کنید')}
               </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-700 mb-2">شماره موبایل</label>
+                {renderInput('phoneNumber', '09123456789', 'tel')}
+              </div>
             </>
+          )}
+
+          {/* ورود با OTP */}
+          {isLogin && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-slate-700 mb-2">شماره موبایل</label>
+              <div className="flex space-x-2 rtl:space-x-reverse">
+                <div className="flex-1">
+                  {renderInput('phoneNumber', '09123456789', 'tel')}
+                </div>
+                <button
+                  onClick={() => {
+                    if (formData.phoneNumber && /^09\d{9}$/.test(formData.phoneNumber)) {
+                      onPhoneSubmit(formData.phoneNumber);
+                    } else {
+                      setError('لطفاً شماره موبایل معتبر وارد کنید');
+                    }
+                  }}
+                  className="px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+                >
+                  ورود با OTP
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Error Display */}
