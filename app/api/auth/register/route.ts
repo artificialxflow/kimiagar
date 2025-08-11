@@ -8,12 +8,28 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password, firstName, lastName } = body;
+    const { username, password, firstName, lastName, email, phoneNumber } = body;
 
     // اعتبارسنجی ورودی‌ها
     if (!username || !password || !firstName || !lastName) {
       return NextResponse.json(
         { error: 'یوزرنیم، پسورد، نام و نام خانوادگی الزامی هستند' },
+        { status: 400 }
+      );
+    }
+
+    // اعتبارسنجی ایمیل (اختیاری)
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json(
+        { error: 'فرمت ایمیل نامعتبر است' },
+        { status: 400 }
+      );
+    }
+
+    // اعتبارسنجی شماره موبایل (اختیاری)
+    if (phoneNumber && !/^09\d{9}$/.test(phoneNumber)) {
+      return NextResponse.json(
+        { error: 'فرمت شماره موبایل نامعتبر است' },
         { status: 400 }
       );
     }
@@ -83,6 +99,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // بررسی وجود ایمیل
+    if (email) {
+      const existingEmail = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (existingEmail) {
+        return NextResponse.json(
+          { error: 'این ایمیل قبلاً استفاده شده است' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // بررسی وجود شماره موبایل
+    if (phoneNumber) {
+      const existingPhone = await prisma.user.findUnique({
+        where: { phoneNumber }
+      });
+
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: 'این شماره موبایل قبلاً استفاده شده است' },
+          { status: 400 }
+      );
+      }
+    }
+
     // Hash کردن پسورد
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -93,7 +137,10 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         firstName,
         lastName,
-        isVerified: true,
+        email,
+        phoneNumber,
+        isVerified: false, // نیاز به تایید موبایل
+        isEmailVerified: false // نیاز به تایید ایمیل
       }
     });
 
@@ -129,7 +176,10 @@ export async function POST(request: NextRequest) {
         username: user.username,
         firstName: user.firstName,
         lastName: user.lastName,
-        isVerified: user.isVerified
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        isVerified: user.isVerified,
+        isEmailVerified: user.isEmailVerified
       }
     });
 
