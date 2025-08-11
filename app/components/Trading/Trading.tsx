@@ -49,6 +49,12 @@ export default function Trading() {
         return 'نیم سکه';
       case 'COIN_ROBE':
         return 'ربع سکه';
+      case 'COIN_BAHAR_86':
+        return 'سکه بهار آزادی 86';
+      case 'COIN_NIM_86':
+        return 'نیم سکه 86';
+      case 'COIN_ROBE_86':
+        return 'ربع سکه 86';
       default:
         return productType;
     }
