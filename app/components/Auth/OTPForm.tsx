@@ -207,14 +207,17 @@ export default function OTPForm({ phoneNumber, onVerification, onBack }: OTPForm
             ارسال مجدد کد
           </button>
 
-          {/* Back Button */}
-          <button
-            onClick={onBack}
-            className="w-full px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors flex items-center justify-center"
-          >
-            <ArrowRight className="w-4 h-4 ml-2" />
-            بازگشت به ورود
-          </button>
+          {/* Navigation Buttons */}
+          <div className="space-y-3">
+            {/* Back to Login Button */}
+            <button
+              onClick={onBack}
+              className="w-full px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors flex items-center justify-center"
+            >
+              <ArrowRight className="w-4 h-4 ml-2" />
+              بازگشت به ورود
+            </button>
+          </div>
         </div>
       </div>
     </div>
