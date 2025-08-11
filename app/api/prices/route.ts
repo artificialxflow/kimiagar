@@ -41,6 +41,27 @@ export async function GET() {
           sellPrice: 21750000,
           margin: 500000,
           source: 'manual'
+        },
+        {
+          productType: 'COIN_BAHAR_86' as const,
+          buyPrice: 80000000,
+          sellPrice: 82000000,
+          margin: 2000000,
+          source: 'manual'
+        },
+        {
+          productType: 'COIN_NIM_86' as const,
+          buyPrice: 40000000,
+          sellPrice: 41000000,
+          margin: 1000000,
+          source: 'manual'
+        },
+        {
+          productType: 'COIN_ROBE_86' as const,
+          buyPrice: 20000000,
+          sellPrice: 20500000,
+          margin: 500000,
+          source: 'manual'
         }
       ];
 
