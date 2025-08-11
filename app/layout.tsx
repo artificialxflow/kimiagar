@@ -1,5 +1,6 @@
 import React from "react";
 import "./globals.css";
+import { AuthProvider } from "./components/AuthProvider";
 
 export const metadata = {
   title: "کیمیاگر",
@@ -13,7 +14,9 @@ export default function RootLayout({ children }: React.PropsWithChildren<{}>) {
         <link rel="icon" type="image/svg+xml" href="/app/favicon.svg" />
       </head>
       <body style={{ fontFamily: 'Vazirmatn, system-ui, sans-serif', background: '#fff', margin: 0 }}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
