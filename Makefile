@@ -1,88 +1,62 @@
 # Makefile for Kimiagar Project
 
-.PHONY: help build up down restart logs clean dev prod test db-migrate db-reset
+.PHONY: help build run stop clean dev prod migrate seed
 
-# Default target
-help:
-	@echo "Available commands:"
-	@echo "  build     - Build Docker images"
-	@echo "  up        - Start production services"
-	@echo "  down      - Stop all services"
-	@echo "  restart   - Restart all services"
-	@echo "  logs      - Show logs for all services"
-	@echo "  clean     - Remove all containers and volumes"
-	@echo "  dev       - Start development environment"
-	@echo "  dev-down  - Stop development environment"
-	@echo "  prod      - Start production environment"
-	@echo "  test      - Run tests"
-	@echo "  db-migrate- Run database migrations"
-	@echo "  db-reset  - Reset database (WARNING: destroys all data)"
+help: ## نمایش راهنما
+	@echo "کیمیاگر - دستورات Docker"
+	@echo "=========================="
+	@echo ""
+	@echo "دستورات موجود:"
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# Build Docker images
-build:
+build: ## ساخت image های Docker
 	docker-compose build
 
-# Start production services
-up:
+run: ## اجرای پروژه در حالت production
 	docker-compose up -d
 
-# Stop all services
-down:
+stop: ## توقف پروژه
 	docker-compose down
 
-# Restart all services
-restart:
-	docker-compose restart
-
-# Show logs for all services
-logs:
-	docker-compose logs -f
-
-# Remove all containers and volumes
-clean:
+clean: ## پاک کردن کامل Docker
 	docker-compose down -v --remove-orphans
 	docker system prune -f
 
-# Start development environment
-dev:
+dev: ## اجرای پروژه در حالت development
 	docker-compose -f docker-compose.dev.yml up -d
 
-# Stop development environment
-dev-down:
+dev-stop: ## توقف پروژه development
 	docker-compose -f docker-compose.dev.yml down
 
-# Start production environment
-prod:
-	docker-compose -f docker-compose.yml up -d
+dev-clean: ## پاک کردن development
+	docker-compose -f docker-compose.dev.yml down -v --remove-orphans
 
-# Run tests
-test:
-	docker-compose exec app npm test
+logs: ## نمایش لاگ‌ها
+	docker-compose logs -f app
 
-# Run database migrations
-db-migrate:
+dev-logs: ## نمایش لاگ‌های development
+	docker-compose -f docker-compose.dev.yml logs -f app
+
+migrate: ## اجرای migration های Prisma
 	docker-compose exec app npx prisma migrate deploy
 
-# Reset database (WARNING: destroys all data)
-db-reset:
-	docker-compose exec app npx prisma migrate reset --force
+dev-migrate: ## اجرای migration های Prisma در development
+	docker-compose -f docker-compose.dev.yml exec app npx prisma migrate deploy
 
-# Generate Prisma client
-prisma-generate:
-	docker-compose exec app npx prisma generate
+seed: ## اجرای seed دیتابیس
+	docker-compose exec app npx prisma db seed
 
-# Open database shell
-db-shell:
-	docker-compose exec postgres psql -U kimiagar_user -d kimiagar
+dev-seed: ## اجرای seed دیتابیس در development
+	docker-compose -f docker-compose.dev.yml exec app npx prisma db seed
 
-# Backup database
-db-backup:
-	docker-compose exec postgres pg_dump -U kimiagar_user kimiagar > backup_$(shell date +%Y%m%d_%H%M%S).sql
+studio: ## باز کردن Prisma Studio
+	docker-compose exec app npx prisma studio
 
-# Show service status
-status:
-	docker-compose ps
+dev-studio: ## باز کردن Prisma Studio در development
+	docker-compose -f docker-compose.dev.yml exec app npx prisma studio
 
-# Show resource usage
-stats:
-	docker stats
+restart: ## راه‌اندازی مجدد پروژه
+	docker-compose restart app
+
+dev-restart: ## راه‌اندازی مجدد پروژه development
+	docker-compose -f docker-compose.dev.yml restart app
