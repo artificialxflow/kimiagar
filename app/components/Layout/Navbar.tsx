@@ -12,7 +12,9 @@ export default function Navbar() {
     { name: 'داشبورد', href: '/dashboard', icon: Home },
     { name: 'کیف پول', href: '/wallet', icon: Wallet },
     { name: 'خرید و فروش', href: '/trading', icon: TrendingUp },
-    { name: 'تاریخچه', href: '/wallet?tab=history', icon: History },
+    { name: 'انتقال', href: '/transfer', icon: TrendingUp },
+    { name: 'گزارش‌ها', href: '/reports', icon: TrendingUp },
+    { name: 'تنظیمات', href: '/settings', icon: User },
   ];
 
   return (
@@ -81,6 +83,14 @@ export default function Navbar() {
                   >
                     <User className="w-4 h-4" />
                     <span>پروفایل</span>
+                  </Link>
+                  
+                  <Link
+                    href="/admin"
+                    className="flex items-center space-x-2 space-x-reverse px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <TrendingUp className="w-4 h-4" />
+                    <span>پنل ادمین</span>
                   </Link>
                   
                   <button
