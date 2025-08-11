@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     // اعتبارسنجی ورودی‌ها
     if (!username || !password) {
       return NextResponse.json(
-        { error: 'یوزرنیم و پسورد الزامی هستند' },
+        { error: 'نام کاربری و رمز عبور الزامی هستند' },
         { status: 400 }
       );
     }
@@ -25,18 +25,18 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'یوزرنیم یا پسورد اشتباه است' },
+        { error: 'نام کاربری یا رمز عبور اشتباه است' },
         { status: 401 }
       );
     }
 
-    // بررسی پسورد
+    // بررسی رمز عبور
     const isPasswordValid = await bcrypt.compare(password, user.password);
     
     if (!isPasswordValid) {
       return NextResponse.json(
-        { error: 'یوزرنیم یا پسورد اشتباه است' },
-        { status: 401 }
+        { error: 'نام کاربری یا رمز عبور اشتباه است' },
+        { status: 400 }
       );
     }
 
