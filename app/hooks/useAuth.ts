@@ -4,14 +4,20 @@ import { useRouter } from 'next/navigation';
 
 export function useAuth() {
   const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // بررسی وجود کاربر در localStorage
+    // بررسی وجود کاربر و توکن در localStorage
     const userData = localStorage.getItem('user');
+    const tokenData = localStorage.getItem('accessToken');
+    
     if (userData) {
       setUser(JSON.parse(userData));
+    }
+    if (tokenData) {
+      setToken(tokenData);
     }
     setLoading(false);
   }, []);
@@ -54,6 +60,7 @@ export function useAuth() {
 
   return {
     user,
+    token,
     loading,
     logout,
     refreshToken,
