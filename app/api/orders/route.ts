@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     }
 
     const commissionRate = type === 'BUY' ? commissionData.buyRate : commissionData.sellRate;
-    const commission = (parseFloat(amount.toString()) * parseFloat(price.toString())) * commissionRate;
+    const commission = (parseFloat(amount.toString()) * parseFloat(price.toString())) * parseFloat(commissionRate.toString());
     const totalPrice = (parseFloat(amount.toString()) * parseFloat(price.toString())) + commission;
 
     const order = await prisma.order.create({
@@ -229,12 +229,25 @@ export async function PATCH(request: NextRequest) {
     }
 
     // فقط ادمین‌ها می‌توانند وضعیت را تغییر دهند
-    if (status && decoded.role === 'ADMIN') {
-      updateData.status = status;
-      if (status === 'COMPLETED') {
-        updateData.completedAt = new Date();
-      } else if (status === 'PROCESSING') {
-        updateData.processedAt = new Date();
+    if (status) {
+      // بررسی اینکه کاربر ادمین است
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: { isAdmin: true }
+      });
+
+      if (user?.isAdmin) {
+        updateData.status = status;
+        if (status === 'COMPLETED') {
+          updateData.completedAt = new Date();
+        } else if (status === 'PROCESSING') {
+          updateData.processedAt = new Date();
+        }
+      } else {
+        return NextResponse.json(
+          { error: 'دسترسی غیرمجاز. فقط ادمین‌ها می‌توانند وضعیت سفارش را تغییر دهند' },
+          { status: 403 }
+        );
       }
     }
 
