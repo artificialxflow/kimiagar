@@ -27,13 +27,13 @@ const Wallet: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white">
+      <div className="bg-gradient-to-r from-gold-600 to-gold-700 rounded-2xl p-6 text-text-50">
         <h1 className="text-2xl font-bold mb-2">کیف پول</h1>
-        <p className="text-gray-300">مدیریت کیف پول ریالی و طلایی</p>
+        <p className="text-gold-50">مدیریت کیف پول ریالی و طلایی</p>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-background-50 rounded-xl shadow-lg p-6">
         <div className="flex space-x-1 space-x-reverse mb-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -43,8 +43,8 @@ const Wallet: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center space-x-2 space-x-reverse px-4 py-2 rounded-lg transition-all duration-200 ${
                   activeTab === tab.id
-                    ? 'bg-slate-900 text-white'
-                    : 'text-gray-600 hover:text-slate-900 hover:bg-gray-100'
+                    ? 'bg-gold-600 text-text-50'
+                    : 'text-text-600 hover:text-gold-600 hover:bg-gold-50'
                 }`}
               >
                 <Icon className="w-4 h-4" />
