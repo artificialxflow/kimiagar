@@ -12,7 +12,7 @@ export default function RootLayout({ children }: React.PropsWithChildren<{}>) {
       <head>
         <link rel="icon" type="image/svg+xml" href="/app/favicon.svg" />
       </head>
-      <body style={{ fontFamily: 'Tahoma, Arial, sans-serif', background: '#fff', margin: 0 }}>
+      <body style={{ fontFamily: 'Vazirmatn, system-ui, sans-serif', background: '#fff', margin: 0 }}>
         {children}
       </body>
     </html>
