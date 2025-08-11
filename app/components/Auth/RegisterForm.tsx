@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { User, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Phone } from 'lucide-react';
 
 interface RegisterFormProps {
   onRegister: (userData: any) => void;
@@ -14,7 +14,9 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
     password: '',
     confirmPassword: '',
     firstName: '',
-    lastName: ''
+    lastName: '',
+    phoneNumber: '',
+    nationalId: '' // اضافه کردن این فیلد
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,6 +51,14 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
         if (value.length < 2) return 'نام خانوادگی باید حداقل 2 کاراکتر باشد';
         if (value.length > 30) return 'نام خانوادگی نمی‌تواند بیش از 30 کاراکتر باشد';
         return '';
+      case 'phoneNumber':
+        if (!value) return 'شماره تلفن الزامی است';
+        if (!/^09\d{9}$/.test(value)) return 'فرمت شماره موبایل نامعتبر است (مثال: 09123456789)';
+        return '';
+      case 'nationalId':
+        if (!value) return 'کد ملی الزامی است';
+        if (!/^\d{10}$/.test(value)) return 'کد ملی باید 10 رقم باشد';
+        return '';
       default:
         return '';
     }
@@ -79,7 +89,9 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
            formData.password.length > 0 && 
            formData.confirmPassword.length > 0 &&
            formData.firstName.length > 0 && 
-           formData.lastName.length > 0;
+           formData.lastName.length > 0 &&
+           formData.phoneNumber.length > 0 &&
+           formData.nationalId.length > 0; // اضافه کردن این شرط
   };
 
   const handleSubmit = async () => {
@@ -232,6 +244,22 @@ export default function RegisterForm({ onRegister, onSwitchToLogin, onSwitchToOT
                 تایید رمز عبور <span className="text-red-500">*</span>
               </label>
               {renderInput('confirmPassword', 'رمز عبور خود را مجدداً وارد کنید', 'password', <Lock className="h-5 w-5 text-gray-400" />, true)}
+            </div>
+
+            {/* شماره تلفن */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-text-700 mb-2">
+                شماره تلفن <span className="text-red-500">*</span>
+              </label>
+              {renderInput('phoneNumber', 'شماره تلفن خود را وارد کنید', 'text', <Phone className="h-5 w-5 text-gray-400" />, true)}
+            </div>
+
+            {/* کد ملی */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-text-700 mb-2">
+                کد ملی <span className="text-red-500">*</span>
+              </label>
+              {renderInput('nationalId', 'کد ملی خود را وارد کنید', 'text', undefined, true)}
             </div>
           </div>
 
