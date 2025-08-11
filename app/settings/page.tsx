@@ -12,14 +12,6 @@ interface UserSettings {
   timezone: string;
 }
 
-interface CommissionSetting {
-  productType: string;
-  buyRate: number;
-  sellRate: number;
-  minAmount: number;
-  maxAmount: number;
-}
-
 const languages = [
   { value: 'fa', label: 'فارسی' },
   { value: 'en', label: 'English' },
@@ -33,17 +25,6 @@ const timezones = [
   { value: 'America/New_York', label: 'نیویورک (UTC-5:00)' }
 ];
 
-const productTypes = [
-  { value: 'GOLD_18K', label: 'طلای 18 عیار' },
-  { value: 'GOLD_24K', label: 'طلای 24 عیار' },
-  { value: 'COIN_BAHAR', label: 'سکه بهار آزادی' },
-  { value: 'COIN_NIM', label: 'نیم سکه' },
-  { value: 'COIN_ROBE', label: 'ربع سکه' },
-  { value: 'COIN_BAHAR_86', label: 'سکه بهار آزادی 86' },
-  { value: 'COIN_NIM_86', label: 'نیم سکه 86' },
-  { value: 'COIN_ROBE_86', label: 'ربع سکه 86' }
-];
-
 export default function SettingsPage() {
   const { user, token } = useAuth();
   const [settings, setSettings] = useState<UserSettings>({
@@ -53,33 +34,14 @@ export default function SettingsPage() {
     language: 'fa',
     timezone: 'Asia/Tehran'
   });
-  const [commissionSettings, setCommissionSettings] = useState<CommissionSetting[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (user && token) {
       fetchSettings();
-      checkAdminStatus();
-      if (isAdmin) {
-        fetchCommissionSettings();
-      }
     }
-  }, [user, token, isAdmin]);
-
-  const checkAdminStatus = async () => {
-    try {
-      const response = await fetch('/api/admin/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      setIsAdmin(response.ok);
-    } catch (error) {
-      setIsAdmin(false);
-    }
-  };
+  }, [user, token]);
 
   const fetchSettings = async () => {
     try {
@@ -98,34 +60,11 @@ export default function SettingsPage() {
     }
   };
 
-  const fetchCommissionSettings = async () => {
-    try {
-      const response = await fetch('/api/settings/commission', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setCommissionSettings(data.commissions || []);
-      }
-    } catch (error) {
-      console.error('خطا در دریافت تنظیمات کارمزد:', error);
-    }
-  };
-
   const handleSettingChange = (key: keyof UserSettings, value: any) => {
     setSettings(prev => ({
       ...prev,
       [key]: value
     }));
-  };
-
-  const handleCommissionChange = (index: number, key: keyof CommissionSetting, value: any) => {
-    setCommissionSettings(prev => prev.map((item, i) => 
-      i === index ? { ...item, [key]: value } : item
-    ));
   };
 
   const handleSave = async () => {
@@ -151,36 +90,6 @@ export default function SettingsPage() {
       }
     } catch (error) {
       setMessage('خطا در ذخیره تنظیمات');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveCommissions = async () => {
-    setLoading(true);
-    setMessage('');
-
-    try {
-      for (const commission of commissionSettings) {
-        const response = await fetch('/api/settings/commission', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(commission)
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message);
-        }
-      }
-
-      setMessage('تنظیمات کارمزد با موفقیت ذخیره شد');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error: any) {
-      setMessage(`خطا در ذخیره تنظیمات کارمزد: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -374,81 +283,6 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-
-          {/* Commission Settings for Admin */}
-          {isAdmin && (
-            <div className="mt-8">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800">تنظیمات کارمزد (فقط ادمین)</h2>
-                  <button
-                    onClick={handleSaveCommissions}
-                    disabled={loading}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
-                  >
-                    {loading ? 'در حال ذخیره...' : 'ذخیره کارمزدها'}
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">نوع محصول</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">نرخ خرید (%)</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">نرخ فروش (%)</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">حداقل مبلغ</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">حداکثر مبلغ</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {commissionSettings.map((commission, index) => (
-                        <tr key={index}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {productTypes.find(p => p.value === commission.productType)?.label || commission.productType}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={commission.buyRate}
-                              onChange={(e) => handleCommissionChange(index, 'buyRate', parseFloat(e.target.value))}
-                              className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={commission.sellRate}
-                              onChange={(e) => handleCommissionChange(index, 'sellRate', parseFloat(e.target.value))}
-                              className="w-20 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <input
-                              type="number"
-                              value={commission.minAmount}
-                              onChange={(e) => handleCommissionChange(index, 'minAmount', parseFloat(e.target.value))}
-                              className="w-24 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <input
-                              type="number"
-                              value={commission.maxAmount}
-                              onChange={(e) => handleCommissionChange(index, 'maxAmount', parseFloat(e.target.value))}
-                              className="w-24 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Save Button */}
           <div className="mt-8 text-center">
