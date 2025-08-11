@@ -42,7 +42,7 @@ export default function RecentTransactions({ transactions = [] }: RecentTransact
       case 'TRANSFER':
         return 'انتقال';
       case 'COMMISSION':
-        return 'کمیسیون';
+        return 'کارمزد';
       case 'ORDER_PAYMENT':
         return 'پرداخت سفارش';
       default:
