@@ -37,7 +37,7 @@ export default function SupportPanel() {
       case 'guide':
         return <UserGuide />;
       case 'contact':
-        return <ContactSupport />;
+        return <ContactSupport setActiveTab={setActiveTab} />;
       default:
         return <FAQ />;
     }
@@ -91,174 +91,157 @@ export default function SupportPanel() {
       </div>
     </div>
   );
-}
 
-// Contact Support Component
-function ContactSupport() {
-  return (
-    <div className="container mx-auto px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-slate-800 mb-4">تماس با پشتیبانی</h2>
-          <p className="text-xl text-slate-600">
-            کارشناسان ما آماده پاسخگویی به سوالات شما هستند
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          {/* Contact Methods */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg p-6 border border-slate-200">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                  <Phone className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-slate-800">تماس تلفنی</h3>
-                  <p className="text-slate-600 text-sm">شنبه تا چهارشنبه، 9 صبح تا 6 عصر</p>
+  // Contact Support Component
+  function ContactSupport({ setActiveTab }: { setActiveTab: (tab: SupportTab) => void }) {
+    return (
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Contact Information */}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-800 mb-4">اطلاعات تماس</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4 space-x-reverse">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Phone className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-slate-800">تلفن پشتیبانی</div>
+                      <div className="text-slate-600">۰۲۱-۱۲۳۴۵۶۷۸</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4 space-x-reverse">
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-slate-800">ایمیل پشتیبانی</div>
+                      <div className="text-slate-600">support@kimiagar.com</div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-blue-600">021-12345678</p>
-                <button className="mt-3 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                  تماس
-                </button>
+
+              <div>
+                <h3 className="text-xl font-semibold text-slate-800 mb-4">ساعات کاری</h3>
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="space-y-2 text-right">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">شنبه تا چهارشنبه:</span>
+                      <span className="font-medium">۸:۰۰ - ۱۷:۰۰</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">پنجشنبه:</span>
+                      <span className="font-medium">۸:۰۰ - ۱۳:۰۰</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">جمعه:</span>
+                      <span className="font-medium">تعطیل</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
+            {/* Contact Form */}
             <div className="bg-white rounded-lg p-6 border border-slate-200">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                  <MessageCircle className="w-6 h-6 text-green-600" />
-                </div>
+              <h3 className="text-xl font-semibold text-slate-800 mb-6">فرم تماس</h3>
+              <form className="space-y-4">
                 <div>
-                  <h3 className="font-semibold text-slate-800">چت آنلاین</h3>
-                  <p className="text-slate-600 text-sm">24/7 در دسترس</p>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    نام و نام خانوادگی
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="نام خود را وارد کنید"
+                  />
                 </div>
-              </div>
-              <div className="text-center">
-                <p className="text-slate-600 mb-3">کارشناسان ما آماده پاسخگویی هستند</p>
-                <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                  شروع چت
-                </button>
-              </div>
-            </div>
 
-            <div className="bg-white rounded-lg p-6 border border-slate-200">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
-                  <Mail className="w-6 h-6 text-purple-600" />
-                </div>
                 <div>
-                  <h3 className="font-semibold text-slate-800">ایمیل</h3>
-                  <p className="text-slate-600 text-sm">پاسخ در 24 ساعت</p>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    شماره تلفن
+                  </label>
+                  <input
+                    type="tel"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="شماره تلفن خود را وارد کنید"
+                  />
                 </div>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-semibold text-purple-600 mb-3">support@kimiagar.com</p>
-                <button className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                  ارسال ایمیل
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    موضوع
+                  </label>
+                  <select className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">انتخاب کنید</option>
+                    <option value="technical">مشکل فنی</option>
+                    <option value="billing">مشکل مالی</option>
+                    <option value="trading">مشکل معاملات</option>
+                    <option value="delivery">مشکل تحویل</option>
+                    <option value="other">سایر</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    پیام
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="پیام خود را بنویسید..."
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  ارسال پیام
                 </button>
-              </div>
+              </form>
             </div>
           </div>
 
-          {/* Contact Form */}
-          <div className="bg-white rounded-lg p-6 border border-slate-200">
-            <h3 className="text-xl font-semibold text-slate-800 mb-6">فرم تماس</h3>
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  نام و نام خانوادگی
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="نام خود را وارد کنید"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  شماره تلفن
-                </label>
-                <input
-                  type="tel"
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="شماره تلفن خود را وارد کنید"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  موضوع
-                </label>
-                <select className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                  <option value="">انتخاب کنید</option>
-                  <option value="technical">مشکل فنی</option>
-                  <option value="billing">مشکل مالی</option>
-                  <option value="trading">مشکل معاملات</option>
-                  <option value="delivery">مشکل تحویل</option>
-                  <option value="other">سایر</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  پیام
-                </label>
-                <textarea
-                  rows={4}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="پیام خود را بنویسید..."
-                />
-              </div>
-
+          {/* FAQ Quick Links */}
+          <div className="bg-white rounded-lg p-8 border border-slate-200 mt-8">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">سوالات پرتکرار</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                onClick={() => setActiveTab('faq')}
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors text-right"
               >
-                ارسال پیام
+                <span className="font-medium text-slate-800">حداقل مقدار خرید طلا چقدر است؟</span>
+                <ChevronRight className="w-5 h-5 text-slate-500" />
               </button>
-            </form>
-          </div>
-        </div>
-
-        {/* FAQ Quick Links */}
-        <div className="bg-white rounded-lg p-8 border border-slate-200">
-          <h3 className="text-2xl font-bold text-slate-800 mb-6 text-center">سوالات پرتکرار</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button
-              onClick={() => setActiveTab('faq')}
-              className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors text-right"
-            >
-              <span className="font-medium text-slate-800">حداقل مقدار خرید طلا چقدر است؟</span>
-              <ChevronRight className="w-5 h-5 text-slate-500" />
-            </button>
-            <button
-              onClick={() => setActiveTab('faq')}
-              className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors text-right"
-            >
-              <span className="font-medium text-slate-800">کارمزد معاملات چقدر است؟</span>
-              <ChevronRight className="w-5 h-5 text-slate-500" />
-            </button>
-            <button
-              onClick={() => setActiveTab('faq')}
-              className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors text-right"
-            >
-              <span className="font-medium text-slate-800">چگونه کیف پول را شارژ کنم؟</span>
-              <ChevronRight className="w-5 h-5 text-slate-500" />
-            </button>
-            <button
-              onClick={() => setActiveTab('faq')}
-              className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors text-right"
-            >
-              <span className="font-medium text-slate-800">آیا امکان تحویل فیزیکی وجود دارد؟</span>
-              <ChevronRight className="w-5 h-5 text-slate-500" />
-            </button>
+              <button
+                onClick={() => setActiveTab('faq')}
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors text-right"
+              >
+                <span className="font-medium text-slate-800">کارمزد معاملات چقدر است؟</span>
+                <ChevronRight className="w-5 h-5 text-slate-500" />
+              </button>
+              <button
+                onClick={() => setActiveTab('faq')}
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors text-right"
+              >
+                <span className="font-medium text-slate-800">چگونه کیف پول را شارژ کنم؟</span>
+                <ChevronRight className="w-5 h-5 text-slate-500" />
+              </button>
+              <button
+                onClick={() => setActiveTab('faq')}
+                className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors text-right"
+              >
+                <span className="font-medium text-slate-800">آیا امکان تحویل فیزیکی وجود دارد؟</span>
+                <ChevronRight className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
