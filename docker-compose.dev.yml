@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: kimiagar_postgres_dev
+    environment:
+      POSTGRES_DB: kimiagar_dev
+      POSTGRES_USER: kimiagar_user
+      POSTGRES_PASSWORD: kimiagar_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./prisma/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: kimiagar_redis_dev
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  # Main Application (Development)
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: kimiagar_app_dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://kimiagar_user:kimiagar_password@postgres:5432/kimiagar_dev
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev-secret-key
+      - JWT_REFRESH_SECRET=dev-refresh-secret-key
+      - SMS_API_KEY=dev-key
+      - SMS_API_SECRET=dev-secret
+      - SMS_FROM_NUMBER=dev-number
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    command: npm run dev
+
+volumes:
+  postgres_dev_data:
+    driver: local
+
+networks:
+  default:
+    name: kimiagar_dev_network
