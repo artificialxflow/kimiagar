@@ -137,128 +137,130 @@ export default function ReportsPage() {
               <p className="mt-4 text-gray-600">در حال بارگذاری گزارش‌ها...</p>
             </div>
           ) : reportData ? (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              {/* Summary Cards */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                    </svg>
+            <>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {/* Summary Cards */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">کل تراکنش‌ها</p>
+                      <p className="text-2xl font-bold text-gray-900">{formatNumber(reportData.transactions.total)} تومان</p>
+                      <p className="text-sm text-gray-500">{reportData.transactions.count} تراکنش</p>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">کل تراکنش‌ها</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatNumber(reportData.transactions.total)} تومان</p>
-                    <p className="text-sm text-gray-500">{reportData.transactions.count} تراکنش</p>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">کل سفارش‌ها</p>
+                      <p className="text-2xl font-bold text-gray-900">{formatNumber(reportData.orders.total)} تومان</p>
+                      <p className="text-sm text-gray-500">{reportData.orders.count} سفارش</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <div className="flex items-center">
+                    <div className="p-2 bg-yellow-100 rounded-lg">
+                      <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">موجودی کیف پول</p>
+                      <p className="text-2xl font-bold text-gray-900">{formatNumber(reportData.wallet.balance)} تومان</p>
+                      <p className="text-sm text-gray-500">موجودی فعلی</p>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">کل سفارش‌ها</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatNumber(reportData.orders.total)} تومان</p>
-                    <p className="text-sm text-gray-500">{reportData.orders.count} سفارش</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center">
-                  <div className="p-2 bg-yellow-100 rounded-lg">
-                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">موجودی کیف پول</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatNumber(reportData.wallet.balance)} تومان</p>
-                    <p className="text-sm text-gray-500">موجودی فعلی</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Charts and Detailed Reports */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Monthly Trends */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">روند ماهانه تراکنش‌ها</h3>
-                <div className="space-y-3">
-                  {reportData.transactions.monthly.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">{item.month}</span>
-                      <div className="flex items-center">
-                        <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full" 
-                            style={{ width: `${Math.min((item.amount / Math.max(...reportData.transactions.monthly.map(m => m.amount))) * 100, 100)}%` }}
-                          ></div>
+              {/* Charts and Detailed Reports */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Monthly Trends */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">روند ماهانه تراکنش‌ها</h3>
+                  <div className="space-y-3">
+                    {reportData.transactions.monthly.map((item, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">{item.month}</span>
+                        <div className="flex items-center">
+                          <div className="w-32 bg-gray-200 rounded-full h-2 mr-3">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full" 
+                              style={{ width: `${Math.min((item.amount / Math.max(...reportData.transactions.monthly.map(m => m.amount))) * 100, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium text-gray-900 w-20 text-left">
+                            {formatNumber(item.amount)}
+                          </span>
                         </div>
-                        <span className="text-sm font-medium text-gray-900 w-20 text-left">
-                          {formatNumber(item.amount)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Top Products */}
+                <div className="bg-white rounded-lg shadow-md p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">محصولات محبوب</h3>
+                  <div className="space-y-3">
+                    {reportData.orders.topProducts.map((product, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="font-medium text-gray-800">{product.product}</p>
+                          <p className="text-sm text-gray-500">{product.count} سفارش</p>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {formatNumber(product.amount)} تومان
                         </span>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Top Products */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">محصولات محبوب</h3>
-                <div className="space-y-3">
-                  {reportData.orders.topProducts.map((product, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium text-gray-800">{product.product}</p>
-                        <p className="text-sm text-gray-500">{product.count} سفارش</p>
-                      </div>
-                      <span className="text-sm font-medium text-gray-900">
-                        {formatNumber(product.amount)} تومان
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Detailed Tables */}
-            <div className="mt-8">
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-800">جزئیات تراکنش‌ها</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ماه</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">مبلغ</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">درصد</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {reportData.transactions.monthly.map((item, index) => (
-                        <tr key={index}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.month}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatNumber(item.amount)} تومان</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {((item.amount / reportData.transactions.total) * 100).toFixed(1)}%
-                          </td>
+              {/* Detailed Tables */}
+              <div className="mt-8">
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-800">جزئیات تراکنش‌ها</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">ماه</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">مبلغ</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">درصد</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {reportData.transactions.monthly.map((item, index) => (
+                          <tr key={index}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.month}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatNumber(item.amount)} تومان</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {((item.amount / reportData.transactions.total) * 100).toFixed(1)}%
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           ) : (
             <div className="text-center py-12">
               <p className="text-gray-600">هیچ گزارشی یافت نشد</p>
