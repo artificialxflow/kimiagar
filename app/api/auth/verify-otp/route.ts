@@ -98,7 +98,8 @@ export async function POST(request: NextRequest) {
     // ایجاد JWT tokens
     const tokens = generateTokens({
       userId: user.id,
-      username: user.username
+      username: user.username,
+      isAdmin: user.isAdmin
     });
 
     // ایجاد response
