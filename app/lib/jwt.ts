@@ -29,6 +29,11 @@ export function verifyAccessToken(token: string): JWTPayload | null {
   }
 }
 
+// بررسی Token (alias برای backward compatibility)
+export function verifyToken(token: string): JWTPayload | null {
+  return verifyAccessToken(token);
+}
+
 // بررسی Refresh Token
 export function verifyRefreshToken(token: string): JWTPayload | null {
   try {
