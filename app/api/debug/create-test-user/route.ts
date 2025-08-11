@@ -15,6 +15,8 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         firstName: 'کاربر',
         lastName: 'تست',
+        phoneNumber: '09123456789',
+        nationalId: '1234567890',
         isVerified: true,
       }
     });
