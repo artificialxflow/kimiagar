@@ -59,7 +59,9 @@ export async function POST(request: NextRequest) {
         bankAccount: user.bankAccount,
         postalCode: user.postalCode,
         isVerified: user.isVerified
-      }
+      },
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken
     });
 
     // تنظیم cookies
