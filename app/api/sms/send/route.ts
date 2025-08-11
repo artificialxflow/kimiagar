@@ -6,12 +6,12 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phoneNumber, message, type } = body;
+    const { phoneNumber, message, type, template, variables } = body;
 
     // اعتبارسنجی ورودی
-    if (!phoneNumber || !message) {
+    if (!phoneNumber || (!message && !template)) {
       return NextResponse.json(
-        { error: 'شماره موبایل و پیام الزامی است' },
+        { error: 'شماره موبایل و پیام یا قالب الزامی است' },
         { status: 400 }
       );
     }
@@ -24,12 +24,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // اگر template استفاده شده، پیام را تولید کن
+    let finalMessage = message;
+    if (template && variables) {
+      finalMessage = generateMessageFromTemplate(template, variables);
+    }
+
     // در محیط development، فقط log می‌کنیم
     if (process.env.NODE_ENV === 'development') {
       console.log('📱 SMS ارسال شد:');
       console.log('شماره موبایل:', phoneNumber);
       console.log('نوع اعلان:', type);
-      console.log('پیام:', message);
+      console.log('پیام:', finalMessage);
       console.log('زمان:', new Date().toLocaleString('fa-IR'));
       console.log('---');
       
@@ -41,8 +47,10 @@ export async function POST(request: NextRequest) {
         message: 'SMS با موفقیت ارسال شد (Development Mode)',
         data: {
           phoneNumber,
-          message,
+          message: finalMessage,
           type,
+          template,
+          variables,
           timestamp: new Date().toISOString(),
           status: 'sent'
         }
@@ -50,8 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // در محیط production، به سرویس SMS واقعی متصل می‌شویم
-    // این بخش بعداً پیاده‌سازی می‌شود
-    const smsResponse = await sendRealSMS(phoneNumber, message);
+    const smsResponse = await sendRealSMS(phoneNumber, finalMessage, type);
     
     return NextResponse.json({
       success: true,
@@ -68,8 +75,21 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// تابع تولید پیام از قالب
+function generateMessageFromTemplate(template: string, variables: any): string {
+  let message = template;
+  
+  // جایگزینی متغیرها در قالب
+  Object.keys(variables).forEach(key => {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    message = message.replace(regex, variables[key]);
+  });
+  
+  return message;
+}
+
 // تابع شبیه‌سازی ارسال SMS واقعی (برای آینده)
-async function sendRealSMS(phoneNumber: string, message: string) {
+async function sendRealSMS(phoneNumber: string, message: string, type?: string) {
   // این تابع بعداً با سرویس‌های واقعی SMS پیاده‌سازی می‌شود
   // مثال: کاوه‌سامانه، ملی پیامک، و غیره
   
@@ -90,7 +110,8 @@ async function sendRealSMS(phoneNumber: string, message: string) {
     body: JSON.stringify({
       to: phoneNumber,
       message: message,
-      sender: smsConfig.sender
+      sender: smsConfig.sender,
+      type: type
     })
   });
 
