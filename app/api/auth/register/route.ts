@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // اعتبارسنجی ورودی‌های الزامی
-    if (!username || !password || !firstName || !lastName) {
+    if (!username || !password || !firstName || !lastName || !phoneNumber || !nationalId) {
       return NextResponse.json(
-        { error: 'نام کاربری، رمز عبور، نام و نام خانوادگی الزامی هستند' },
+        { error: 'نام کاربری، رمز عبور، نام، نام خانوادگی، شماره تلفن و کد ملی الزامی هستند' },
         { status: 400 }
       );
     }
@@ -45,16 +45,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // اعتبارسنجی شماره موبایل (اختیاری)
-    if (phoneNumber && !/^09\d{9}$/.test(phoneNumber)) {
+    // اعتبارسنجی شماره موبایل (الزامی)
+    if (!/^09\d{9}$/.test(phoneNumber)) {
       return NextResponse.json(
         { error: 'فرمت شماره موبایل نامعتبر است (مثال: 09123456789)' },
         { status: 400 }
       );
     }
 
-    // اعتبارسنجی کد ملی (اختیاری)
-    if (nationalId && !/^\d{10}$/.test(nationalId)) {
+    // اعتبارسنجی کد ملی (الزامی)
+    if (!/^\d{10}$/.test(nationalId)) {
       return NextResponse.json(
         { error: 'کد ملی باید 10 رقم باشد' },
         { status: 400 }
