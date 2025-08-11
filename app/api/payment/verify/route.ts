@@ -16,12 +16,10 @@ export async function POST(request: NextRequest) {
     }
 
     // دریافت تراکنش پرداخت
-    const paymentTransaction = await prisma.paymentTransaction.findFirst({
+    const paymentTransaction = await prisma.transaction.findFirst({
       where: {
-        id: transactionId
-      },
-      include: {
-        order: true
+        id: transactionId,
+        type: 'ORDER_PAYMENT'
       }
     });
 
@@ -39,15 +37,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // دریافت اطلاعات سفارش
+    const order = await prisma.order.findUnique({
+      where: {
+        id: paymentTransaction.referenceId || ''
+      }
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { error: 'سفارش یافت نشد' },
+        { status: 404 }
+      );
+    }
+
     // به‌روزرسانی وضعیت تراکنش پرداخت
-    await prisma.paymentTransaction.update({
+    await prisma.transaction.update({
       where: {
         id: transactionId
       },
       data: {
         status: paymentStatus,
         referenceId,
-        verifiedAt: new Date()
+        updatedAt: new Date()
       }
     });
 
@@ -57,7 +69,7 @@ export async function POST(request: NextRequest) {
         // به‌روزرسانی وضعیت سفارش
         await tx.order.update({
           where: {
-            id: paymentTransaction.orderId
+            id: order.id
           },
           data: {
             status: 'COMPLETED',
@@ -101,24 +113,26 @@ export async function POST(request: NextRequest) {
             },
             data: {
               balance: {
-                increment: paymentTransaction.order.amount
+                increment: order.amount
               }
             }
           });
         }
 
         // ثبت تراکنش کسر از کیف پول ریالی
-        await tx.transaction.create({
-          data: {
-            userId: paymentTransaction.userId,
-            walletId: rialWallet?.id,
-            type: 'ORDER_PAYMENT',
-            amount: paymentTransaction.amount,
-            description: `پرداخت سفارش ${paymentTransaction.order.productType}`,
-            status: 'COMPLETED',
-            referenceId: paymentTransaction.orderId
-          }
-        });
+        if (rialWallet) {
+          await tx.transaction.create({
+            data: {
+              userId: paymentTransaction.userId,
+              walletId: rialWallet.id,
+              type: 'ORDER_PAYMENT',
+              amount: paymentTransaction.amount,
+              description: `پرداخت سفارش ${order.productType}`,
+              status: 'COMPLETED',
+              referenceId: order.id
+            }
+          });
+        }
 
         // ثبت تراکنش اضافه به کیف پول طلایی
         if (goldWallet) {
@@ -127,10 +141,10 @@ export async function POST(request: NextRequest) {
               userId: paymentTransaction.userId,
               walletId: goldWallet.id,
               type: 'DEPOSIT',
-              amount: paymentTransaction.order.amount,
-              description: `خرید ${paymentTransaction.order.amount} ${paymentTransaction.order.productType}`,
+              amount: order.amount,
+              description: `خرید ${order.amount} ${order.productType}`,
               status: 'COMPLETED',
-              referenceId: paymentTransaction.orderId
+              referenceId: order.id
             }
           });
         }
@@ -143,8 +157,8 @@ export async function POST(request: NextRequest) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              phone: paymentTransaction.user.phone,
-              message: `سفارش شما با موفقیت تکمیل شد. مبلغ ${paymentTransaction.amount.toLocaleString('fa-IR')} تومان از کیف پول شما کسر شد.`
+              phone: order.userId, // استفاده از order.userId به جای user.phone
+              message: `سفارش شما با موفقیت تکمیل شد. مبلغ ${Number(paymentTransaction.amount).toLocaleString('fa-IR')} تومان از کیف پول شما کسر شد.`
             }),
           });
         } catch (error) {
@@ -158,7 +172,7 @@ export async function POST(request: NextRequest) {
         transaction: {
           id: paymentTransaction.id,
           status: 'SUCCESS',
-          orderId: paymentTransaction.orderId
+          orderId: order.id
         }
       });
     } else {
@@ -169,7 +183,7 @@ export async function POST(request: NextRequest) {
         transaction: {
           id: paymentTransaction.id,
           status: 'FAILED',
-          orderId: paymentTransaction.orderId
+          orderId: order.id
         }
       });
     }
