@@ -30,10 +30,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // دریافت نرخ کارمزد از دیتابیس
+    const commissionRate = await prisma.commission.findFirst({
+      where: {
+        productType,
+        isActive: true
+      }
+    });
+
     // محاسبه قیمت‌ها
     const unitPrice = Number(price.buyPrice);
     const totalPrice = amount * unitPrice;
-    const commission = totalPrice * 0.01; // 1% کمیسیون
+    const commissionRateValue = commissionRate ? Number(commissionRate.buyRate) : 0.01; // پیش‌فرض 1%
+    const commission = totalPrice * commissionRateValue;
     const finalPrice = totalPrice + commission;
 
     // بررسی موجودی کیف پول ریالی
