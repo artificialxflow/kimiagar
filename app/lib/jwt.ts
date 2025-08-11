@@ -6,6 +6,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secre
 export interface JWTPayload {
   userId: string;
   username: string;
+  isAdmin: boolean;
   iat?: number;
   exp?: number;
 }
