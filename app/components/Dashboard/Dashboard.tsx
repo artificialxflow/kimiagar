@@ -44,10 +44,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background-50 via-background-100 to-background-200 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-          <p className="text-slate-600">در حال بارگذاری...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold-500 mx-auto mb-4"></div>
+          <p className="text-text-600">در حال بارگذاری...</p>
         </div>
       </div>
     );
@@ -55,17 +55,17 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-background-50 via-background-100 to-background-200 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <p className="text-slate-600 mb-4">{error}</p>
+          <p className="text-text-600 mb-4">{error}</p>
           <button 
             onClick={() => window.location.href = '/login'}
-            className="px-4 py-2 bg-gold text-white rounded-lg hover:bg-gold-600 transition-colors"
+            className="px-6 py-3 bg-gold-500 text-text-50 rounded-xl hover:bg-gold-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
             بازگشت به ورود
           </button>
@@ -75,14 +75,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-background-50 via-background-100 to-background-200">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-text-800 mb-3 bg-gradient-to-r from-gold-600 to-gold-400 bg-clip-text text-transparent">
             خوش آمدید، {user?.firstName || 'کاربر'} {user?.lastName || ''}!
           </h1>
-          <p className="text-slate-600">
+          <p className="text-text-600 text-lg">
             آخرین به‌روزرسانی: {new Date().toLocaleDateString('fa-IR')}
           </p>
         </div>
@@ -98,8 +98,11 @@ export default function Dashboard() {
             />
 
             {/* Price Chart */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-slate-800 mb-4">نمودار قیمت طلا</h2>
+            <div className="bg-white rounded-2xl shadow-lg border border-border-100 p-6 hover:shadow-xl transition-all duration-300">
+              <h2 className="text-xl font-semibold text-text-800 mb-4 flex items-center">
+                <div className="w-2 h-8 bg-gradient-to-b from-gold-400 to-gold-600 rounded-full ml-3"></div>
+                نمودار قیمت طلا
+              </h2>
               <PriceChart />
             </div>
 
