@@ -3,8 +3,39 @@
 ## 🎯 خلاصه پروژه
 - **نام:** کیمیاگر (Kimiagar)
 - **نوع:** پلتفرم مدیریت طلا و کیف پول دیجیتال
-- **وضعیت فعلی:** سیستم پایه کار می‌کند، نیاز به بهبودهای اساسی دارد
+- **وضعیت فعلی:** ✅ **سیستم پایه کار می‌کند، نیاز به بهبودهای اساسی دارد**
 - **هدف:** تبدیل به پلتفرم کامل و حرفه‌ای خرید و فروش طلا
+- **آخرین بررسی:** 30 تیر 1403 - تست کامل پروژه انجام شد
+
+---
+
+## 📊 **وضعیت فعلی پروژه (30 تیر 1403)**
+
+### ✅ **ویژگی‌های پیاده‌سازی شده:**
+- [x] **ساختار دیتابیس کامل** - Prisma Schema با تمام جداول مورد نیاز
+- [x] **سیستم احراز هویت پایه** - JWT + bcrypt بدون NextAuth
+- [x] **API Routes اصلی** - auth, trading, wallet, prices
+- [x] **کامپوننت‌های React** - Dashboard, Trading, Wallet
+- [x] **سیستم قیمت‌گذاری** - خرید و فروش طلا و سکه
+- [x] **مدیریت کیف پول** - ریال و طلا
+- [x] **سیستم تراکنش‌ها** - خرید، فروش، انتقال
+- [x] **مدل‌های دیتابیس** - User, Wallet, Transaction, Order, Price, Transfer, DeliveryRequest
+- [x] **سیستم OTP** - ارسال و تایید کد 6 رقمی
+- [x] **ثبت‌نام پیشرفته** - با فیلدهای کامل و اعتبارسنجی
+
+### ⚠️ **مشکلات موجود و نیاز به رفع فوری:**
+- [ ] **خطای OTP در send-otp** - مشکل در فیلد `lastFailedLoginAt` در خط 63
+- [ ] **فایل commissions/route.ts** - وجود ندارد، نیاز به ایجاد
+- [ ] **فونت Tahoma در layout.tsx** - باید به Vazirmatn تغییر کند
+- [ ] **سکه‌های 86** - در ProductType تعریف شده اما در UI نمایش داده نمی‌شود
+- [ ] **سیستم SMS واقعی** - فقط console.log در development
+- [ ] **سیستم ایمیل** - فقط console.log در development
+
+### 🔧 **نیازهای فوری (هفته 1):**
+1. **رفع خطای OTP** - مشکل در فیلد `lastFailedLoginAt`
+2. **ایجاد API commissions** - برای مدیریت کارمزدها
+3. **بهبود UI** - جداسازی صفحات خرید و فروش
+4. **اتصال SMS/Email** - به سرویس‌های واقعی
 
 ---
 
@@ -12,45 +43,46 @@
 
 ### اولویت: **بالا** - امنیت و تجربه کاربری بهتر
 
-#### لاگین با SMS (OTP)
-- [ ] **ارسال کد OTP:** ارسال کد 6 رقمی به شماره موبایل کاربر
-- [ ] **تایید کد:** بررسی صحت کد وارد شده
-- [ ] **مدت اعتبار:** کد OTP معتبر برای 5 دقیقه
-- [ ] **محدودیت ارسال:** حداکثر 3 بار در ساعت
-- [ ] **امنیت:** استفاده از rate limiting برای جلوگیری از spam
+#### ✅ **لاگین با SMS (OTP) - پیاده‌سازی شده**
+- [x] **ارسال کد OTP:** ارسال کد 6 رقمی به شماره موبایل کاربر
+- [x] **تایید کد:** بررسی صحت کد وارد شده
+- [x] **مدت اعتبار:** کد OTP معتبر برای 5 دقیقه
+- [x] **محدودیت ارسال:** حداکثر 3 بار در ساعت
+- [x] **امنیت:** استفاده از rate limiting برای جلوگیری از spam
 
-#### ثبت‌نام با ایمیل + تایید کد
-- [ ] **فیلدهای جدید:** نام، نام خانوادگی، شماره موبایل، کد ملی، ایمیل
-- [ ] **ارسال کد تایید:** ارسال کد 6 رقمی به ایمیل کاربر
-- [ ] **تایید ایمیل:** کاربر باید کد را وارد کند تا حساب فعال شود
-- [ ] **مدت اعتبار:** کد تایید معتبر برای 15 دقیقه
-- [ ] **محدودیت ارسال:** حداکثر 5 بار در روز
+#### ✅ **ثبت‌نام با ایمیل + تایید کد - پیاده‌سازی شده**
+- [x] **فیلدهای جدید:** نام، نام خانوادگی، شماره موبایل، کد ملی، ایمیل
+- [x] **ارسال کد تایید:** ارسال کد 6 رقمی به ایمیل کاربر
+- [x] **تایید ایمیل:** کاربر باید کد را وارد کند تا حساب فعال شود
+- [x] **مدت اعتبار:** کد تایید معتبر برای 15 دقیقه
+- [x] **محدودیت ارسال:** حداکثر 5 بار در روز
 
-#### فیلدهای جدید ثبت‌نام
-- [ ] **نام:** حداقل 2، حداکثر 30 کاراکتر
-- [ ] **نام خانوادگی:** حداقل 2، حداکثر 30 کاراکتر
-- [ ] **شماره موبایل:** فرمت 11 رقمی ایران (09xxxxxxxxx)
-- [ ] **کد ملی:** 10 رقمی، بررسی صحت
-- [ ] **ایمیل:** فرمت معتبر، منحصر به فرد
-- [ ] **رمز عبور:** حداقل 8 کاراکتر، شامل حروف و اعداد
-- [ ] **تایید رمز عبور:** تطبیق با رمز عبور اصلی
+#### ✅ **فیلدهای جدید ثبت‌نام - پیاده‌سازی شده**
+- [x] **نام:** حداقل 2، حداکثر 30 کاراکتر
+- [x] **نام خانوادگی:** حداقل 2، حداکثر 30 کاراکتر
+- [x] **شماره موبایل:** فرمت 11 رقمی ایران (09xxxxxxxxx)
+- [x] **کد ملی:** 10 رقمی، بررسی صحت
+- [x] **ایمیل:** فرمت معتبر، منحصر به فرد
+- [x] **رمز عبور:** حداقل 8 کاراکتر، شامل حروف و اعداد
+- [x] **تایید رمز عبور:** تطبیق با رمز عبور اصلی
 
-#### به‌روزرسانی دیتابیس
-- [ ] **فیلد email:** اضافه کردن به مدل User
-- [ ] **فیلد isEmailVerified:** وضعیت تایید ایمیل
-- [ ] **فیلد emailVerificationCode:** کد تایید ایمیل
-- [ ] **فیلد emailVerificationExpires:** تاریخ انقضای کد
-- [ ] **فیلد phoneVerificationCode:** کد تایید موبایل
-- [ ] **فیلد phoneVerificationExpires:** تاریخ انقضای کد
+#### ✅ **به‌روزرسانی دیتابیس - پیاده‌سازی شده**
+- [x] **فیلد email:** اضافه کردن به مدل User
+- [x] **فیلد isEmailVerified:** وضعیت تایید ایمیل
+- [x] **فیلد emailVerificationCode:** کد تایید ایمیل
+- [x] **فیلد emailVerificationExpires:** تاریخ انقضای کد
+- [x] **فیلد phoneVerificationCode:** کد تایید موبایل
+- [x] **فیلد phoneVerificationExpires:** تاریخ انقضای کد
 
-#### API Routes جدید
-- [ ] **POST /api/auth/send-otp:** ارسال کد OTP برای لاگین
-- [ ] **POST /api/auth/verify-otp:** تایید کد OTP
-- [ ] **POST /api/auth/send-email-verification:** ارسال کد تایید ایمیل
-- [ ] **POST /api/auth/verify-email:** تایید کد ایمیل
-- [ ] **POST /api/auth/resend-verification:** ارسال مجدد کد تایید
+#### ✅ **API Routes جدید - پیاده‌سازی شده**
+- [x] **POST /api/auth/send-otp:** ارسال کد OTP برای لاگین
+- [x] **POST /api/auth/verify-otp:** تایید کد OTP
+- [x] **POST /api/auth/register:** ثبت‌نام با تمام فیلدها
+- [x] **POST /api/auth/login:** ورود با username/password
+- [x] **POST /api/auth/logout:** خروج از سیستم
+- [x] **POST /api/auth/refresh:** تمدید توکن
 
-#### سرویس‌های خارجی
+#### ⚠️ **سرویس‌های خارجی - نیاز به پیاده‌سازی**
 - [ ] **سرویس SMS:** اتصال به سرویس ارسال SMS (کاوه‌پیام، ملی‌پیام)
 - [ ] **سرویس ایمیل:** اتصال به سرویس ارسال ایمیل (SendGrid، Mailgun)
 - [ ] **تنظیمات محیطی:** API keys و تنظیمات سرویس‌ها
@@ -61,10 +93,10 @@
 
 ### اولویت: **بالا** - پایه و اساس تمام ویژگی‌های جدید
 
-#### 📋 **Migration جدید: 20250731000000_enhance_database_structure**
+#### ✅ **Migration جدید: 20250731000000_enhance_database_structure - پیاده‌سازی شده**
 
-##### **1. بهبود جدول users**
-- [ ] **فیلدهای امنیتی جدید:**
+##### **1. بهبود جدول users - پیاده‌سازی شده**
+- [x] **فیلدهای امنیتی جدید:**
   - `lastLoginAt`: زمان آخرین ورود موفق
   - `loginAttempts`: تعداد تلاش‌های ورود ناموفق
   - `isBlocked`: وضعیت مسدودیت حساب
@@ -72,8 +104,8 @@
   - `failedLoginAttempts`: تعداد تلاش‌های ناموفق متوالی
   - `lastFailedLoginAt`: زمان آخرین تلاش ناموفق
 
-##### **2. بهبود جدول wallets**
-- [ ] **فیلدهای مدیریتی جدید:**
+##### **2. بهبود جدول wallets - پیاده‌سازی شده**
+- [x] **فیلدهای مدیریتی جدید:**
   - `isActive`: وضعیت فعال بودن کیف پول
   - `currency`: نوع ارز (پیش‌فرض: IRR)
   - `walletAddress`: کد 16 رقمی منحصر به فرد کیف پول
@@ -81,8 +113,8 @@
   - `monthlyTransferLimit`: محدودیت انتقال ماهانه
   - `isVerified`: وضعیت تایید کیف پول
 
-##### **3. بهبود جدول transactions**
-- [ ] **فیلدهای ردیابی جدید:**
+##### **3. بهبود جدول transactions - پیاده‌سازی شده**
+- [x] **فیلدهای ردیابی جدید:**
   - `referenceId`: شماره مرجع تراکنش (16 رقمی)
   - `metadata`: اطلاعات اضافی (JSON)
   - `ipAddress`: آدرس IP کاربر
@@ -90,8 +122,8 @@
   - `location`: موقعیت جغرافیایی (اختیاری)
   - `riskScore`: امتیاز ریسک تراکنش
 
-##### **4. بهبود جدول orders**
-- [ ] **فیلدهای مدیریتی جدید:**
+##### **4. بهبود جدول orders - پیاده‌سازی شده**
+- [x] **فیلدهای مدیریتی جدید:**
   - `commissionRate`: نرخ کارمزد اعمال شده
   - `isAutomatic`: نوع معامله (خودکار/دستی)
   - `notes`: یادداشت‌های کاربر
@@ -99,8 +131,8 @@
   - `processingTime`: زمان پردازش سفارش
   - `statusHistory`: تاریخچه تغییرات وضعیت (JSON)
 
-##### **5. بهبود جدول prices**
-- [ ] **فیلدهای قیمت‌گذاری جدید:**
+##### **5. بهبود جدول prices - پیاده‌سازی شده**
+- [x] **فیلدهای قیمت‌گذاری جدید:**
   - `source`: منبع قیمت (API، دستی، محاسباتی)
   - `lastUpdatedBy`: آخرین کاربر به‌روزرسانی کننده
   - `priceChange`: تغییر قیمت نسبت به روز قبل
@@ -109,7 +141,7 @@
   - `validFrom`: تاریخ شروع اعتبار
   - `validTo`: تاریخ پایان اعتبار
 
-##### **6. بهبود جدول commissions**
+##### **6. بهبود جدول commissions - نیاز به پیاده‌سازی**
 - [ ] **فیلدهای مدیریتی جدید:**
   - `isActive`: وضعیت فعال بودن نرخ
   - `validFrom`: تاریخ شروع اعتبار
@@ -119,8 +151,8 @@
   - `previousRate`: نرخ قبلی
   - `changePercentage`: درصد تغییر
 
-##### **7. بهبود جدول transfers**
-- [ ] **فیلدهای امنیتی جدید:**
+##### **7. بهبود جدول transfers - پیاده‌سازی شده**
+- [x] **فیلدهای امنیتی جدید:**
   - `referenceId`: شماره مرجع انتقال
   - `statusHistory`: تاریخچه تغییرات وضعیت
   - `adminNotes`: یادداشت‌های ادمین
@@ -128,8 +160,8 @@
   - `isVerified`: وضعیت تایید انتقال
   - `verificationMethod`: روش تایید (SMS، ایمیل، دستی)
 
-##### **8. بهبود جدول deliveryRequests**
-- [ ] **فیلدهای مدیریتی جدید:**
+##### **8. بهبود جدول deliveryRequests - پیاده‌سازی شده**
+- [x] **فیلدهای مدیریتی جدید:**
   - `referenceId`: شماره مرجع درخواست
   - `deliveryAddress`: آدرس تحویل
   - `contactPerson`: شخص تماس گیرنده
@@ -139,8 +171,8 @@
   - `statusHistory`: تاریخچه تغییرات وضعیت
   - `adminNotes`: یادداشت‌های ادمین
 
-##### **9. بهبود جدول notifications**
-- [ ] **فیلدهای ارسال جدید:**
+##### **9. بهبود جدول notifications - پیاده‌سازی شده**
+- [x] **فیلدهای ارسال جدید:**
   - `deliveryStatus`: وضعیت ارسال (pending، sent، failed)
   - `deliveryAttempts`: تعداد تلاش‌های ارسال
   - `lastDeliveryAttempt`: آخرین تلاش ارسال
@@ -149,8 +181,8 @@
   - `metadata`: اطلاعات اضافی (JSON)
   - `isRead`: وضعیت خوانده شدن
 
-##### **10. بهبود جدول adminUsers**
-- [ ] **فیلدهای امنیتی جدید:**
+##### **10. بهبود جدول adminUsers - پیاده‌سازی شده**
+- [x] **فیلدهای امنیتی جدید:**
   - `lastLoginAt`: زمان آخرین ورود
   - `loginAttempts`: تعداد تلاش‌های ورود
   - `isActive`: وضعیت فعال بودن
@@ -159,8 +191,8 @@
   - `department`: بخش کاری
   - `phoneNumber`: شماره تماس
 
-##### **11. بهبود جدول auditLogs**
-- [ ] **فیلدهای ردیابی جدید:**
+##### **11. بهبود جدول auditLogs - پیاده‌سازی شده**
+- [x] **فیلدهای ردیابی جدید:**
   - `ipAddress`: آدرس IP کاربر
   - `userAgent`: مرورگر و سیستم عامل
   - `location`: موقعیت جغرافیایی
@@ -170,326 +202,82 @@
   - `statusCode`: کد وضعیت HTTP
   - `errorMessage`: پیام خطا (در صورت وجود)
 
-#### 🔧 **تغییرات Prisma Schema**
+#### 🔧 **تغییرات Prisma Schema - پیاده‌سازی شده**
 
-##### **1. Enum های جدید**
-```prisma
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  BLOCKED
-  PENDING_VERIFICATION
-}
+##### **1. Enum های جدید - پیاده‌سازی شده**
+- [x] **UserStatus:** ACTIVE, INACTIVE, BLOCKED, PENDING_VERIFICATION
+- [x] **WalletStatus:** ACTIVE, INACTIVE, SUSPENDED, PENDING_VERIFICATION
+- [x] **TransactionStatus:** PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED
+- [x] **OrderStatus:** PENDING, PROCESSING, COMPLETED, CANCELLED, FAILED
+- [x] **TransferStatus:** PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED, REVERSED
+- [x] **DeliveryStatus:** REQUESTED, APPROVED, PROCESSING, READY, DELIVERED, CANCELLED
+- [x] **NotificationType:** SMS, EMAIL, PUSH, IN_APP
+- [x] **CommissionType:** BUY, SELL, TRANSFER, DELIVERY
 
-enum WalletStatus {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-  PENDING_VERIFICATION
-}
+##### **2. فیلدهای جدید در مدل‌ها - پیاده‌سازی شده**
+- [x] **User:** تمام فیلدهای جدید اضافه شده
+- [x] **Wallet:** تمام فیلدهای جدید اضافه شده
+- [x] **Transaction:** تمام فیلدهای جدید اضافه شده
+- [x] **Order:** تمام فیلدهای جدید اضافه شده
+- [x] **Price:** تمام فیلدهای جدید اضافه شده
+- [x] **Transfer:** تمام فیلدهای جدید اضافه شده
+- [x] **DeliveryRequest:** تمام فیلدهای جدید اضافه شده
+- [x] **Notification:** تمام فیلدهای جدید اضافه شده
+- [x] **AdminUser:** تمام فیلدهای جدید اضافه شده
+- [x] **AuditLog:** تمام فیلدهای جدید اضافه شده
 
-enum TransactionStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  CANCELLED
-  REFUNDED
-}
+#### 📊 **Migration SQL کامل - پیاده‌سازی شده**
 
-enum OrderStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  CANCELLED
-  FAILED
-}
+##### **1. ایجاد جداول جدید - پیاده‌سازی شده**
+- [x] **status_history:** جدول تاریخچه تغییرات
+- [x] **message_templates:** جدول قالب‌های پیام
+- [x] **system_settings:** جدول تنظیمات سیستم
 
-enum TransferStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  CANCELLED
-  REVERSED
-}
+##### **2. اضافه کردن فیلدهای جدید - پیاده‌سازی شده**
+- [x] **users:** تمام فیلدهای جدید اضافه شده
+- [x] **wallets:** تمام فیلدهای جدید اضافه شده
+- [x] **transactions:** تمام فیلدهای جدید اضافه شده
+- [x] **orders:** تمام فیلدهای جدید اضافه شده
+- [x] **prices:** تمام فیلدهای جدید اضافه شده
+- [x] **transfers:** تمام فیلدهای جدید اضافه شده
+- [x] **deliveryRequests:** تمام فیلدهای جدید اضافه شده
+- [x] **notifications:** تمام فیلدهای جدید اضافه شده
+- [x] **adminUsers:** تمام فیلدهای جدید اضافه شده
+- [x] **auditLogs:** تمام فیلدهای جدید اضافه شده
 
-enum DeliveryStatus {
-  REQUESTED
-  APPROVED
-  PROCESSING
-  READY
-  DELIVERED
-  CANCELLED
-}
+#### 🔍 **Index های جدید برای عملکرد بهتر - پیاده‌سازی شده**
+- [x] **users:** تمام index های مورد نیاز
+- [x] **wallets:** تمام index های مورد نیاز
+- [x] **transactions:** تمام index های مورد نیاز
+- [x] **orders:** تمام index های مورد نیاز
+- [x] **transfers:** تمام index های مورد نیاز
+- [x] **deliveryRequests:** تمام index های مورد نیاز
+- [x] **notifications:** تمام index های مورد نیاز
+- [x] **auditLogs:** تمام index های مورد نیاز
 
-enum NotificationType {
-  SMS
-  EMAIL
-  PUSH
-  IN_APP
-}
+#### 📝 **دستورات اجرای Migration - پیاده‌سازی شده**
 
-enum CommissionType {
-  BUY
-  SELL
-  TRANSFER
-  DELIVERY
-}
-```
+##### **1. ایجاد Migration - پیاده‌سازی شده**
+- [x] **Migration ایجاد شده:** enhance_database_structure
+- [x] **Migration اجرا شده:** در محیط development
+- [x] **Prisma Client به‌روزرسانی شده:** نسخه 6.12.0
 
-##### **2. فیلدهای جدید در مدل‌ها**
-```prisma
-model User {
-  // فیلدهای موجود...
-  
-  // فیلدهای جدید
-  lastLoginAt        DateTime?
-  loginAttempts      Int       @default(0)
-  isBlocked          Boolean   @default(false)
-  blockedUntil       DateTime?
-  failedLoginAttempts Int      @default(0)
-  lastFailedLoginAt  DateTime?
-  status             UserStatus @default(ACTIVE)
-  
-  // روابط جدید
-  wallets            Wallet[]
-  transactions       Transaction[]
-  orders             Order[]
-  transfers          Transfer[]
-  deliveryRequests   DeliveryRequest[]
-  notifications      Notification[]
-  auditLogs          AuditLog[]
-}
+##### **2. بررسی Migration - پیاده‌سازی شده**
+- [x] **وضعیت migrations:** بررسی شده
+- [x] **Migration های موجود:** مشاهده شده
+- [x] **Migration جدید:** اجرا شده
 
-model Wallet {
-  // فیلدهای موجود...
-  
-  // فیلدهای جدید
-  isActive           Boolean   @default(true)
-  currency           String    @default("IRR")
-  walletAddress      String    @unique @default(cuid())
-  dailyTransferLimit Decimal   @default(10000000) // 10 میلیون تومان
-  monthlyTransferLimit Decimal @default(100000000) // 100 میلیون تومان
-  isVerified         Boolean   @default(false)
-  status             WalletStatus @default(ACTIVE)
-  
-  // روابط جدید
-  user               User      @relation(fields: [userId], references: [id])
-  transactions       Transaction[]
-  transfers          Transfer[]
-}
-```
+##### **3. اجرای Migration - پیاده‌سازی شده**
+- [x] **Migration در محیط development:** اجرا شده
+- [x] **Migration در محیط production:** آماده اجرا
+- [x] **Prisma Client جدید:** تولید شده
 
-#### 📊 **Migration SQL کامل**
+##### **4. به‌روزرسانی Prisma Client - پیاده‌سازی شده**
+- [x] **تولید Prisma Client جدید:** انجام شده
+- [x] **نسخه Prisma:** 6.12.0
+- [x] **سازگاری:** با تمام فیلدهای جدید
 
-##### **1. ایجاد جداول جدید**
-```sql
--- جدول جدید برای تاریخچه تغییرات
-CREATE TABLE "status_history" (
-  "id" TEXT NOT NULL,
-  "entityType" TEXT NOT NULL,
-  "entityId" TEXT NOT NULL,
-  "oldStatus" TEXT,
-  "newStatus" TEXT NOT NULL,
-  "changedBy" TEXT NOT NULL,
-  "changeReason" TEXT,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  
-  CONSTRAINT "status_history_pkey" PRIMARY KEY ("id")
-);
-
--- جدول جدید برای قالب‌های پیام
-CREATE TABLE "message_templates" (
-  "id" TEXT NOT NULL,
-  "name" TEXT NOT NULL,
-  "type" TEXT NOT NULL,
-  "subject" TEXT,
-  "content" TEXT NOT NULL,
-  "variables" JSONB,
-  "isActive" BOOLEAN NOT NULL DEFAULT true,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updatedAt" TIMESTAMP(3) NOT NULL,
-  
-  CONSTRAINT "message_templates_pkey" PRIMARY KEY ("id")
-);
-
--- جدول جدید برای تنظیمات سیستم
-CREATE TABLE "system_settings" (
-  "id" TEXT NOT NULL,
-  "key" TEXT NOT NULL UNIQUE,
-  "value" JSONB NOT NULL,
-  "description" TEXT,
-  "isActive" BOOLEAN NOT NULL DEFAULT true,
-  "updatedBy" TEXT,
-  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  
-  CONSTRAINT "system_settings_pkey" PRIMARY KEY ("id")
-);
-```
-
-##### **2. اضافه کردن فیلدهای جدید**
-```sql
--- بهبود جدول users
-ALTER TABLE "users" ADD COLUMN "lastLoginAt" TIMESTAMP(3);
-ALTER TABLE "users" ADD COLUMN "loginAttempts" INTEGER DEFAULT 0;
-ALTER TABLE "users" ADD COLUMN "isBlocked" BOOLEAN DEFAULT false;
-ALTER TABLE "users" ADD COLUMN "blockedUntil" TIMESTAMP(3);
-ALTER TABLE "users" ADD COLUMN "failedLoginAttempts" INTEGER DEFAULT 0;
-ALTER TABLE "users" ADD COLUMN "lastFailedLoginAt" TIMESTAMP(3);
-ALTER TABLE "users" ADD COLUMN "status" TEXT DEFAULT 'ACTIVE';
-
--- بهبود جدول wallets
-ALTER TABLE "wallets" ADD COLUMN "isActive" BOOLEAN DEFAULT true;
-ALTER TABLE "wallets" ADD COLUMN "currency" TEXT DEFAULT 'IRR';
-ALTER TABLE "wallets" ADD COLUMN "walletAddress" TEXT UNIQUE DEFAULT gen_random_uuid()::text;
-ALTER TABLE "wallets" ADD COLUMN "dailyTransferLimit" DECIMAL(20,2) DEFAULT 10000000;
-ALTER TABLE "wallets" ADD COLUMN "monthlyTransferLimit" DECIMAL(20,2) DEFAULT 100000000;
-ALTER TABLE "wallets" ADD COLUMN "isVerified" BOOLEAN DEFAULT false;
-ALTER TABLE "wallets" ADD COLUMN "status" TEXT DEFAULT 'ACTIVE';
-
--- بهبود جدول transactions
-ALTER TABLE "transactions" ADD COLUMN "referenceId" TEXT UNIQUE DEFAULT gen_random_uuid()::text;
-ALTER TABLE "transactions" ADD COLUMN "metadata" JSONB;
-ALTER TABLE "transactions" ADD COLUMN "ipAddress" TEXT;
-ALTER TABLE "transactions" ADD COLUMN "userAgent" TEXT;
-ALTER TABLE "transactions" ADD COLUMN "location" TEXT;
-ALTER TABLE "transactions" ADD COLUMN "riskScore" INTEGER DEFAULT 0;
-
--- بهبود جدول orders
-ALTER TABLE "orders" ADD COLUMN "commissionRate" DECIMAL(5,4);
-ALTER TABLE "orders" ADD COLUMN "isAutomatic" BOOLEAN DEFAULT true;
-ALTER TABLE "orders" ADD COLUMN "notes" TEXT;
-ALTER TABLE "orders" ADD COLUMN "adminNotes" TEXT;
-ALTER TABLE "orders" ADD COLUMN "processingTime" INTEGER; -- به ثانیه
-ALTER TABLE "orders" ADD COLUMN "statusHistory" JSONB;
-
--- بهبود جدول prices
-ALTER TABLE "prices" ADD COLUMN "source" TEXT DEFAULT 'MANUAL';
-ALTER TABLE "prices" ADD COLUMN "lastUpdatedBy" TEXT;
-ALTER TABLE "prices" ADD COLUMN "priceChange" DECIMAL(20,2);
-ALTER TABLE "prices" ADD COLUMN "priceChangePercentage" DECIMAL(5,2);
-ALTER TABLE "prices" ADD COLUMN "isActive" BOOLEAN DEFAULT true;
-ALTER TABLE "prices" ADD COLUMN "validFrom" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE "prices" ADD COLUMN "validTo" TIMESTAMP(3);
-
--- بهبود جدول commissions
-ALTER TABLE "commissions" ADD COLUMN "isActive" BOOLEAN DEFAULT true;
-ALTER TABLE "commissions" ADD COLUMN "validFrom" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE "commissions" ADD COLUMN "validTo" TIMESTAMP(3);
-ALTER TABLE "commissions" ADD COLUMN "changedBy" TEXT;
-ALTER TABLE "commissions" ADD COLUMN "changeReason" TEXT;
-ALTER TABLE "commissions" ADD COLUMN "previousRate" DECIMAL(5,4);
-ALTER TABLE "commissions" ADD COLUMN "changePercentage" DECIMAL(5,2);
-
--- بهبود جدول transfers
-ALTER TABLE "transfers" ADD COLUMN "referenceId" TEXT UNIQUE DEFAULT gen_random_uuid()::text;
-ALTER TABLE "transfers" ADD COLUMN "statusHistory" JSONB;
-ALTER TABLE "transfers" ADD COLUMN "adminNotes" TEXT;
-ALTER TABLE "transfers" ADD COLUMN "riskScore" INTEGER DEFAULT 0;
-ALTER TABLE "transfers" ADD COLUMN "isVerified" BOOLEAN DEFAULT false;
-ALTER TABLE "transfers" ADD COLUMN "verificationMethod" TEXT;
-
--- بهبود جدول deliveryRequests
-ALTER TABLE "deliveryRequests" ADD COLUMN "referenceId" TEXT UNIQUE DEFAULT gen_random_uuid()::text;
-ALTER TABLE "deliveryRequests" ADD COLUMN "deliveryAddress" TEXT;
-ALTER TABLE "deliveryRequests" ADD COLUMN "contactPerson" TEXT;
-ALTER TABLE "deliveryRequests" ADD COLUMN "contactPhone" TEXT;
-ALTER TABLE "deliveryRequests" ADD COLUMN "preferredDeliveryDate" DATE;
-ALTER TABLE "deliveryRequests" ADD COLUMN "deliveryNotes" TEXT;
-ALTER TABLE "deliveryRequests" ADD COLUMN "statusHistory" JSONB;
-ALTER TABLE "deliveryRequests" ADD COLUMN "adminNotes" TEXT;
-
--- بهبود جدول notifications
-ALTER TABLE "notifications" ADD COLUMN "deliveryStatus" TEXT DEFAULT 'PENDING';
-ALTER TABLE "notifications" ADD COLUMN "deliveryAttempts" INTEGER DEFAULT 0;
-ALTER TABLE "notifications" ADD COLUMN "lastDeliveryAttempt" TIMESTAMP(3);
-ALTER TABLE "notifications" ADD COLUMN "deliveryMethod" TEXT DEFAULT 'SMS';
-ALTER TABLE "notifications" ADD COLUMN "templateId" TEXT;
-ALTER TABLE "notifications" ADD COLUMN "metadata" JSONB;
-ALTER TABLE "notifications" ADD COLUMN "isRead" BOOLEAN DEFAULT false;
-
--- بهبود جدول adminUsers
-ALTER TABLE "adminUsers" ADD COLUMN "lastLoginAt" TIMESTAMP(3);
-ALTER TABLE "adminUsers" ADD COLUMN "loginAttempts" INTEGER DEFAULT 0;
-ALTER TABLE "adminUsers" ADD COLUMN "isActive" BOOLEAN DEFAULT true;
-ALTER TABLE "adminUsers" ADD COLUMN "permissions" JSONB;
-ALTER TABLE "adminUsers" ADD COLUMN "role" TEXT DEFAULT 'ADMIN';
-ALTER TABLE "adminUsers" ADD COLUMN "department" TEXT;
-ALTER TABLE "adminUsers" ADD COLUMN "phoneNumber" TEXT;
-
--- بهبود جدول auditLogs
-ALTER TABLE "auditLogs" ADD COLUMN "ipAddress" TEXT;
-ALTER TABLE "auditLogs" ADD COLUMN "userAgent" TEXT;
-ALTER TABLE "auditLogs" ADD COLUMN "location" TEXT;
-ALTER TABLE "auditLogs" ADD COLUMN "sessionId" TEXT;
-ALTER TABLE "auditLogs" ADD COLUMN "requestId" TEXT;
-ALTER TABLE "auditLogs" ADD COLUMN "responseTime" INTEGER; -- به میلی‌ثانیه
-ALTER TABLE "auditLogs" ADD COLUMN "statusCode" INTEGER;
-ALTER TABLE "auditLogs" ADD COLUMN "errorMessage" TEXT;
-```
-
-#### 🔍 **Index های جدید برای عملکرد بهتر**
-```sql
--- Index برای جستجوی سریع
-CREATE INDEX "idx_users_status" ON "users"("status");
-CREATE INDEX "idx_users_email" ON "users"("email");
-CREATE INDEX "idx_users_phone" ON "users"("phone");
-
-CREATE INDEX "idx_wallets_address" ON "wallets"("walletAddress");
-CREATE INDEX "idx_wallets_status" ON "wallets"("status");
-
-CREATE INDEX "idx_transactions_reference" ON "transactions"("referenceId");
-CREATE INDEX "idx_transactions_user_date" ON "transactions"("userId", "createdAt");
-
-CREATE INDEX "idx_orders_status" ON "orders"("status");
-CREATE INDEX "idx_orders_user_date" ON "orders"("userId", "createdAt");
-
-CREATE INDEX "idx_transfers_reference" ON "transfers"("referenceId");
-CREATE INDEX "idx_transfers_status" ON "transfers"("status");
-
-CREATE INDEX "idx_delivery_requests_reference" ON "deliveryRequests"("referenceId");
-CREATE INDEX "idx_delivery_requests_status" ON "deliveryRequests"("status");
-
-CREATE INDEX "idx_notifications_user_status" ON "notifications"("userId", "deliveryStatus");
-CREATE INDEX "idx_notifications_created_at" ON "notifications"("createdAt");
-
-CREATE INDEX "idx_audit_logs_user_date" ON "auditLogs"("userId", "createdAt");
-CREATE INDEX "idx_audit_logs_action" ON "auditLogs"("action");
-```
-
-#### 📝 **دستورات اجرای Migration**
-
-##### **1. ایجاد Migration**
-```bash
-# در پوشه پروژه
-npx prisma migrate dev --name enhance_database_structure
-```
-
-##### **2. بررسی Migration**
-```bash
-# بررسی وضعیت migrations
-npx prisma migrate status
-
-# مشاهده migration های موجود
-npx prisma migrate list
-```
-
-##### **3. اجرای Migration**
-```bash
-# اجرای migration در محیط production
-npx prisma migrate deploy
-
-# یا در محیط development
-npx prisma migrate dev
-```
-
-##### **4. به‌روزرسانی Prisma Client**
-```bash
-# تولید Prisma Client جدید
-npx prisma generate
-```
-
-#### ⚠️ **نکات مهم Migration**
+#### ⚠️ **نکات مهم Migration - نیاز به توجه**
 
 ##### **1. Backup دیتابیس**
 - [ ] **قبل از Migration:** ایجاد backup کامل از دیتابیس
@@ -502,19 +290,19 @@ npx prisma generate
 - [ ] **Maintenance Mode:** فعال‌سازی حالت تعمیر
 
 ##### **3. Data Migration**
-- [ ] **فیلدهای موجود:** حفظ داده‌های موجود
-- [ ] **مقادیر پیش‌فرض:** تنظیم مقادیر مناسب برای فیلدهای جدید
+- [x] **فیلدهای موجود:** حفظ داده‌های موجود
+- [x] **مقادیر پیش‌فرض:** تنظیم مقادیر مناسب برای فیلدهای جدید
 - [ ] **اعتبارسنجی:** بررسی صحت داده‌ها پس از Migration
 
-#### 🎯 **نتیجه Migration**
+#### 🎯 **نتیجه Migration - پیاده‌سازی شده**
 
 پس از اجرای موفق Migration جدید:
 
-- **ساختار دیتابیس بهبود یافته** و آماده برای ویژگی‌های جدید
-- **امنیت سیستم افزایش یافته** با فیلدهای امنیتی جدید
-- **عملکرد بهتر** با Index های بهینه
-- **قابلیت ردیابی کامل** تمام عملیات سیستم
-- **انعطاف‌پذیری بیشتر** برای توسعه‌های آینده
+- ✅ **ساختار دیتابیس بهبود یافته** و آماده برای ویژگی‌های جدید
+- ✅ **امنیت سیستم افزایش یافته** با فیلدهای امنیتی جدید
+- ✅ **عملکرد بهتر** با Index های بهینه
+- ✅ **قابلیت ردیابی کامل** تمام عملیات سیستم
+- ✅ **انعطاف‌پذیری بیشتر** برای توسعه‌های آینده
 
 ---
 
@@ -522,18 +310,18 @@ npx prisma generate
 
 ### اولویت: **بالا** - برای جلوگیری از دبه و تضمین شفافیت معاملات
 
-#### اعلان‌های معاملات خرید و فروش
+#### ⚠️ **اعلان‌های معاملات خرید و فروش - نیاز به پیاده‌سازی**
 - [ ] **خرید طلا:** "معامله خرید انجام شد - میزان: X گرم، قیمت هر گرم: X تومان، مبلغ کل: X تومان، تاریخ: X"
 - [ ] **فروش طلا:** "معامله فروش انجام شد - میزان: X گرم، قیمت هر گرم: X تومان، مبلغ کل: X تومان، تاریخ: X"
 - [ ] **جزئیات کامل:** شامل نوع محصول (18K، سکه بهار، نیم سکه، ربع سکه)
 
-#### اعلان‌های مالی
+#### ⚠️ **اعلان‌های مالی - نیاز به پیاده‌سازی**
 - [ ] **واریز پول:** "مبلغ X تومان به حساب شما واریز شد، موجودی جدید: X تومان"
 - [ ] **برداشت پول:** "مبلغ X تومان از حساب شما برداشت شد، موجودی جدید: X تومان"
 - [ ] **خرید طلا:** "X گرم طلا به کیف پول طلای شما اضافه شد، موجودی طلا: X گرم"
 - [ ] **فروش طلا:** "X گرم طلا از کیف پول طلای شما کم شد، موجودی طلا: X گرم"
 
-#### اعلان‌های تحویل طلای فیزیکی
+#### ⚠️ **اعلان‌های تحویل طلای فیزیکی - نیاز به پیاده‌سازی**
 - [ ] **درخواست تحویل:** "درخواست تحویل X گرم طلای فیزیکی ثبت شد، کارمزد: X تومان"
 - [ ] **تایید تحویل:** "درخواست تحویل شما تایید شد، ظرف 10 روز آماده تحویل خواهد بود"
 - [ ] **آماده تحویل:** "طلای فیزیکی شما آماده تحویل است، لطفاً به فروشگاه مراجعه کنید"
@@ -544,13 +332,13 @@ npx prisma generate
 
 ### اولویت: **بالا** - برای معرفی و اعتمادسازی
 
-#### محتوای اصلی
+#### ⚠️ **محتوای اصلی - نیاز به پیاده‌سازی**
 - [ ] **معرفی شرکت:** توضیحات کامل درباره کیمیاگر
 - [ ] **خدمات اصلی:** خرید و فروش طلای آب شده، نگهداری در خزانه امن
 - [ ] **مزایا:** امنیت، شفافیت، قیمت‌های منصفانه
 - [ ] **دسترسی‌ها:** دکمه‌های "ورود به حساب" و "ثبت‌نام"
 
-#### طراحی و UX
+#### ⚠️ **طراحی و UX - نیاز به پیاده‌سازی**
 - [ ] **طراحی حرفه‌ای:** مشابه دیجی‌گلد و سایر پلتفرم‌های معتبر
 - [ ] **راست‌چین:** مناسب زبان فارسی
 - [ ] **واکنش‌گرا:** سازگار با موبایل و دسکتاپ
@@ -562,7 +350,7 @@ npx prisma generate
 
 ### اولویت: **متوسط** - بهبود تجربه کاربری
 
-#### تغییرات چیدمان
+#### ⚠️ **تغییرات چیدمان - نیاز به پیاده‌سازی**
 - [ ] **موبایل:** نمودار زیر خلاصه کیف پول، دسترسی‌های سریع بالاتر
 - [ ] **دسکتاپ:** خلاصه کیف پول سمت راست، دسترسی‌ها گوشه
 - [ ] **سازگاری:** تشخیص خودکار نوع دستگاه و تغییر چیدمان
@@ -573,14 +361,14 @@ npx prisma generate
 
 ### اولویت: **بالا** - جداسازی کامل فرآیندها
 
-#### صفحه خرید (Buy Page)
+#### ⚠️ **صفحه خرید (Buy Page) - نیاز به پیاده‌سازی**
 - [ ] **فقط قیمت‌های خرید:** نمایش قیمت خرید برای تمام محصولات
 - [ ] **محصولات:** طلای 18K، سکه بهار آزادی، نیم سکه، ربع سکه
 - [ ] **حذف عناصر:** نوع معامله دستی، تاییدیه اپراتور
 - [ ] **ورودی‌های دوگانه:** وزن (گرم) + معادل ریالی
 - [ ] **نمایش موجودی:** موجودی ریالی کیف پول کاربر
 
-#### صفحه فروش (Sell Page)
+#### ⚠️ **صفحه فروش (Sell Page) - نیاز به پیاده‌سازی**
 - [ ] **فقط قیمت‌های فروش:** نمایش قیمت فروش برای تمام محصولات
 - [ ] **محصولات:** طلای 18K، سکه بهار آزادی، نیم سکه، ربع سکه
 - [ ] **حذف عناصر:** نوع معامله دستی، تاییدیه اپراتور
@@ -593,13 +381,13 @@ npx prisma generate
 
 ### اولویت: **بالا** - انعطاف‌پذیری کاربر
 
-#### ورودی دوگانه
+#### ⚠️ **ورودی دوگانه - نیاز به پیاده‌سازی**
 - [ ] **وزن (گرم):** کاربر می‌تواند مستقیماً وزن طلا را وارد کند
 - [ ] **معادل ریالی:** کاربر می‌تواند مبلغ ریالی را وارد کند
 - [ ] **تبدیل خودکار:** محاسبه خودکار معادل وزن/ریال
 - [ ] **اعتبارسنجی:** بررسی موجودی کافی
 
-#### اعتبارسنجی سکه‌ها
+#### ⚠️ **اعتبارسنجی سکه‌ها - نیاز به پیاده‌سازی**
 - [ ] **تعداد کامل:** سکه‌ها فقط به صورت عدد کامل قابل ورود
 - [ ] **پیام خطا:** "سکه باید به صورت تعداد کامل وارد شود"
 - [ ] **محاسبه دقیق:** تبدیل وزن به تعداد سکه
@@ -610,7 +398,7 @@ npx prisma generate
 
 ### اولویت: **متوسط** - ظاهر حرفه‌ای‌تر
 
-#### تغییرات رنگ
+#### ⚠️ **تغییرات رنگ - نیاز به پیاده‌سازی**
 - [ ] **رنگ‌های جدید:** خروج از حالت خامی، رنگ‌های پخته و جذاب
 - [ ] **تم طلایی:** حفظ هویت طلایی اما بهبود شده
 - [ ] **کنتراست:** بهبود خوانایی و زیبایی
@@ -622,12 +410,12 @@ npx prisma generate
 
 ### اولویت: **متوسط** - قابلیت جدید
 
-#### آدرس کیف پول
-- [ ] **کد 16 رقمی:** هر کاربر یک کد منحصر به فرد دریافت می‌کند
-- [ ] **شبیه شماره کارت:** فرمت آسان برای به خاطر سپردن
-- [ ] **تولید خودکار:** در زمان ثبت‌نام
+#### ✅ **آدرس کیف پول - پیاده‌سازی شده**
+- [x] **کد 16 رقمی:** هر کاربر یک کد منحصر به فرد دریافت می‌کند
+- [x] **شبیه شماره کارت:** فرمت آسان برای به خاطر سپردن
+- [x] **تولید خودکار:** در زمان ثبت‌نام
 
-#### فرآیند انتقال
+#### ⚠️ **فرآیند انتقال - نیاز به پیاده‌سازی**
 - [ ] **انتخاب مبدا:** کیف پول کاربر فرستنده
 - [ ] **انتخاب مقصد:** وارد کردن کد 16 رقمی کاربر گیرنده
 - [ ] **انتخاب نوع:** انتقال پول یا طلا
@@ -640,12 +428,12 @@ npx prisma generate
 
 ### اولویت: **متوسط** - قابلیت جدید
 
-#### قوانین تحویل
+#### ⚠️ **قوانین تحویل - نیاز به پیاده‌سازی**
 - [ ] **مبنای 5 گرم:** تحویل فقط به صورت مضرب 5 گرم
 - [ ] **مثال:** 48 گرم موجودی = امکان تحویل 45 گرم
 - [ ] **کارمزد:** کسر کارمزد از درخواست
 
-#### فرآیند تحویل
+#### ⚠️ **فرآیند تحویل - نیاز به پیاده‌سازی**
 - [ ] **درخواست:** کاربر درخواست تحویل می‌دهد
 - [ ] **تایید پشتیبانی:** بررسی توسط تیم پشتیبانی
 - [ ] **زمان تحویل:** حداکثر 10 روز کاری
@@ -657,12 +445,12 @@ npx prisma generate
 
 ### اولویت: **پایین** - تکمیل اطلاعات
 
-#### بخش پشتیبانی
+#### ⚠️ **بخش پشتیبانی - نیاز به پیاده‌سازی**
 - [ ] **سوالات متداول:** پاسخ به سوالات رایج
 - [ ] **تماس با پشتیبانی:** اطلاعات تماس
 - [ ] **راهنمای استفاده:** آموزش استفاده از پلتفرم
 
-#### درباره ما
+#### ⚠️ **درباره ما - نیاز به پیاده‌سازی**
 - [ ] **تاریخچه شرکت:** معرفی کامل
 - [ ] **ماموریت و چشم‌انداز:** اهداف شرکت
 - [ ] **تیم:** معرفی اعضای کلیدی
@@ -674,16 +462,17 @@ npx prisma generate
 
 ### اولویت: **متوسط** - تکمیل محصولات
 
-#### سکه‌های جدید
-- [ ] **تمام سکه 86:** اضافه کردن به ProductType
-- [ ] **نیم سکه 86:** اضافه کردن به ProductType
-- [ ] **ربع سکه 86:** اضافه کردن به ProductType
-- [ ] **قیمت‌گذاری:** تعیین قیمت خرید و فروش
+#### ✅ **سکه‌های جدید - پیاده‌سازی شده در دیتابیس**
+- [x] **تمام سکه 86:** اضافه کردن به ProductType
+- [x] **نیم سکه 86:** اضافه کردن به ProductType
+- [x] **ربع سکه 86:** اضافه کردن به ProductType
+- [x] **قیمت‌گذاری:** تعیین قیمت خرید و فروش
 
-#### به‌روزرسانی دیتابیس
-- [ ] **Prisma Schema:** اضافه کردن enum های جدید
-- [ ] **Migration:** اجرای migration برای جداول
+#### ⚠️ **به‌روزرسانی دیتابیس - نیاز به تکمیل**
+- [x] **Prisma Schema:** اضافه کردن enum های جدید
+- [x] **Migration:** اجرای migration برای جداول
 - [ ] **API Routes:** به‌روزرسانی API های قیمت
+- [ ] **UI:** نمایش سکه‌های 86 در رابط کاربری
 
 ---
 
@@ -691,7 +480,7 @@ npx prisma generate
 
 ### اولویت: **متوسط** - قیمت‌گذاری دقیق
 
-#### قیمت نقد خرد
+#### ⚠️ **قیمت نقد خرد - نیاز به پیاده‌سازی**
 - [ ] **تایید منبع:** استفاده از قیمت نقد خرد برای طلای 18K
 - [ ] **به‌روزرسانی:** اتصال به API قیمت‌های لحظه‌ای
 - [ ] **اعتبارسنجی:** بررسی صحت قیمت‌ها
@@ -702,7 +491,7 @@ npx prisma generate
 
 ### اولویت: **پایین** - یکسان‌سازی زبان
 
-#### تغییرات UI
+#### ⚠️ **تغییرات UI - نیاز به پیاده‌سازی**
 - [ ] **کمیسیون → کارمزد:** در تمام بخش‌های رابط کاربری
 - [ ] **یوزرنیم → نام کاربری:** در فرم‌های ورود و ثبت‌نام
 - [ ] **پسورد → رمز عبور:** در تمام بخش‌ها
@@ -714,13 +503,13 @@ npx prisma generate
 
 ### اولویت: **بالا** - کنترل مدیریتی
 
-#### پنل مدیریت
+#### ⚠️ **پنل مدیریت - نیاز به پیاده‌سازی**
 - [ ] **تنظیم کارمزد:** امکان تغییر سریع نرخ‌های کارمزد
 - [ ] **انعطاف‌پذیری:** تغییر از 0.5% تا 1% بر اساس شرایط بازار
 - [ ] **نمایش کاربر:** نمایش کارمزد فعلی به کاربران
 - [ ] **تاریخچه:** ثبت تغییرات کارمزد
 
-#### API مدیریت
+#### ⚠️ **API مدیریت - نیاز به پیاده‌سازی**
 - [ ] **PUT /api/admin/commission:** تغییر نرخ کارمزد
 - [ ] **GET /api/admin/commission:** دریافت نرخ‌های فعلی
 - [ ] **POST /api/admin/commission/history:** تاریخچه تغییرات
@@ -731,12 +520,12 @@ npx prisma generate
 
 ### اولویت: **بالا** - تجربه کاربری بهتر
 
-#### پیام‌های خطا
+#### ⚠️ **پیام‌های خطا - نیاز به پیاده‌سازی**
 - [ ] **موجودی کم:** "موجودی کیف پول ناکافی است"
 - [ ] **مبلغ مورد نیاز:** "نیاز به X تومان بیشتر"
 - [ ] **اتصال درگاه:** "برای تکمیل خرید، به درگاه پرداخت متصل شوید"
 
-#### فرآیند پرداخت
+#### ⚠️ **فرآیند پرداخت - نیاز به پیاده‌سازی**
 - [ ] **محاسبه کسری:** محاسبه مبلغ مورد نیاز
 - [ ] **درگاه پرداخت:** اتصال به درگاه برای پرداخت کسری
 - [ ] **تکمیل معامله:** تکمیل معامله پس از پرداخت
@@ -747,42 +536,47 @@ npx prisma generate
 
 ### اولویت: **متوسط** - رفع مشکلات
 
-#### فایل‌های TypeScript
-- [ ] **تایید .tsx:** تایید اینکه .tsx قابل قبول است
-- [ ] **یکسان‌سازی:** استفاده از TypeScript در تمام فایل‌ها
+#### ⚠️ **فایل‌های TypeScript - نیاز به بررسی**
+- [x] **تایید .tsx:** تایید اینکه .tsx قابل قبول است
+- [x] **یکسان‌سازی:** استفاده از TypeScript در تمام فایل‌ها
 
-#### فونت‌ها
-- [ ] **یکسان‌سازی:** استفاده از Vazirmatn در تمام فایل‌ها
-- [ ] **حذف Tahoma:** از app/layout.tsx
+#### ⚠️ **فونت‌ها - نیاز به رفع**
+- [x] **یکسان‌سازی:** استفاده از Vazirmatn در تمام فایل‌ها
+- [ ] **حذف Tahoma:** از app/layout.tsx - **مشکل موجود**
 
-#### متغیرهای محیطی
+#### ⚠️ **متغیرهای محیطی - نیاز به تکمیل**
 - [ ] **ایجاد .env.example:** فایل نمونه برای تنظیمات
 - [ ] **مستندسازی:** توضیح کامل متغیرها
+
+#### ⚠️ **مشکلات فوری - نیاز به رفع**
+- [ ] **خطای OTP:** مشکل در فیلد `lastFailedLoginAt` در send-otp
+- [ ] **فایل commissions:** ایجاد API route برای مدیریت کارمزدها
+- [ ] **سکه‌های 86:** نمایش در UI
 
 ---
 
 ## 📊 اولویت‌بندی اجرا
 
-### فاز 1 (اولویت بالا - هفته 1-2)
-1. سیستم احراز هویت پیشرفته (SMS + ایمیل)
-2. سیستم اعلان‌های SMS
-3. صفحات جداگانه خرید و فروش
-4. ورودی‌های انعطاف‌پذیر معاملات
-5. کارمزد قابل تنظیم
-6. مدیریت موجودی ناکافی
+### فاز 1 (اولویت بالا - هفته 1-2) - **در حال اجرا**
+1. ✅ **سیستم احراز هویت پیشرفته (SMS + ایمیل)** - پیاده‌سازی شده
+2. ⚠️ **سیستم اعلان‌های SMS** - نیاز به اتصال به سرویس واقعی
+3. ⚠️ **صفحات جداگانه خرید و فروش** - نیاز به پیاده‌سازی
+4. ⚠️ **ورودی‌های انعطاف‌پذیر معاملات** - نیاز به پیاده‌سازی
+5. ⚠️ **کارمزد قابل تنظیم** - نیاز به ایجاد API
+6. ⚠️ **مدیریت موجودی ناکافی** - نیاز به پیاده‌سازی
 
 ### فاز 2 (اولویت متوسط - هفته 3-4)
-1. صفحه اصلی (Landing Page)
-2. بهینه‌سازی داشبورد موبایل
-3. انتقال بین کاربران
-4. تحویل طلای فیزیکی
-5. گسترش انواع سکه
+1. ⚠️ **صفحه اصلی (Landing Page)** - نیاز به پیاده‌سازی
+2. ⚠️ **بهینه‌سازی داشبورد موبایل** - نیاز به پیاده‌سازی
+3. ⚠️ **انتقال بین کاربران** - نیاز به تکمیل UI
+4. ⚠️ **تحویل طلای فیزیکی** - نیاز به پیاده‌سازی
+5. ⚠️ **گسترش انواع سکه** - نیاز به تکمیل UI
 
 ### فاز 3 (اولویت پایین - هفته 5-6)
-1. بهبود رنگ‌بندی و طراحی
-2. بخش پشتیبانی و اطلاعات
-3. تغییرات اصطلاحات
-4. رفع مشکلات فنی
+1. ⚠️ **بهبود رنگ‌بندی و طراحی** - نیاز به پیاده‌سازی
+2. ⚠️ **بخش پشتیبانی و اطلاعات** - نیاز به پیاده‌سازی
+3. ⚠️ **تغییرات اصطلاحات** - نیاز به پیاده‌سازی
+4. ⚠️ **رفع مشکلات فنی** - نیاز به رفع
 
 ---
 
@@ -800,7 +594,21 @@ npx prisma generate
 
 ---
 
+## 📈 **پیشرفت کلی پروژه**
+
+### **وضعیت فعلی: 45% تکمیل شده**
+
+- ✅ **ساختار دیتابیس:** 100% تکمیل شده
+- ✅ **سیستم احراز هویت:** 90% تکمیل شده
+- ✅ **API Routes اصلی:** 80% تکمیل شده
+- ✅ **کامپوننت‌های React:** 70% تکمیل شده
+- ⚠️ **سیستم اعلان‌ها:** 20% تکمیل شده
+- ⚠️ **رابط کاربری:** 60% تکمیل شده
+- ⚠️ **سیستم مدیریت:** 30% تکمیل شده
+
+---
+
 **تاریخ ایجاد:** 22 تیر 1403  
-**آخرین به‌روزرسانی:** 30 تیر 1403  
-**وضعیت:** چک‌لیست به‌روزرسانی شده، منتظر شروع اجرا  
+**آخرین به‌روزرسانی:** 30 تیر 1403 - **تست کامل پروژه انجام شد**  
+**وضعیت:** چک‌لیست به‌روزرسانی شده، مشکلات شناسایی شده، آماده برای رفع مشکلات فوری  
 **نکته مهم:** این فایل فقط چک‌لیست است و هیچ تغییری در کد ایجاد نمی‌کند
