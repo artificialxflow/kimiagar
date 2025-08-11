@@ -1,0 +1,394 @@
+"use client";
+import React, { useState, useEffect } from 'react';
+import { Truck, MapPin, Calendar, Clock, Phone, AlertCircle, CheckCircle } from 'lucide-react';
+
+interface PhysicalDeliveryProps {
+  prices?: any[];
+}
+
+export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps) {
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [amount, setAmount] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryDate, setDeliveryDate] = useState('');
+  const [deliveryTime, setDeliveryTime] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const selectedPrice = prices.find(p => p.productType === selectedProduct);
+
+  // محاسبه کارمزد تحویل
+  const calculateDeliveryFee = () => {
+    if (!selectedProduct || !amount) return 0;
+    
+    if (selectedProduct === 'GOLD_18K') {
+      // کارمزد 2% برای تحویل طلا
+      return parseFloat(amount) * 0.02;
+    } else {
+      // کارمزد ثابت 50,000 تومان برای سکه‌ها
+      return 50000;
+    }
+  };
+
+  // اعتبارسنجی ورودی
+  const validateInput = () => {
+    if (!selectedProduct) {
+      setError('لطفاً محصول را انتخاب کنید');
+      return false;
+    }
+
+    if (!amount || parseFloat(amount) <= 0) {
+      setError('لطفاً مقدار را به درستی وارد کنید');
+      return false;
+    }
+
+    // برای سکه‌ها، تعداد باید صحیح باشد
+    if (selectedProduct !== 'GOLD_18K') {
+      const numAmount = parseFloat(amount);
+      if (numAmount !== Math.floor(numAmount)) {
+        setError('برای سکه‌ها، تعداد باید عدد صحیح باشد');
+        return false;
+      }
+    }
+
+    // بررسی حداقل مقدار تحویل (5 گرم)
+    if (selectedProduct === 'GOLD_18K' && parseFloat(amount) < 5) {
+      setError('حداقل مقدار تحویل طلا 5 گرم است');
+      return false;
+    }
+
+    if (!deliveryAddress.trim()) {
+      setError('لطفاً آدرس تحویل را وارد کنید');
+      return false;
+    }
+
+    if (!deliveryDate) {
+      setError('لطفاً تاریخ تحویل را انتخاب کنید');
+      return false;
+    }
+
+    if (!deliveryTime) {
+      setError('لطفاً زمان تحویل را انتخاب کنید');
+      return false;
+    }
+
+    if (!contactPhone.trim()) {
+      setError('لطفاً شماره تماس را وارد کنید');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateInput()) {
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // دریافت اطلاعات کاربر از localStorage
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        setError('کاربر یافت نشد');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+
+      const response = await fetch('/api/delivery/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          productType: selectedProduct,
+          amount: parseFloat(amount),
+          deliveryAddress,
+          deliveryDate,
+          deliveryTime,
+          contactPhone
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccess(true);
+        // پاک کردن فرم
+        setSelectedProduct('');
+        setAmount('');
+        setDeliveryAddress('');
+        setDeliveryDate('');
+        setDeliveryTime('');
+        setContactPhone('');
+        
+        // بازگشت به حالت عادی بعد از 5 ثانیه
+        setTimeout(() => {
+          setSuccess(false);
+        }, 5000);
+      } else {
+        setError(data.error || 'خطا در ثبت درخواست تحویل');
+      }
+    } catch (error) {
+      setError('خطا در اتصال به سرور');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getProductDisplayName = (productType: string) => {
+    switch (productType) {
+      case 'GOLD_18K': return 'طلای 18 عیار';
+      case 'COIN_BAHAR': return 'سکه بهار آزادی';
+      case 'COIN_NIM': return 'نیم سکه';
+      case 'COIN_ROBE': return 'ربع سکه';
+      case 'COIN_BAHAR_86': return 'سکه بهار آزادی 86';
+      case 'COIN_NIM_86': return 'نیم سکه 86';
+      case 'COIN_ROBE_86': return 'ربع سکه 86';
+      default: return productType;
+    }
+  };
+
+  const getUnit = () => {
+    return selectedProduct === 'GOLD_18K' ? 'گرم' : 'عدد';
+  };
+
+  // تنظیم تاریخ حداقل (امروز)
+  const today = new Date().toISOString().split('T')[0];
+
+  if (success) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <CheckCircle className="w-10 h-10 text-green-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-green-800 mb-4">درخواست تحویل ثبت شد!</h2>
+        <p className="text-green-600 mb-6">
+          درخواست تحویل طلای فیزیکی شما با موفقیت ثبت شد. 
+          کارشناسان ما در اسرع وقت با شما تماس خواهند گرفت.
+        </p>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-w-md mx-auto">
+          <h3 className="font-medium text-green-800 mb-2">مراحل بعدی:</h3>
+          <ul className="text-sm text-green-700 space-y-1 text-right">
+            <li>• تایید درخواست توسط کارشناس</li>
+            <li>• تعیین زمان و مکان دقیق تحویل</li>
+            <li>• تحویل طلا در محل تعیین شده</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Truck className="w-8 h-8 text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">درخواست تحویل طلای فیزیکی</h2>
+        <p className="text-slate-600">درخواست تحویل طلا در محل مورد نظر شما</p>
+      </div>
+
+      {/* قوانین تحویل */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="font-medium text-blue-800 mb-3 flex items-center">
+          <AlertCircle className="w-5 h-5 mr-2" />
+          قوانین تحویل
+        </h3>
+        <ul className="text-sm text-blue-700 space-y-1 text-right">
+          <li>• حداقل مقدار تحویل طلا: 5 گرم</li>
+          <li>• کارمزد تحویل طلا: 2% از مقدار</li>
+          <li>• کارمزد تحویل سکه: 50,000 تومان</li>
+          <li>• تحویل در تهران: 24-48 ساعت کاری</li>
+          <li>• تحویل در شهرستان‌ها: 3-5 روز کاری</li>
+        </ul>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Product Selection */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            انتخاب محصول
+          </label>
+          <select
+            value={selectedProduct}
+            onChange={(e) => setSelectedProduct(e.target.value)}
+            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+            required
+          >
+            <option value="">انتخاب کنید</option>
+            {prices.map((price) => (
+              <option key={price.id} value={price.productType}>
+                {getProductDisplayName(price.productType)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Amount Input */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            مقدار
+          </label>
+          <div className="relative">
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder={`مقدار را به ${getUnit()} وارد کنید`}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+              required
+              min={selectedProduct === 'GOLD_18K' ? "5" : "1"}
+              step={selectedProduct === 'GOLD_18K' ? "0.01" : "1"}
+            />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+              {getUnit()}
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery Address */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            آدرس تحویل
+          </label>
+          <div className="relative">
+            <textarea
+              value={deliveryAddress}
+              onChange={(e) => setDeliveryAddress(e.target.value)}
+              placeholder="آدرس کامل محل تحویل را وارد کنید"
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+              rows={3}
+              required
+            />
+            <div className="absolute left-3 top-3 text-slate-500">
+              <MapPin className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery Date and Time */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              تاریخ تحویل
+            </label>
+            <div className="relative">
+              <input
+                type="date"
+                value={deliveryDate}
+                onChange={(e) => setDeliveryDate(e.target.value)}
+                min={today}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                required
+              />
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+                <Calendar className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              زمان تحویل
+            </label>
+            <div className="relative">
+              <select
+                value={deliveryTime}
+                onChange={(e) => setDeliveryTime(e.target.value)}
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                required
+              >
+                <option value="">انتخاب کنید</option>
+                <option value="09:00-12:00">9 صبح تا 12 ظهر</option>
+                <option value="12:00-15:00">12 ظهر تا 3 بعدازظهر</option>
+                <option value="15:00-18:00">3 تا 6 بعدازظهر</option>
+                <option value="18:00-21:00">6 تا 9 شب</option>
+              </select>
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+                <Clock className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Phone */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            شماره تماس
+          </label>
+          <div className="relative">
+            <input
+              type="tel"
+              value={contactPhone}
+              onChange={(e) => setContactPhone(e.target.value)}
+              placeholder="شماره تماس برای هماهنگی تحویل"
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+              required
+            />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+              <Phone className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery Fee Calculation */}
+        {selectedProduct && amount && (
+          <div className="bg-slate-50 rounded-lg p-4 space-y-3">
+            <h3 className="font-medium text-slate-800">محاسبه کارمزد تحویل</h3>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-600">مقدار:</span>
+                <span className="font-medium">
+                  {parseFloat(amount).toFixed(2)} {getUnit()}
+                </span>
+              </div>
+              
+              <div className="flex justify-between">
+                <span className="text-slate-600">کارمزد تحویل:</span>
+                <span className="font-medium text-red-600">
+                  {calculateDeliveryFee().toLocaleString('fa-IR')} تومان
+                </span>
+              </div>
+              
+              <div className="border-t border-slate-200 pt-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-slate-800">کل کارمزد:</span>
+                  <span className="font-bold text-lg text-slate-800">
+                    {calculateDeliveryFee().toLocaleString('fa-IR')} تومان
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <div className="flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle className="w-5 h-5 text-red-600 mr-2" />
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading || !selectedProduct || !amount || !deliveryAddress || !deliveryDate || !deliveryTime || !contactPhone}
+          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {loading ? 'در حال پردازش...' : 'ثبت درخواست تحویل'}
+        </button>
+      </form>
+    </div>
+  );
+}
