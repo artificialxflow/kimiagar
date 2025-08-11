@@ -125,9 +125,9 @@ export async function POST(request: NextRequest) {
         action: existingCommission ? 'UPDATE_COMMISSION' : 'CREATE_COMMISSION',
         table: 'commissions',
         recordId: commission.id,
-        oldValues: existingCommission ? existingCommission : null,
-        newValues: commission,
-        ipAddress: request.headers.get('x-forwarded-for') || request.ip || 'unknown',
+        oldValues: existingCommission ? JSON.stringify(existingCommission) : undefined,
+        newValues: JSON.stringify(commission),
+        ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown'
       }
     });
@@ -197,9 +197,9 @@ export async function DELETE(request: NextRequest) {
         action: 'DELETE_COMMISSION',
         table: 'commissions',
         recordId: commissionId,
-        oldValues: existingCommission,
-        newValues: null,
-        ipAddress: request.headers.get('x-forwarded-for') || request.ip || 'unknown',
+        oldValues: JSON.stringify(existingCommission),
+        newValues: undefined,
+        ipAddress: request.headers.get('x-forwarded-for') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown'
       }
     });
