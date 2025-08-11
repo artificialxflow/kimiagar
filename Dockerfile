@@ -1,5 +1,5 @@
-# Use the official Node.js 18 image as base
-FROM node:18-alpine AS base
+# Use the official Node.js 20 LTS image as base
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -45,11 +45,14 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy Prisma schema and migrations
+COPY --from=builder /app/prisma ./prisma
+
 USER nextjs
 
-EXPOSE 8000
+EXPOSE 3000
 
-ENV PORT 8000
+ENV PORT 3000
 # set hostname to localhost
 ENV HOSTNAME "0.0.0.0"
 
