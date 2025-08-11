@@ -7,6 +7,8 @@
 body {
   font-family: 'Vazirmatn', system-ui, sans-serif;
   direction: rtl;
+  background-color: #ffffff;
+  color: #334155;
 }
 
 /* Custom scrollbar */
@@ -15,7 +17,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -54,17 +56,88 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
 }
 
-.btn-gold {
+/* دکمه‌های استاندارد */
+.btn-primary {
   background: linear-gradient(135deg, #D4AF37, #F4D03F);
-  color: #1A202C;
+  color: #ffffff;
   font-weight: 600;
   transition: all 0.2s;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
 }
 
-.btn-gold:hover {
+.btn-primary:hover {
   background: linear-gradient(135deg, #F4D03F, #D4AF37);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.btn-secondary {
+  background: #64748b;
+  color: #ffffff;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #475569;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-success {
+  background: #22c55e;
+  color: #ffffff;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.btn-success:hover {
+  background: #16a34a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+/* کارت‌های استاندارد */
+.card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .card-hover {
@@ -76,6 +149,7 @@ textarea:focus {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
+/* Loading spinner */
 .loading-spinner {
   border: 2px solid #f3f3f3;
   border-top: 2px solid #D4AF37;
@@ -90,14 +164,57 @@ textarea:focus {
   100% { transform: rotate(360deg); }
 }
 
+/* رنگ‌های وضعیت */
 .price-up {
   color: #22c55e;
+  font-weight: 600;
 }
 
 .price-down {
   color: #ef4444;
+  font-weight: 600;
 }
 
 .price-neutral {
-  color: #6b7280;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* بهبود کنتراست متن */
+.text-high-contrast {
+  color: #1e293b;
+}
+
+.text-medium-contrast {
+  color: #475569;
+}
+
+.text-low-contrast {
+  color: #64748b;
+}
+
+/* پس‌زمینه‌های استاندارد */
+.bg-primary {
+  background-color: #ffffff;
+}
+
+.bg-secondary {
+  background-color: #f8fafc;
+}
+
+.bg-accent {
+  background-color: #f1f5f9;
+}
+
+/* Border های استاندارد */
+.border-light {
+  border-color: #e2e8f0;
+}
+
+.border-medium {
+  border-color: #cbd5e1;
+}
+
+.border-dark {
+  border-color: #94a3b8;
 }
