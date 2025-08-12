@@ -18,6 +18,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // بررسی اتصال به دیتابیس
+    try {
+      await prisma.$connect();
+    } catch (dbError) {
+      console.error('خطا در اتصال به دیتابیس:', dbError);
+      return NextResponse.json(
+        { error: 'خطا در اتصال به سرور' },
+        { status: 500 }
+      );
+    }
+
     // بررسی وجود کاربر
     const user = await prisma.user.findUnique({
       where: { username }
@@ -84,9 +95,22 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('خطا در ورود:', error);
+    
+    // بررسی نوع خطا
+    if (error instanceof Error) {
+      if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
+        return NextResponse.json(
+          { error: 'خطا در اتصال به سرور دیتابیس' },
+          { status: 500 }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { error: 'خطا در ورود کاربر' },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 } 
