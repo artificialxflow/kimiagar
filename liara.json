@@ -1,5 +1,5 @@
 {
-  "app": "kimiagargold",
+  "app": "kimiagardocker",
   "port": 3000,
   "build": {
     "location": "germany"
