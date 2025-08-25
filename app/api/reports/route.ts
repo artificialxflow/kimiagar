@@ -181,7 +181,7 @@ async function generateWalletReport(userId: string, startDate: Date) {
   
   // محاسبه آمار کلی
   const totalTransactions = transactions.length;
-  const totalVolumeValue = transactions.reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+  const totalVolumeValue = transactions.reduce((sum: number, t: any) => sum + parseFloat(t.amount.toString()), 0);
   const totalCommissionValue = 0; // برای کیف پول کارمزد محاسبه نمی‌شود
 
   return {
@@ -198,7 +198,7 @@ async function generateWalletReport(userId: string, startDate: Date) {
 function groupByMonth(data: any[], type: string) {
   const months: { [key: string]: any } = {};
   
-  data.forEach(item => {
+  data.forEach((item: any) => {
     const date = new Date(item.createdAt);
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     const monthLabel = date.toLocaleDateString('fa-IR', { year: 'numeric', month: 'long' });
@@ -258,7 +258,7 @@ async function getTopProducts(userId: string, startDate: Date) {
     take: 5,
   });
 
-  return orders.map(order => ({
+  return orders.map((order: any) => ({
     productType: order.productType,
     volume: order._sum.totalPrice || 0,
     count: order._count.id,
