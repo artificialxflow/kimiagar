@@ -212,7 +212,7 @@ export class SMSService {
   }
 
   // ارسال SMS از طریق API
-  private static async sendSMS(notification: SMSNotification) {
+  private static async sendSMS(notification: SMSNotification): Promise<any> {
     try {
       const response = await fetch('/api/sms/send', {
         method: 'POST',
