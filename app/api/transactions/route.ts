@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      transactions: transactions.map(t => ({
+      transactions: transactions.map((t: any) => ({
         id: t.id,
         type: t.type,
         amount: t.amount,
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         hasNext: page < totalPages,
         hasPrev: page > 1
       },
-      stats: stats.reduce((acc, stat) => {
+      stats: stats.reduce((acc: Record<string, number>, stat: any) => {
         acc[stat.type] = Number(stat._sum.amount) || 0;
         return acc;
       }, {} as Record<string, number>)
