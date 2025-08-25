@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     if (paymentStatus === 'SUCCESS') {
       // اگر پرداخت موفق بود، سفارش را تکمیل کن
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // به‌روزرسانی وضعیت سفارش
         await tx.order.update({
           where: {
