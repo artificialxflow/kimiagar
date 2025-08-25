@@ -188,7 +188,7 @@ export const mapEnglishToPersianNames = (englishName: string): string => {
 export const transformExternalPrices = (externalPrices: ExternalPricesResponse) => {
   const transformed: any = {};
   
-  Object.entries(externalPrices.data).forEach(([persianName, priceData]) => {
+  Object.entries(externalPrices.data).forEach(([persianName, priceData]: [string, any]) => {
     const englishName = mapPersianToEnglishNames(persianName);
     transformed[englishName] = {
       buyPrice: priceData.buyPrice,
