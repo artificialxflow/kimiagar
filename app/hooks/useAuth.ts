@@ -22,7 +22,7 @@ export function useAuth() {
     setLoading(false);
   }, []);
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
     try {
       await fetch('/api/auth/logout', {
         method: 'POST',
@@ -39,7 +39,7 @@ export function useAuth() {
     }
   };
 
-  const refreshToken = async () => {
+  const refreshToken = async (): Promise<void> => {
     try {
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
