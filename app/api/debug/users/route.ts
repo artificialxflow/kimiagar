@@ -19,7 +19,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       count: users.length,
-      users: users.map(user => ({
+      users: users.map((user: any) => ({
         id: user.id,
         phoneNumber: user.phoneNumber,
         nationalId: user.nationalId,
