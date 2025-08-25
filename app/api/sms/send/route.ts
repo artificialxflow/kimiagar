@@ -80,7 +80,7 @@ function generateMessageFromTemplate(template: string, variables: any): string {
   let message = template;
   
   // جایگزینی متغیرها در قالب
-  Object.keys(variables).forEach(key => {
+  Object.keys(variables).forEach((key: string) => {
     const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
     message = message.replace(regex, variables[key]);
   });
