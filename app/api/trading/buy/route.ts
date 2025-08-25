@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     if (isAutomatic) {
       // اگر اتوماتیک است، تراکنش‌ها را انجام بده
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         // کسر از کیف پول ریالی
         await tx.wallet.update({
           where: { id: rialWallet.id },
