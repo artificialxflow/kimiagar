@@ -28,7 +28,7 @@ interface PriceContextType {
   error: string | null;
   lastUpdate: string;
   refreshPrices: () => Promise<void>;
-  scrapeExternalPrices: () => Promise<void>;
+  scrapeExternalPrices: () => Promise<boolean>;
   testConnection: () => Promise<boolean>;
 }
 
