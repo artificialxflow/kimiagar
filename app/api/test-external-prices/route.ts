@@ -10,9 +10,9 @@ export async function GET() {
   try {
     const results = {
       connection: false,
-      prices: null,
-      status: null,
-      health: null,
+      prices: null as any,
+      status: null as any,
+      health: null as any,
       errors: [] as string[]
     };
 
