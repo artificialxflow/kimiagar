@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { 
+  getExternalPrices, 
+  transformExternalPrices, 
+  testExternalAPIConnection 
+} from '@/app/lib/externalPriceService';
 
 const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // دریافت قیمت‌های فعال
-    const prices = await prisma.price.findMany({
+    // دریافت قیمت‌های داخلی
+    const internalPrices = await prisma.price.findMany({
       where: { isActive: true },
       orderBy: { updatedAt: 'desc' }
     });
 
-    // اگر قیمت‌ها وجود ندارند، قیمت‌های نمونه ایجاد کن
-    if (prices.length === 0) {
+    // اگر قیمت‌های داخلی وجود ندارند، قیمت‌های نمونه ایجاد کن
+    if (internalPrices.length === 0) {
       const samplePrices = [
         {
           productType: 'GOLD_18K' as const,
@@ -75,15 +80,81 @@ export async function GET() {
         orderBy: { updatedAt: 'desc' }
       });
 
-      return NextResponse.json({
-        success: true,
-        prices: newPrices
+      internalPrices.push(...newPrices);
+    }
+
+    // تلاش برای دریافت قیمت‌های خارجی
+    let externalPrices = null;
+    let externalPricesError = null;
+    
+    try {
+      const isConnected = await testExternalAPIConnection();
+      if (isConnected) {
+        const externalResponse = await getExternalPrices();
+        externalPrices = transformExternalPrices(externalResponse);
+      }
+    } catch (error) {
+      console.error('خطا در دریافت قیمت‌های خارجی:', error);
+      externalPricesError = error instanceof Error ? error.message : 'خطا در اتصال به API خارجی';
+    }
+
+    // ترکیب قیمت‌های داخلی و خارجی
+    const combinedPrices = [...internalPrices];
+    
+    if (externalPrices) {
+      // اضافه کردن قیمت‌های خارجی به عنوان قیمت‌های جدید
+      Object.entries(externalPrices).forEach(([productType, priceData]) => {
+        const existingIndex = combinedPrices.findIndex(p => p.productType === productType);
+        
+        if (existingIndex !== -1) {
+          // به‌روزرسانی قیمت موجود با قیمت خارجی
+          combinedPrices[existingIndex] = {
+            ...combinedPrices[existingIndex],
+            buyPrice: priceData.buyPrice,
+            sellPrice: priceData.sellPrice,
+            margin: priceData.sellPrice - priceData.buyPrice,
+            source: 'external',
+            updatedAt: new Date(priceData.timestamp),
+            externalData: {
+              timestamp: priceData.timestamp,
+              persianName: priceData.persianName,
+              source: 'external'
+            }
+          };
+        } else {
+          // اضافه کردن قیمت جدید از API خارجی
+          combinedPrices.push({
+            id: `external_${productType}`,
+            productType: productType as any,
+            buyPrice: priceData.buyPrice,
+            sellPrice: priceData.sellPrice,
+            margin: priceData.sellPrice - priceData.buyPrice,
+            source: 'external',
+            isActive: true,
+            validFrom: new Date(priceData.timestamp),
+            validTo: null,
+            createdAt: new Date(priceData.timestamp),
+            updatedAt: new Date(priceData.timestamp),
+            externalData: {
+              timestamp: priceData.timestamp,
+              persianName: priceData.persianName,
+              source: 'external'
+            }
+          } as any);
+        }
       });
     }
 
     return NextResponse.json({
       success: true,
-      prices
+      prices: combinedPrices,
+      externalPrices: externalPrices,
+      externalPricesError,
+      timestamp: new Date().toISOString(),
+      sources: {
+        internal: internalPrices.length,
+        external: externalPrices ? Object.keys(externalPrices).length : 0
+      }
     });
 
   } catch (error) {
