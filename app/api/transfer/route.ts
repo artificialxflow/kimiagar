@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // انجام انتقال در تراکنش دیتابیس
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       // کاهش موجودی کیف پول مبدا
       const updatedFromWallet = await tx.wallet.update({
         where: { id: fromWallet },
