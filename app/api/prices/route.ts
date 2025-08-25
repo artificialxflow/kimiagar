@@ -104,7 +104,7 @@ export async function GET() {
     
     if (externalPrices) {
       // اضافه کردن قیمت‌های خارجی به عنوان قیمت‌های جدید
-      Object.entries(externalPrices).forEach(([productType, priceData]) => {
+      Object.entries(externalPrices).forEach(([productType, priceData]: [string, any]) => {
         // Type assertion برای priceData
         const typedPriceData = priceData as {
           buyPrice: number;
