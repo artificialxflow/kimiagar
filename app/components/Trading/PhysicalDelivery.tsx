@@ -16,19 +16,60 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [deliveryCommissionRate, setDeliveryCommissionRate] = useState(0.02); // 2% پیش‌فرض
 
   const selectedPrice = prices.find(p => p.productType === selectedProduct);
 
+  // دریافت نرخ کارمزد تحویل از API
+  useEffect(() => {
+    const fetchDeliveryCommission = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) return;
+
+        const user = JSON.parse(userData);
+        const token = localStorage.getItem('token');
+        
+        if (!token) return;
+
+        const response = await fetch('/api/settings/commission', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // جستجوی کارمزد تحویل فیزیکی
+          const deliveryCommission = data.commissions?.find((c: any) => c.productType === 'DELIVERY');
+          if (deliveryCommission) {
+            setDeliveryCommissionRate(deliveryCommission.sellRate || 0.02);
+          }
+        }
+      } catch (error) {
+        console.error('خطا در دریافت نرخ کارمزد تحویل:', error);
+        // در صورت خطا، از نرخ پیش‌فرض استفاده کن
+        setDeliveryCommissionRate(0.02);
+      }
+    };
+
+    fetchDeliveryCommission();
+  }, []);
+
   // محاسبه کارمزد تحویل
   const calculateDeliveryFee = () => {
-    if (!selectedProduct || !amount) return 0;
+    if (!selectedProduct || !amount || !selectedPrice) return 0;
+    
+    const numAmount = parseFloat(amount);
+    if (numAmount <= 0) return 0;
     
     if (selectedProduct === 'GOLD_18K') {
-      // کارمزد 2% برای تحویل طلا
-      return parseFloat(amount) * 0.02;
+      // کارمزد برای تحویل طلا (بر اساس وزن)
+      return numAmount * deliveryCommissionRate;
     } else {
-      // کارمزد ثابت 50,000 تومان برای سکه‌ها
-      return 50000;
+      // کارمزد برای سکه‌ها (بر اساس تعداد × قیمت سکه)
+      const totalValue = numAmount * Number(selectedPrice.sellPrice);
+      return totalValue * deliveryCommissionRate;
     }
   };
 
@@ -193,8 +234,8 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Truck className="w-8 h-8 text-blue-600" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">درخواست تحویل طلای فیزیکی</h2>
-        <p className="text-slate-600">درخواست تحویل طلا در محل مورد نظر شما</p>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">درخواست تحویل طلا در محل فروشگاه</h2>
+        <p className="text-slate-600">درخواست تحویل طلا در محل فروشگاه</p>
       </div>
 
       {/* قوانین تحویل */}
@@ -205,8 +246,8 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         </h3>
         <ul className="text-sm text-blue-700 space-y-1 text-right">
           <li>• حداقل مقدار تحویل طلا: 5 گرم</li>
-          <li>• کارمزد تحویل طلا: 2% از مقدار</li>
-          <li>• کارمزد تحویل سکه: 50,000 تومان</li>
+          <li>• کارمزد تحویل طلا: {(deliveryCommissionRate * 100).toFixed(1)}% از وزن</li>
+          <li>• کارمزد تحویل سکه: {(deliveryCommissionRate * 100).toFixed(1)}% از ارزش سکه</li>
           <li>• تحویل در تهران: 24-48 ساعت کاری</li>
           <li>• تحویل در شهرستان‌ها: 3-5 روز کاری</li>
         </ul>
@@ -353,8 +394,17 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
                 </span>
               </div>
               
+              {selectedProduct !== 'GOLD_18K' && selectedPrice && (
+                <div className="flex justify-between">
+                  <span className="text-slate-600">ارزش کل:</span>
+                  <span className="font-medium">
+                    {(parseFloat(amount) * Number(selectedPrice.sellPrice)).toLocaleString('fa-IR')} تومان
+                  </span>
+                </div>
+              )}
+              
               <div className="flex justify-between">
-                <span className="text-slate-600">کارمزد تحویل:</span>
+                <span className="text-slate-600">کارمزد تحویل ({(deliveryCommissionRate * 100).toFixed(1)}%):</span>
                 <span className="font-medium text-red-600">
                   {calculateDeliveryFee().toLocaleString('fa-IR')} تومان
                 </span>
