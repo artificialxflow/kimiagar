@@ -11,80 +11,7 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // دریافت قیمت‌های داخلی
-    const internalPrices = await prisma.price.findMany({
-      where: { isActive: true },
-      orderBy: { updatedAt: 'desc' }
-    });
-
-    // اگر قیمت‌های داخلی وجود ندارند، قیمت‌های نمونه ایجاد کن
-    if (internalPrices.length === 0) {
-      const samplePrices = [
-        {
-          productType: 'GOLD_18K' as const,
-          buyPrice: 2500000,
-          sellPrice: 2550000,
-          margin: 50000,
-          source: 'manual'
-        },
-        {
-          productType: 'COIN_BAHAR' as const,
-          buyPrice: 85000000,
-          sellPrice: 87000000,
-          margin: 2000000,
-          source: 'manual'
-        },
-        {
-          productType: 'COIN_NIM' as const,
-          buyPrice: 42500000,
-          sellPrice: 43500000,
-          margin: 1000000,
-          source: 'manual'
-        },
-        {
-          productType: 'COIN_ROBE' as const,
-          buyPrice: 21250000,
-          sellPrice: 21750000,
-          margin: 500000,
-          source: 'manual'
-        },
-        {
-          productType: 'COIN_BAHAR_86' as const,
-          buyPrice: 80000000,
-          sellPrice: 82000000,
-          margin: 2000000,
-          source: 'manual'
-        },
-        {
-          productType: 'COIN_NIM_86' as const,
-          buyPrice: 40000000,
-          sellPrice: 41000000,
-          margin: 1000000,
-          source: 'manual'
-        },
-        {
-          productType: 'COIN_ROBE_86' as const,
-          buyPrice: 20000000,
-          sellPrice: 20500000,
-          margin: 500000,
-          source: 'manual'
-        }
-      ];
-
-      await prisma.price.createMany({
-        data: samplePrices
-      });
-
-      // دریافت قیمت‌های ایجاد شده
-      const newPrices = await prisma.price.findMany({
-        where: { isActive: true },
-        orderBy: { updatedAt: 'desc' }
-      });
-
-      internalPrices.push(...newPrices);
-    }
-
-    // تلاش برای دریافت قیمت‌های خارجی
+    // دریافت قیمت‌های خارجی به صورت اولویت
     let externalPrices = null;
     let externalPricesError = null;
     
@@ -99,60 +26,107 @@ export async function GET() {
       externalPricesError = error instanceof Error ? error.message : 'خطا در اتصال به API خارجی';
     }
 
-    // ترکیب قیمت‌های داخلی و خارجی
-    const combinedPrices = [...internalPrices];
-    
-    if (externalPrices) {
-      // اضافه کردن قیمت‌های خارجی به عنوان قیمت‌های جدید
-      Object.entries(externalPrices).forEach(([productType, priceData]: [string, any]) => {
-        // Type assertion برای priceData
-        const typedPriceData = priceData as {
-          buyPrice: number;
-          sellPrice: number;
-          timestamp: string;
-          persianName: string;
-        };
-        
-        const existingIndex = combinedPrices.findIndex(p => p.productType === productType);
-        
-        if (existingIndex !== -1) {
-          // به‌روزرسانی قیمت موجود با قیمت خارجی
-          combinedPrices[existingIndex] = {
-            ...combinedPrices[existingIndex],
-            buyPrice: new Decimal(typedPriceData.buyPrice),
-            sellPrice: new Decimal(typedPriceData.sellPrice),
-            margin: new Decimal(typedPriceData.sellPrice - typedPriceData.buyPrice),
-            source: 'external',
-            updatedAt: new Date(typedPriceData.timestamp)
-          };
-        } else {
-          // اضافه کردن قیمت جدید از API خارجی
-          combinedPrices.push({
-            id: `external_${productType}`,
-            productType: productType as any,
-            buyPrice: new Decimal(typedPriceData.buyPrice),
-            sellPrice: new Decimal(typedPriceData.sellPrice),
-            margin: new Decimal(typedPriceData.sellPrice - typedPriceData.buyPrice),
-            source: 'external',
-            isActive: true,
-            validFrom: new Date(typedPriceData.timestamp),
-            validTo: null,
-            createdAt: new Date(typedPriceData.timestamp),
-            updatedAt: new Date(typedPriceData.timestamp)
-          } as any);
+    // اگر قیمت‌های خارجی موجود است، از آن استفاده کن
+    if (externalPrices && Object.keys(externalPrices).length > 0) {
+      const combinedPrices = Object.entries(externalPrices).map(([productType, priceData]: [string, any]) => ({
+        id: `external_${productType}`,
+        productType: productType as any,
+        buyPrice: new Decimal(priceData.buyPrice),
+        sellPrice: new Decimal(priceData.sellPrice),
+        margin: new Decimal(priceData.sellPrice - priceData.buyPrice),
+        source: 'external',
+        isActive: true,
+        validFrom: new Date(priceData.timestamp),
+        validTo: null,
+        createdAt: new Date(priceData.timestamp),
+        updatedAt: new Date(priceData.timestamp),
+        persianName: priceData.persianName
+      }));
+
+      return NextResponse.json({
+        success: true,
+        prices: combinedPrices,
+        externalPrices: externalPrices,
+        externalPricesError,
+        timestamp: new Date().toISOString(),
+        sources: {
+          internal: 0,
+          external: Object.keys(externalPrices).length
+        },
+        lastUpdate: externalPrices[Object.keys(externalPrices)[0]]?.timestamp
+      });
+    }
+
+    // اگر قیمت‌های خارجی موجود نیست، از قیمت‌های داخلی استفاده کن
+    const internalPrices = await prisma.price.findMany({
+      where: { isActive: true },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    // اگر قیمت‌های داخلی وجود ندارند، قیمت‌های نمونه ایجاد کن
+    if (internalPrices.length === 0) {
+      const samplePrices = [
+        {
+          productType: 'GOLD_18K' as const,
+          buyPrice: 37745677,
+          sellPrice: 37894038,
+          margin: 148361,
+          source: 'fallback'
+        },
+        {
+          productType: 'COIN_BAHAR_86' as const,
+          buyPrice: 92908770,
+          sellPrice: 93484205,
+          margin: 575435,
+          source: 'fallback'
+        },
+        {
+          productType: 'COIN_NIM_86' as const,
+          buyPrice: 49757147,
+          sellPrice: 50614379,
+          margin: 857232,
+          source: 'fallback'
+        },
+        {
+          productType: 'COIN_ROBE_86' as const,
+          buyPrice: 28930894,
+          sellPrice: 29571462,
+          margin: 640568,
+          source: 'fallback'
+        }
+      ];
+
+      await prisma.price.createMany({
+        data: samplePrices
+      });
+
+      const newPrices = await prisma.price.findMany({
+        where: { isActive: true },
+        orderBy: { updatedAt: 'desc' }
+      });
+
+      return NextResponse.json({
+        success: true,
+        prices: newPrices,
+        externalPrices: null,
+        externalPricesError: 'استفاده از قیمت‌های پشتیبان',
+        timestamp: new Date().toISOString(),
+        sources: {
+          internal: newPrices.length,
+          external: 0
         }
       });
     }
 
     return NextResponse.json({
       success: true,
-      prices: combinedPrices,
-      externalPrices: externalPrices,
-      externalPricesError,
+      prices: internalPrices,
+      externalPrices: null,
+      externalPricesError: externalPricesError || 'استفاده از قیمت‌های داخلی',
       timestamp: new Date().toISOString(),
       sources: {
         internal: internalPrices.length,
-        external: externalPrices ? Object.keys(externalPrices).length : 0
+        external: 0
       }
     });
 
