@@ -16,6 +16,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
+  const [description, setDescription] = useState('');
 
   const selectedPrice = prices.find(p => p.productType === selectedProduct);
 
@@ -170,7 +171,8 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
             userId: user.id,
             productType: selectedProduct,
             amount: getAmount(),
-            isAutomatic: true
+            isAutomatic: true,
+            description: description.trim() || null
           }),
         });
 
@@ -181,6 +183,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
           setSelectedProduct('');
           setWeightAmount('');
           setMoneyAmount('');
+          setDescription('');
           fetchWalletBalance(); // به‌روزرسانی موجودی
           // به‌روزرسانی صفحه بعد از 2 ثانیه
           setTimeout(() => {
@@ -200,7 +203,8 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
             userId: user.id,
             productType: selectedProduct,
             amount: getAmount(),
-            isAutomatic: false
+            isAutomatic: false,
+            description: description.trim() || null
           }),
         });
 
@@ -429,6 +433,24 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
                 <span>کارت بانکی</span>
               </div>
             </button>
+          </div>
+        </div>
+
+        {/* Description Field */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            توضیحات (اختیاری)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="توضیحات اضافی برای سفارش خود وارد کنید..."
+            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent resize-none"
+            rows={3}
+            maxLength={500}
+          />
+          <div className="text-xs text-slate-500 mt-1 text-left">
+            {description.length}/500 کاراکتر
           </div>
         </div>
 
