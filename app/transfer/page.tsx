@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from "../components/Layout/Layout";
-import { ArrowRight, Wallet, Coins, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowRight, Wallet, Coins, AlertCircle, CheckCircle, User, Phone, Search } from 'lucide-react';
 
 export default function TransferPage() {
   const [user, setUser] = useState<any>(null);
@@ -10,13 +10,16 @@ export default function TransferPage() {
   const [wallets, setWallets] = useState<any[]>([]);
   const [transferData, setTransferData] = useState({
     fromWallet: '',
-    toWallet: '',
+    toPhone: '',
     amount: '',
     description: ''
   });
+  const [recipientInfo, setRecipientInfo] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [transferType, setTransferType] = useState<'RIAL' | 'GOLD'>('RIAL');
   const router = useRouter();
 
   useEffect(() => {
@@ -48,20 +51,68 @@ export default function TransferPage() {
     }
   };
 
+  // محاسبه کارمزد انتقال
+  const calculateTransferCommission = () => {
+    const amount = parseFloat(transferData.amount) || 0;
+    if (amount <= 0) return 0;
+    
+    // کارمزد 0.5% برای انتقال
+    return amount * 0.005;
+  };
+
+  // محاسبه مبلغ نهایی
+  const calculateFinalAmount = () => {
+    const amount = parseFloat(transferData.amount) || 0;
+    const commission = calculateTransferCommission();
+    return amount + commission;
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setTransferData(prev => ({ ...prev, [field]: value }));
     setError('');
     setSuccess('');
+    
+    // اگر شماره تلفن تغییر کرد، اطلاعات گیرنده را پاک کن
+    if (field === 'toPhone') {
+      setRecipientInfo(null);
+    }
+  };
+
+  const searchRecipient = async () => {
+    if (!transferData.toPhone || transferData.toPhone.length < 10) {
+      setError('لطفاً شماره تلفن معتبر وارد کنید');
+      return;
+    }
+
+    setSearching(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/users/search?phone=${transferData.toPhone}`);
+      const data = await response.json();
+
+      if (response.ok && data.user) {
+        setRecipientInfo(data.user);
+      } else {
+        setError('کاربری با این شماره تلفن یافت نشد');
+        setRecipientInfo(null);
+      }
+    } catch (error) {
+      setError('خطا در جستجوی کاربر');
+      setRecipientInfo(null);
+    } finally {
+      setSearching(false);
+    }
   };
 
   const validateForm = () => {
-    if (!transferData.fromWallet || !transferData.toWallet || !transferData.amount) {
+    if (!transferData.fromWallet || !transferData.toPhone || !transferData.amount) {
       setError('لطفاً تمام فیلدها را پر کنید');
       return false;
     }
 
-    if (transferData.fromWallet === transferData.toWallet) {
-      setError('کیف پول مبدا و مقصد نمی‌تواند یکسان باشد');
+    if (!recipientInfo) {
+      setError('لطفاً ابتدا گیرنده را جستجو کنید');
       return false;
     }
 
@@ -72,8 +123,9 @@ export default function TransferPage() {
     }
 
     const fromWallet = wallets.find(w => w.id === transferData.fromWallet);
-    if (fromWallet && amount > parseFloat(fromWallet.balance)) {
-      setError('موجودی کافی نیست');
+    const finalAmount = calculateFinalAmount();
+    if (fromWallet && finalAmount > parseFloat(fromWallet.balance)) {
+      setError('موجودی کافی نیست (شامل کارمزد)');
       return false;
     }
 
@@ -95,6 +147,7 @@ export default function TransferPage() {
         },
         body: JSON.stringify({
           userId: user.id,
+          recipientId: recipientInfo.id,
           ...transferData
         }),
       });
@@ -105,10 +158,11 @@ export default function TransferPage() {
         setSuccess('انتقال با موفقیت انجام شد');
         setTransferData({
           fromWallet: '',
-          toWallet: '',
+          toPhone: '',
           amount: '',
           description: ''
         });
+        setRecipientInfo(null);
         // به‌روزرسانی موجودی‌ها
         fetchWallets(user.id);
       } else {
@@ -149,8 +203,8 @@ export default function TransferPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">انتقال بین کیف پول‌ها</h1>
-          <p className="text-slate-600">انتقال وجه بین کیف پول‌های ریالی و طلایی</p>
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">انتقال بین دو نفر</h1>
+          <p className="text-slate-600">انتقال طلا و وجه به کاربران دیگر</p>
         </div>
 
         {/* Transfer Card */}
@@ -186,7 +240,44 @@ export default function TransferPage() {
             )}
 
             {/* Transfer Form */}
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              {/* Transfer Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">
+                  نوع انتقال
+                </label>
+                <div className="flex space-x-4 space-x-reverse">
+                  <button
+                    type="button"
+                    onClick={() => setTransferType('RIAL')}
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
+                      transferType === 'RIAL'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-slate-300 text-slate-600 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2 space-x-reverse">
+                      <Wallet className="w-5 h-5" />
+                      <span>انتقال ریالی</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransferType('GOLD')}
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
+                      transferType === 'GOLD'
+                        ? 'border-gold bg-gold-50 text-gold-700'
+                        : 'border-slate-300 text-slate-600 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2 space-x-reverse">
+                      <Coins className="w-5 h-5" />
+                      <span>انتقال طلا</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               {/* From Wallet */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center space-x-2 space-x-reverse">
@@ -202,11 +293,13 @@ export default function TransferPage() {
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">انتخاب کنید</option>
-                    {wallets.map((wallet) => (
-                      <option key={wallet.id} value={wallet.id}>
-                        {getWalletDisplayName(wallet)}
-                      </option>
-                    ))}
+                    {wallets
+                      .filter(wallet => wallet.type === transferType)
+                      .map((wallet) => (
+                        <option key={wallet.id} value={wallet.id}>
+                          {getWalletDisplayName(wallet)}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -227,42 +320,57 @@ export default function TransferPage() {
                 )}
               </div>
 
-              {/* To Wallet */}
+              {/* Recipient Search */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center space-x-2 space-x-reverse">
-                  <Coins className="w-5 h-5 text-green-500" />
-                  <span>کیف پول مقصد</span>
+                  <User className="w-5 h-5 text-green-500" />
+                  <span>گیرنده</span>
                 </h3>
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">انتخاب کیف پول</label>
-                  <select
-                    value={transferData.toWallet}
-                    onChange={(e) => handleInputChange('toWallet', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">انتخاب کنید</option>
-                    {wallets.map((wallet) => (
-                      <option key={wallet.id} value={wallet.id}>
-                        {getWalletDisplayName(wallet)}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex space-x-3 space-x-reverse">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">شماره تلفن گیرنده</label>
+                    <input
+                      type="tel"
+                      value={transferData.toPhone}
+                      onChange={(e) => handleInputChange('toPhone', e.target.value)}
+                      placeholder="شماره تلفن گیرنده را وارد کنید"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={searchRecipient}
+                      disabled={searching || !transferData.toPhone}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 space-x-reverse"
+                    >
+                      <Search className="w-4 h-4" />
+                      <span>{searching ? 'جستجو...' : 'جستجو'}</span>
+                    </button>
+                  </div>
                 </div>
 
-                {transferData.toWallet && (
-                  <div className="p-4 bg-slate-50 rounded-lg">
-                    <p className="text-sm text-slate-600">موجودی فعلی:</p>
-                    <p className="text-lg font-semibold text-slate-800">
-                      {(() => {
-                        const wallet = wallets.find(w => w.id === transferData.toWallet);
-                        if (wallet?.type === 'RIAL') {
-                          return `${parseFloat(wallet.balance).toLocaleString()} تومان`;
-                        } else {
-                          return `${parseFloat(wallet.balance)} گرم طلا`;
-                        }
-                      })()}
-                    </p>
+                {recipientInfo && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center space-x-3 space-x-reverse">
+                      <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-green-800">
+                          {recipientInfo.firstName} {recipientInfo.lastName}
+                        </p>
+                        <p className="text-sm text-green-600">
+                          {recipientInfo.phone}
+                        </p>
+                        {recipientInfo.username && (
+                          <p className="text-xs text-green-500">
+                            @{recipientInfo.username}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -299,11 +407,45 @@ export default function TransferPage() {
               </div>
             </div>
 
+            {/* Commission Calculation */}
+            {transferData.amount && parseFloat(transferData.amount) > 0 && (
+              <div className="mt-6 p-4 bg-slate-50 rounded-lg">
+                <h3 className="font-medium text-slate-800 mb-3">محاسبه انتقال</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">مبلغ انتقال:</span>
+                    <span className="font-medium">
+                      {parseFloat(transferData.amount).toLocaleString('fa-IR')} 
+                      {transferType === 'RIAL' ? ' تومان' : ' گرم'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">کارمزد (0.5%):</span>
+                    <span className="font-medium text-red-600">
+                      {calculateTransferCommission().toLocaleString('fa-IR')} 
+                      {transferType === 'RIAL' ? ' تومان' : ' گرم'}
+                    </span>
+                  </div>
+                  
+                  <div className="border-t border-slate-200 pt-2">
+                    <div className="flex justify-between">
+                      <span className="font-semibold text-slate-800">کل مبلغ کسر شده:</span>
+                      <span className="font-bold text-lg text-slate-800">
+                        {calculateFinalAmount().toLocaleString('fa-IR')} 
+                        {transferType === 'RIAL' ? ' تومان' : ' گرم'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Action Button */}
             <div className="mt-8 pt-6 border-t border-slate-200">
               <button
                 onClick={handleTransfer}
-                disabled={processing || !transferData.fromWallet || !transferData.toWallet || !transferData.amount}
+                disabled={processing || !transferData.fromWallet || !recipientInfo || !transferData.amount}
                 className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 space-x-reverse"
               >
                 {processing ? (
@@ -326,10 +468,11 @@ export default function TransferPage() {
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h4 className="font-semibold text-blue-800 mb-2">نکات مهم:</h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• انتقال بین کیف پول‌های ریالی و طلایی امکان‌پذیر است</li>
+            <li>• انتقال بین کاربران مختلف امکان‌پذیر است</li>
             <li>• مبلغ انتقال باید از موجودی کیف پول مبدا کمتر باشد</li>
             <li>• عملیات انتقال غیرقابل بازگشت است</li>
             <li>• تراکنش‌های انتقال در تاریخچه ثبت می‌شوند</li>
+            <li>• گیرنده باید در سیستم ثبت‌نام کرده باشد</li>
           </ul>
         </div>
       </div>
