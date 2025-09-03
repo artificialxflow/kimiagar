@@ -10,7 +10,7 @@ const QuickActions: React.FC = () => {
       title: 'خرید طلا',
       description: 'خرید طلا و سکه',
       icon: ShoppingCart,
-      link: '/trading?tab=buy',
+      link: '/buy',
       color: 'bg-gradient-to-br from-green-500 to-green-600',
       hoverColor: 'hover:from-green-600 hover:to-green-700',
       iconColor: 'text-green-50'
@@ -19,19 +19,28 @@ const QuickActions: React.FC = () => {
       title: 'فروش طلا',
       description: 'فروش طلا و سکه',
       icon: TrendingUp,
-      link: '/trading?tab=sell',
+      link: '/sell',
       color: 'bg-gradient-to-br from-red-500 to-red-600',
       hoverColor: 'hover:from-red-600 hover:to-red-700',
       iconColor: 'text-red-50'
+    },
+    {
+      title: 'تحویل فیزیکی',
+      description: 'درخواست تحویل طلا',
+      icon: Send,
+      link: '/delivery',
+      color: 'bg-gradient-to-br from-blue-500 to-blue-600',
+      hoverColor: 'hover:from-blue-600 hover:to-blue-700',
+      iconColor: 'text-blue-50'
     },
     {
       title: 'شارژ کیف پول',
       description: 'شارژ کیف پول ریالی',
       icon: ArrowUpRight,
       link: '/wallet?tab=charge',
-      color: 'bg-gradient-to-br from-blue-500 to-blue-600',
-      hoverColor: 'hover:from-blue-600 hover:to-blue-700',
-      iconColor: 'text-blue-50'
+      color: 'bg-gradient-to-br from-purple-500 to-purple-600',
+      hoverColor: 'hover:from-purple-600 hover:to-purple-700',
+      iconColor: 'text-purple-50'
     },
     {
       title: 'انتقال طلا',
