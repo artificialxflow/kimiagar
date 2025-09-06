@@ -197,16 +197,16 @@ export default function MarketPage() {
                     </div>
                     
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                        <span className="text-sm text-green-700 font-medium">قیمت خرید:</span>
-                        <span className="font-bold text-green-700 text-lg">
+                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                        <span className="text-sm text-red-700 font-medium">قیمت خرید:</span>
+                        <span className="font-bold text-red-700 text-lg">
                           {Number(price.buyPrice).toLocaleString('fa-IR')} تومان
                         </span>
                       </div>
                       
-                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
-                        <span className="text-sm text-red-700 font-medium">قیمت فروش:</span>
-                        <span className="font-bold text-red-700 text-lg">
+                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                        <span className="text-sm text-green-700 font-medium">قیمت فروش:</span>
+                        <span className="font-bold text-green-700 text-lg">
                           {Number(price.sellPrice).toLocaleString('fa-IR')} تومان
                         </span>
                       </div>
