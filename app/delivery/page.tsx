@@ -58,9 +58,9 @@ export default function DeliveryPage() {
           {/* Header */}
           <div className="mb-8 text-center">
             <h1 className="text-4xl font-bold text-text-800 mb-3 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-              درخواست تحویل طلا در محل فروشگاه
+              درخواست تحویل طلا در فروشگاه
             </h1>
-            <p className="text-text-600 text-lg">تحویل فیزیکی طلا و سکه</p>
+            <p className="text-text-600 text-lg">تحویل فیزیکی طلا و سکه در محل فروشگاه</p>
           </div>
 
           {/* Physical Delivery Component */}
