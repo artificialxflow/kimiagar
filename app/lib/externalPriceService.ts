@@ -199,6 +199,23 @@ export const transformExternalPrices = (externalPrices: ExternalPricesResponse) 
     };
   });
   
+  // محاسبه قیمت طلای 18 عیار از نقد خرد
+  if (transformed.GOLD_18K) {
+    const nakdKhrdPrice = transformed.GOLD_18K.buyPrice; // قیمت نقد خرد
+    const gold18KPricePerGram = nakdKhrdPrice / 4.3318; // تقسیم بر 4.3318
+    
+    // اضافه کردن قیمت طلای 18 عیار محاسبه شده
+    transformed.GOLD_18K_CALCULATED = {
+      buyPrice: gold18KPricePerGram,
+      sellPrice: gold18KPricePerGram, // در حال حاضر همان قیمت خرید
+      timestamp: transformed.GOLD_18K.timestamp,
+      source: 'calculated',
+      persianName: 'طلای 18 عیار (محاسبه شده)',
+      originalPrice: nakdKhrdPrice,
+      divisor: 4.3318
+    };
+  }
+  
   return transformed;
 };
 
