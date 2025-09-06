@@ -54,6 +54,16 @@ const ExternalPricesList: React.FC<ExternalPricesListProps> = ({
         />
       )}
 
+      {/* طلای 18 عیار (محاسبه شده) */}
+      {externalPrices.GOLD_18K_CALCULATED && (
+        <PriceDisplayCard
+          title="طلای 18 عیار (محاسبه شده)"
+          buyPrice={externalPrices.GOLD_18K_CALCULATED.buyPrice}
+          sellPrice={externalPrices.GOLD_18K_CALCULATED.sellPrice}
+          margin={externalPrices.GOLD_18K_CALCULATED.sellPrice - externalPrices.GOLD_18K_CALCULATED.buyPrice}
+        />
+      )}
+
       {/* سکه تمام ۸۶ */}
       {externalPrices.COIN_BAHAR_86 && (
         <PriceDisplayCard
