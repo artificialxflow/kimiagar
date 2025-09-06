@@ -9,7 +9,7 @@ interface PhysicalDeliveryProps {
 export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps) {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [amount, setAmount] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
+  // const [deliveryAddress, setDeliveryAddress] = useState(''); // غیرفعال شده
   const [deliveryDate, setDeliveryDate] = useState('');
   const [deliveryTime, setDeliveryTime] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -64,7 +64,7 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
     if (numAmount <= 0) return 0;
     
     if (selectedProduct === 'GOLD_18K') {
-      // کارمزد برای تحویل طلا (بر اساس وزن)
+      // کارمزد برای تحویل طلا (بر اساس وزن - 2% از وزن)
       return numAmount * deliveryCommissionRate;
     } else {
       // کارمزد برای سکه‌ها (بر اساس تعداد × قیمت سکه)
@@ -100,10 +100,10 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
       return false;
     }
 
-    if (!deliveryAddress.trim()) {
-      setError('لطفاً آدرس تحویل را وارد کنید');
-      return false;
-    }
+    // if (!deliveryAddress.trim()) {
+    //   setError('لطفاً آدرس تحویل را وارد کنید');
+    //   return false;
+    // }
 
     if (!deliveryDate) {
       setError('لطفاً تاریخ تحویل را انتخاب کنید');
@@ -152,7 +152,7 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
           userId: user.id,
           productType: selectedProduct,
           amount: parseFloat(amount),
-          deliveryAddress,
+          deliveryAddress: 'تحویل در فروشگاه', // آدرس ثابت
           deliveryDate,
           deliveryTime,
           contactPhone
@@ -166,7 +166,7 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         // پاک کردن فرم
         setSelectedProduct('');
         setAmount('');
-        setDeliveryAddress('');
+        // setDeliveryAddress(''); // غیرفعال شده
         setDeliveryDate('');
         setDeliveryTime('');
         setContactPhone('');
@@ -234,8 +234,8 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <Truck className="w-8 h-8 text-blue-600" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">درخواست تحویل طلا در محل فروشگاه</h2>
-        <p className="text-slate-600">درخواست تحویل طلا در محل فروشگاه</p>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">درخواست تحویل طلا در فروشگاه</h2>
+        <p className="text-slate-600">تحویل فیزیکی طلا و سکه در محل فروشگاه</p>
       </div>
 
       {/* قوانین تحویل */}
@@ -246,10 +246,10 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         </h3>
         <ul className="text-sm text-blue-700 space-y-1 text-right">
           <li>• حداقل مقدار تحویل طلا: 5 گرم</li>
-          <li>• کارمزد تحویل طلا: {(deliveryCommissionRate * 100).toFixed(1)}% از وزن</li>
-          <li>• کارمزد تحویل سکه: {(deliveryCommissionRate * 100).toFixed(1)}% از ارزش سکه</li>
-          <li>• تحویل در تهران: 24-48 ساعت کاری</li>
-          <li>• تحویل در شهرستان‌ها: 3-5 روز کاری</li>
+          <li>• کارمزد تحویل طلا: {(deliveryCommissionRate * 100).toFixed(1)}% از وزن (به گرم)</li>
+          <li>• کارمزد تحویل سکه: {(deliveryCommissionRate * 100).toFixed(1)}% از ارزش سکه (به تومان)</li>
+          <li>• تحویل در فروشگاه: 24-48 ساعت کاری</li>
+          <li>• مراجعه حضوری به فروشگاه برای تحویل</li>
         </ul>
       </div>
 
@@ -296,8 +296,8 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
           </div>
         </div>
 
-        {/* Delivery Address */}
-        <div>
+        {/* Delivery Address - غیرفعال شده */}
+        {/* <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">
             آدرس تحویل
           </label>
@@ -314,7 +314,7 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
               <MapPin className="w-5 h-5" />
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Delivery Date and Time */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -404,9 +404,15 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
               )}
               
               <div className="flex justify-between">
-                <span className="text-slate-600">کارمزد تحویل ({(deliveryCommissionRate * 100).toFixed(1)}%):</span>
+                <span className="text-slate-600">
+                  کارمزد تحویل ({(deliveryCommissionRate * 100).toFixed(1)}%):
+                  {selectedProduct === 'GOLD_18K' ? ' از وزن' : ' از ارزش'}
+                </span>
                 <span className="font-medium text-red-600">
-                  {calculateDeliveryFee().toLocaleString('fa-IR')} تومان
+                  {selectedProduct === 'GOLD_18K' 
+                    ? `${calculateDeliveryFee().toFixed(2)} گرم` 
+                    : `${calculateDeliveryFee().toLocaleString('fa-IR')} تومان`
+                  }
                 </span>
               </div>
               
@@ -414,7 +420,10 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
                 <div className="flex justify-between">
                   <span className="font-semibold text-slate-800">کل کارمزد:</span>
                   <span className="font-bold text-lg text-slate-800">
-                    {calculateDeliveryFee().toLocaleString('fa-IR')} تومان
+                    {selectedProduct === 'GOLD_18K' 
+                      ? `${calculateDeliveryFee().toFixed(2)} گرم` 
+                      : `${calculateDeliveryFee().toLocaleString('fa-IR')} تومان`
+                    }
                   </span>
                 </div>
               </div>
@@ -433,7 +442,7 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || !selectedProduct || !amount || !deliveryAddress || !deliveryDate || !deliveryTime || !contactPhone}
+          disabled={loading || !selectedProduct || !amount || !deliveryDate || !deliveryTime || !contactPhone}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'در حال پردازش...' : 'ثبت درخواست تحویل'}
