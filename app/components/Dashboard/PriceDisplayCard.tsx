@@ -20,6 +20,10 @@ const PriceDisplayCard: React.FC<PriceDisplayCardProps> = ({
     return num.toLocaleString('fa-IR');
   };
 
+  // اطمینان از اینکه قیمت خرید بالاتر از قیمت فروش باشد
+  const correctedBuyPrice = Math.max(buyPrice, sellPrice);
+  const correctedSellPrice = Math.min(buyPrice, sellPrice);
+
   return (
     <div className={`bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 ${className}`}>
       {/* Header */}
@@ -27,7 +31,7 @@ const PriceDisplayCard: React.FC<PriceDisplayCardProps> = ({
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
         {margin && (
           <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-            حاشیه: {formatNumber(margin)} تومان
+            حاشیه: {formatNumber(correctedBuyPrice - correctedSellPrice)} تومان
           </div>
         )}
       </div>
@@ -41,7 +45,7 @@ const PriceDisplayCard: React.FC<PriceDisplayCardProps> = ({
             <span className="text-sm font-medium text-red-700">قیمت خرید</span>
           </div>
           <div className="text-2xl font-bold text-red-600">
-            {formatNumber(buyPrice)}
+            {formatNumber(correctedBuyPrice)}
           </div>
           <div className="text-xs text-red-500 mt-1">تومان</div>
         </div>
@@ -53,7 +57,7 @@ const PriceDisplayCard: React.FC<PriceDisplayCardProps> = ({
             <span className="text-sm font-medium text-green-700">قیمت فروش</span>
           </div>
           <div className="text-2xl font-bold text-green-600">
-            {formatNumber(sellPrice)}
+            {formatNumber(correctedSellPrice)}
           </div>
           <div className="text-xs text-green-500 mt-1">تومان</div>
         </div>
@@ -64,7 +68,7 @@ const PriceDisplayCard: React.FC<PriceDisplayCardProps> = ({
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">تفاوت قیمت:</span>
           <span className="font-medium text-gray-900">
-            {formatNumber(sellPrice - buyPrice)} تومان
+            {formatNumber(correctedBuyPrice - correctedSellPrice)} تومان
           </span>
         </div>
       </div>
