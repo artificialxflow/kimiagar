@@ -4,5 +4,8 @@
   "build": {
     "location": "germany"
   },
-  "disks": []
+  "disks": [],
+  "env": {
+    "DATABASE_URL": "postgresql://root:ANG5guAtXXLBvOLKJ7vqnAk2@kimiagar:5432/postgres"
+  }
 }
