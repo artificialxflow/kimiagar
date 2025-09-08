@@ -6,6 +6,16 @@
   },
   "disks": [],
   "env": {
-    "DATABASE_URL": "postgresql://root:ANG5guAtXXLBvOLKJ7vqnAk2@kimiagar:5432/postgres"
+    "DATABASE_URL": "postgresql://root:ANG5guAtXXLBvOLKJ7vqnAk2@kimiagar:5432/postgres",
+    "NODE_ENV": "production",
+    "JWT_SECRET": "kimiagar-jwt-secret-2024-production-key",
+    "JWT_REFRESH_SECRET": "kimiagar-refresh-secret-2024-production-key",
+    "EXTERNAL_PRICE_API_URL": "https://yazdan-price.liara.run"
+  },
+  "healthCheck": {
+    "command": "wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1",
+    "interval": 30,
+    "timeout": 10,
+    "retries": 3
   }
 }
