@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/app/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { generateTokens } from '@/app/lib/jwt';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,7 +108,5 @@ export async function POST(request: NextRequest) {
       { error: 'خطا در ورود کاربر' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 } 
