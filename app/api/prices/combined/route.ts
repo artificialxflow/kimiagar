@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/app/lib/prisma';
 import { getExternalPrices, transformExternalPrices, testExternalAPIConnection } from '@/app/lib/externalPriceService';
 import { Decimal } from '@prisma/client/runtime/library';
 
-const prisma = new PrismaClient();
+
 
 export async function GET() {
   try {
