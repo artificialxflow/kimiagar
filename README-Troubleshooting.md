@@ -1,329 +1,308 @@
-# راهنمای عیب‌یابی - Kimiagar Project
+# راهنمای عیب‌یابی کیمیاگر
 
-این راهنما مشکلات رایج پروژه و نحوه حل آن‌ها را توضیح می‌دهد.
+این راهنما مشکلات رایج و راه‌حل‌های آن‌ها را ارائه می‌دهد.
 
-## مشکلات رایج
+## 🔍 مشکلات رایج
 
-### 1. خطای 500 در API ثبت‌نام
+### 1. مشکل Prisma Client
 
-**مشکل**: خطای Internal Server Error در `/api/auth/register`
+**مشکل**: خطای "PrismaClient is not defined" یا "Cannot find module @prisma/client"
 
-**علل احتمالی**:
-- عدم اتصال به دیتابیس
-- مشکل در Prisma Client
-- خطا در validation داده‌ها
-- مشکل در JWT generation
+**راه‌حل**:
+```bash
+# تولید Prisma Client
+npm run prisma:generate
+
+# یا
+npx prisma generate
+```
+
+### 2. مشکل دیتابیس
+
+**مشکل**: خطای "Connection refused" یا "Database not found"
 
 **راه‌حل**:
 
 #### الف) بررسی اتصال دیتابیس
 ```bash
-# بررسی وضعیت دیتابیس
-curl http://localhost:3000/api/health
+# تست اتصال
+psql -h localhost -U postgres -d kimiagar
 
-# یا در مرورگر
-http://localhost:3000/api/health
+# یا با DATABASE_URL
+psql "postgresql://username:password@localhost:5432/kimiagar"
 ```
 
 #### ب) راه‌اندازی دیتابیس
 ```bash
-# نصب dependencies
-npm install
+# ایجاد دیتابیس
+createdb kimiagar
 
-# تولید Prisma Client
-npx prisma generate
-
-# اجرای migrations
-npm run db:migrate
-
-# seeding دیتابیس
-npm run db:seed
-```
-
-#### ج) بررسی متغیرهای محیطی
-```bash
-# ایجاد فایل .env.local
-DATABASE_URL="postgresql://kimiagar_user:kimiagar_password@localhost:5432/kimiagar_dev"
-JWT_SECRET="dev-secret-key"
-JWT_REFRESH_SECRET="dev-refresh-secret-key"
-NODE_ENV="development"
-```
-
-### 2. مشکل اتصال به PostgreSQL
-
-**مشکل**: خطای "Connection refused" یا "Authentication failed"
-
-**راه‌حل**:
-
-#### الف) راه‌اندازی PostgreSQL با Docker
-```bash
-# شروع سرویس دیتابیس
-docker-compose up postgres -d
-
-# بررسی وضعیت
-docker-compose ps postgres
-
-# مشاهده لاگ‌ها
-docker-compose logs postgres
-```
-
-#### ب) تنظیمات دستی PostgreSQL
-```sql
--- اتصال به PostgreSQL
+# یا با psql
 psql -U postgres
-
--- ایجاد دیتابیس
-CREATE DATABASE kimiagar_dev;
-
--- ایجاد کاربر
-CREATE USER kimiagar_user WITH PASSWORD 'kimiagar_password';
-
--- اعطای دسترسی
-GRANT ALL PRIVILEGES ON DATABASE kimiagar_dev TO kimiagar_user;
-
--- خروج
+CREATE DATABASE kimiagar;
 \q
 ```
 
-### 3. مشکل Prisma Client
+### 3. مشکل Build
 
-**مشکل**: خطای "PrismaClient is not defined" یا "Cannot find module"
+**مشکل**: خطای "Build failed" یا "Module not found"
 
 **راه‌حل**:
-
-#### الف) تولید مجدد Prisma Client
 ```bash
-# پاک کردن node_modules
+# پاک کردن cache
+rm -rf .next
 rm -rf node_modules
-rm -rf .next
+rm package-lock.json
 
-# نصب مجدد dependencies
+# نصب مجدد
 npm install
 
-# تولید Prisma Client
-npx prisma generate
-```
-
-#### ب) بررسی schema.prisma
-```prisma
-// اطمینان از صحت schema
-generator client {
-  provider = "prisma-client-js"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-### 4. مشکل JWT
-
-**مشکل**: خطای "JWT_SECRET is not defined" یا "Invalid token"
-
-**راه‌حل**:
-
-#### الف) تنظیم متغیرهای JWT
-```bash
-# در فایل .env.local
-JWT_SECRET="your-super-secret-key-here"
-JWT_REFRESH_SECRET="your-super-secret-refresh-key-here"
-```
-
-#### ب) بررسی JWT functions
-```typescript
-// اطمینان از import صحیح
-import { generateTokens, verifyAccessToken } from '@/app/lib/jwt';
-
-// بررسی payload structure
-const payload = {
-  userId: user.id,
-  username: user.username,
-  isAdmin: user.isAdmin
-};
-```
-
-### 5. مشکل CORS
-
-**مشکل**: خطای "CORS policy" در مرورگر
-
-**راه‌حل**:
-
-#### الف) تنظیم Next.js config
-```typescript
-// next.config.ts
-const nextConfig = {
-  async headers() {
-    return [
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-        ],
-      },
-    ];
-  },
-};
-```
-
-### 6. مشکل TypeScript
-
-**مشکل**: خطای "Cannot find name" یا "Type error"
-
-**راه‌حل**:
-
-#### الف) بررسی imports
-```typescript
-// اطمینان از import صحیح
-import { ChevronRight } from 'lucide-react';
-import { useState } from 'react';
-```
-
-#### ب) بررسی type definitions
-```typescript
-// تعریف interface برای props
-interface ComponentProps {
-  setActiveTab: (tab: string) => void;
-}
-```
-
-### 7. مشکل Docker
-
-**مشکل**: خطای "Port already in use" یا "Container failed to start"
-
-**راه‌حل**:
-
-#### الف) بررسی پورت‌های استفاده شده
-```bash
-# Windows
-netstat -ano | findstr :3000
-
-# Linux/Mac
-lsof -i :3000
-
-# توقف سرویس‌ها
-docker-compose down
-```
-
-#### ب) پاک‌سازی Docker
-```bash
-# پاک‌سازی کامل
-make clean
-
-# یا دستی
-docker-compose down -v --remove-orphans
-docker system prune -f
-```
-
-### 8. مشکل Build
-
-**مشکل**: خطای "Build failed" یا "Compilation error"
-
-**راه‌حل**:
-
-#### الف) پاک‌سازی cache
-```bash
-# پاک کردن Next.js cache
-rm -rf .next
-rm -rf node_modules/.cache
-
-# نصب مجدد dependencies
-npm install
-
-# build مجدد
+# Build مجدد
 npm run build
 ```
 
-#### ب) بررسی TypeScript errors
-```bash
-# بررسی type errors
-npx tsc --noEmit
+### 4. مشکل Dependencies
 
-# linting
-npm run lint
+**مشکل**: خطای "Package not found" یا "Version conflict"
+
+**راه‌حل**:
+```bash
+# پاک کردن کامل
+rm -rf node_modules package-lock.json
+
+# نصب مجدد
+npm install
+
+# بررسی conflicts
+npm ls
 ```
 
-## دستورات مفید برای عیب‌یابی
+### 5. مشکل Environment Variables
 
-### بررسی وضعیت سرویس‌ها
+**مشکل**: خطای "Environment variable not found"
+
+**راه‌حل**:
 ```bash
-# وضعیت Docker containers
-docker-compose ps
+# بررسی متغیرهای محیطی
+echo $DATABASE_URL
+echo $JWT_SECRET
 
-# لاگ‌های سرویس‌ها
-docker-compose logs -f app
-docker-compose logs -f postgres
-docker-compose logs -f redis
+# ایجاد فایل .env.local
+cp .env.example .env.local
+# و تنظیم متغیرها
+```
 
-# استفاده از Makefile
-make status
-make logs
+### 6. مشکل Port
+
+**مشکل**: خطای "Port 3001 already in use"
+
+**راه‌حل**:
+```bash
+# پیدا کردن process
+lsof -i :3001
+
+# توقف process
+kill -9 <PID>
+
+# یا تغییر port در .env.local
+PORT=3002
+```
+
+### 7. مشکل Health Check
+
+**مشکل**: خطای "Health check failed" در Liara
+
+**راه‌حل**:
+```bash
+# تست محلی
+curl http://localhost:3001/health
+
+# بررسی logs
+liara logs
+
+# بررسی environment variables در Liara
+```
+
+## 🛠 دستورات عیب‌یابی
+
+### بررسی وضعیت سیستم
+
+```bash
+# وضعیت Node.js
+node --version
+npm --version
+
+# وضعیت دیتابیس
+psql --version
+
+# وضعیت پروژه
+npm ls
+```
+
+### بررسی لاگ‌ها
+
+```bash
+# لاگ‌های development
+npm run dev
+
+# لاگ‌های production
+npm start
+
+# لاگ‌های PM2
+pm2 logs kimiagar
+
+# لاگ‌های Liara
+liara logs
 ```
 
 ### بررسی دیتابیس
+
 ```bash
 # اتصال به دیتابیس
-make db-shell
+psql "postgresql://username:password@localhost:5432/kimiagar"
 
-# اجرای migrations
-make db-migrate
+# بررسی جداول
+\dt
 
-# seeding دیتابیس
-make db-seed
+# بررسی schema
+\d users
 
-# بازنشانی دیتابیس
-make db-reset
+# خروج
+\q
 ```
 
-### بررسی API endpoints
+## 🔧 راه‌حل‌های پیشرفته
+
+### Reset کامل پروژه
+
 ```bash
-# Health check
-curl http://localhost:3000/api/health
+# پاک کردن همه چیز
+rm -rf .next node_modules package-lock.json
 
-# Test registration
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test","password":"test123","firstName":"Test","lastName":"User"}'
+# نصب مجدد
+npm install
+
+# تولید Prisma Client
+npm run prisma:generate
+
+# Reset دیتابیس
+npm run db:reset
+
+# Build و اجرا
+npm run build
+npm start
 ```
 
-## لاگ‌ها و Debugging
+### بررسی Prisma
 
-### 1. فعال‌سازی Debug Logs
 ```bash
-# تنظیم متغیر محیطی
-export DEBUG=prisma:*
+# بررسی schema
+npx prisma validate
 
-# یا در .env.local
-DEBUG=prisma:*
+# بررسی migrations
+npx prisma migrate status
+
+# Reset migrations
+npx prisma migrate reset
+
+# Studio
+npx prisma studio
 ```
 
-### 2. بررسی Console Logs
-```typescript
-// اضافه کردن console.log برای debugging
-console.log('User data:', userData);
-console.log('Database connection:', dbStatus);
-console.log('JWT payload:', payload);
+### بررسی Next.js
+
+```bash
+# بررسی config
+npx next info
+
+# بررسی build
+npx next build --debug
+
+# بررسی start
+npx next start --port 3001
 ```
 
-### 3. استفاده از Browser DevTools
-- Network tab برای بررسی API calls
-- Console tab برای JavaScript errors
-- Application tab برای بررسی cookies و storage
+## 📊 مانیتورینگ
 
-## نکات مهم
+### بررسی Performance
 
-1. **همیشه ابتدا health check را بررسی کنید**
-2. **لاگ‌ها را با دقت مطالعه کنید**
-3. **متغیرهای محیطی را بررسی کنید**
-4. **از Docker logs استفاده کنید**
-5. **Prisma Client را بعد از تغییرات schema تولید کنید**
+```bash
+# Memory usage
+node -e "console.log(process.memoryUsage())"
 
-## درخواست پشتیبانی
+# CPU usage
+top -p $(pgrep node)
 
-اگر مشکل حل نشد:
-1. لاگ‌های کامل را کپی کنید
-2. تصویر خطا را ضبط کنید
-3. مراحل تکرار مشکل را بنویسید
-4. اطلاعات محیط (OS, Node.js version, Docker version) را ارائه دهید
+# Disk usage
+df -h
+```
+
+### بررسی Network
+
+```bash
+# Port listening
+netstat -tulpn | grep :3001
+
+# Network connections
+ss -tulpn | grep :3001
+```
+
+## 🚨 مشکلات Liara
+
+### Health Check Failed
+
+1. **بررسی endpoint**:
+   ```bash
+   curl https://your-app.liara.run/health
+   ```
+
+2. **بررسی logs**:
+   ```bash
+   liara logs --follow
+   ```
+
+3. **بررسی environment variables**:
+   ```bash
+   liara env
+   ```
+
+### Build Failed
+
+1. **بررسی build logs**:
+   ```bash
+   liara logs --build
+   ```
+
+2. **تست محلی**:
+   ```bash
+   npm run build
+   ```
+
+3. **بررسی dependencies**:
+   ```bash
+   npm ls
+   ```
+
+## 📞 درخواست پشتیبانی
+
+### اطلاعات مورد نیاز
+
+1. **خطای دقیق** (متن کامل)
+2. **مراحل تکرار مشکل**
+3. **محیط اجرا** (OS, Node.js version)
+4. **لاگ‌های مربوطه**
+
+### تماس
+
+- **GitHub Issues**: برای گزارش باگ
+- **تیم توسعه**: برای پشتیبانی فوری
+- **مستندات**: `README.md` و `SETUP.md`
+
+---
+
+**نکات مهم:**
+1. **همیشه لاگ‌ها را بررسی کنید**
+2. **متغیرهای محیطی را درست تنظیم کنید**
+3. **Prisma Client را بعد از تغییرات schema تولید کنید**
+4. **دیتابیس را قبل از شروع پروژه راه‌اندازی کنید**
+5. **از version control استفاده کنید**
