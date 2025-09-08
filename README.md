@@ -1,185 +1,138 @@
-# کیمیاگر - پلتفرم مدیریت طلا و کیف پول دیجیتال
+# کیمیاگر - سیستم مدیریت طلا و کیف پول دیجیتال
 
-## 🚀 قابلیت‌ها
+پروژه کیمیاگر یک پلتفرم کامل برای خرید و فروش طلا و سکه با قابلیت مدیریت کیف پول دیجیتال است.
 
-- ✅ **سیستم ثبت‌نام و ورود** - فرم 6 مرحله‌ای با اعتبارسنجی کامل
-- ✅ **مدیریت کیف پول** - واریز، برداشت، موجودی ریالی و طلایی
-- ✅ **خرید و فروش طلا/سکه** - با قیمت‌های لحظه‌ای
-- ✅ **تاریخچه تراکنش‌ها** - با pagination
-- ✅ **پروفایل کاربری** - ویرایش اطلاعات شخصی
-- ✅ **منوی ناوبری** - رابط کاربری کامل
-- ✅ **API کامل** - 9 API Route
-- ✅ **دیتابیس PostgreSQL** - با Prisma ORM
+## ✨ ویژگی‌ها
 
-## 🛠️ تکنولوژی‌ها
+- 🏆 **خرید و فروش طلا**: معاملات طلای 18 عیار با بهترین قیمت‌ها
+- 🪙 **معاملات سکه**: خرید و فروش سکه بهار آزادی، نیم سکه و ربع سکه
+- 💰 **کیف پول دیجیتال**: مدیریت موجودی ریالی و طلایی
+- 🔄 **انتقال بین کاربران**: انتقال آسان طلا و پول
+- 📊 **داشبورد پیشرفته**: نمایش قیمت‌های لحظه‌ای و نمودارها
+- 🔐 **امنیت بالا**: احراز هویت چندمرحله‌ای و رمزنگاری
+
+## 🛠 تکنولوژی‌ها
 
 - **Frontend:** Next.js 15, React 19, TypeScript
-- **Styling:** Tailwind CSS, Vazirmatn Font
+- **Styling:** Tailwind CSS, Bootstrap 5
 - **Backend:** Next.js API Routes
-- **Database:** PostgreSQL
-- **ORM:** Prisma
-- **Icons:** Lucide React
+- **Database:** PostgreSQL, Prisma ORM
+- **Authentication:** JWT, bcryptjs
+- **UI Components:** Lucide React
 - **Charts:** Recharts
-- **Deployment:** Docker, Liara
+- **Deployment:** Liara (Node.js)
 
-## 🐳 Docker Deployment
+## 🚀 Node.js Deployment
 
-### ساخت و اجرای محلی
-
-```bash
-# ساخت image
-docker build -t kimiagar .
-
-# اجرا با docker run
-docker run -p 3000:3000 \
-  -e DATABASE_URL="postgresql://root:ANG5guAtXXLBvOLKJ7vqnAk2@tirich-mir.liara.cloud:32252/postgres" \
-  kimiagar
-
-# یا با docker-compose
-docker-compose up -d
-```
-
-### Deploy در Liara
-
-1. **ساخت image:**
-```bash
-docker build -t kimiagar .
-```
-
-2. **Push به Liara:**
-```bash
-# Login به Liara
-liara login
-
-# Deploy
-liara deploy --image kimiagar --port 3000
-```
-
-3. **تنظیم Environment Variables در Liara:**
-```env
-DATABASE_URL=postgresql://root:ANG5guAtXXLBvOLKJ7vqnAk2@tirich-mir.liara.cloud:32252/postgres
-NODE_ENV=production
-```
-
-## 🚀 اجرای محلی
-
-### پیش‌نیازها
-- Node.js 18+
-- PostgreSQL
-- npm یا yarn
-
-### نصب و اجرا
+### اجرای محلی
 
 ```bash
-# Clone پروژه
-git clone <repository-url>
-cd kimiagar
-
 # نصب dependencies
 npm install
 
-# تنظیم environment variables
-cp .env.example .env
-# ویرایش .env و قرار دادن DATABASE_URL
+# ساخت پروژه
+npm run build
 
-# اجرای migration
-npx prisma migrate deploy
+# اجرای پروژه
+npm start
+```
 
-# اجرای development server
-npm run dev
+### استقرار در لیارا
+
+1. **ساخت پروژه:**
+```bash
+npm run build
+```
+
+2. **Deploy:**
+```bash
+liara deploy
 ```
 
 ## 📁 ساختار پروژه
 
 ```
 kimiagar/
-├── app/
-│   ├── api/                 # API Routes
-│   ├── components/          # React Components
-│   ├── dashboard/          # Dashboard Page
-│   ├── login/              # Login Page
-│   ├── profile/            # Profile Page
-│   ├── trading/            # Trading Page
-│   ├── wallet/             # Wallet Page
-│   ├── globals.css         # Global Styles
-│   ├── layout.tsx          # Root Layout
-│   └── page.tsx            # Home Page
-├── prisma/
-│   └── schema.prisma       # Database Schema
-├── public/                 # Static Files
-├── Dockerfile              # Docker Configuration
-├── docker-compose.yml      # Docker Compose
-├── next.config.ts          # Next.js Config
-├── tailwind.config.js      # Tailwind Config
-└── package.json            # Dependencies
+├── app/                    # Next.js App Router
+│   ├── api/               # API Routes
+│   ├── components/        # React Components
+│   ├── lib/              # Utility Functions
+│   └── ...
+├── prisma/               # Database Schema & Migrations
+├── public/               # Static Files
+├── server.js             # Custom Server
+├── next.config.ts        # Next.js Config
+├── tailwind.config.js    # Tailwind Config
+└── package.json          # Dependencies
 ```
 
-## 🔧 API Endpoints
+## 🗄 دیتابیس
 
-### Authentication
-- `POST /api/auth/register` - ثبت‌نام کاربر
+### Prisma Schema
+- **Users**: مدیریت کاربران و احراز هویت
+- **Wallets**: کیف پول‌های ریالی و طلایی
+- **Transactions**: تراکنش‌های مالی
+- **Orders**: سفارش‌های خرید و فروش
+- **Prices**: قیمت‌های لحظه‌ای
+- **Transfers**: انتقالات بین کاربران
 
-### Profile
-- `PUT /api/profile/update` - به‌روزرسانی پروفایل
+### دستورات دیتابیس
 
-### Wallet
-- `GET /api/wallet/balance` - دریافت موجودی
-- `POST /api/wallet/deposit` - واریز
-- `POST /api/wallet/withdraw` - برداشت
+```bash
+# تولید Prisma Client
+npm run prisma:generate
 
-### Trading
-- `POST /api/trading/buy` - خرید
-- `POST /api/trading/sell` - فروش
+# اجرای migrations
+npm run db:migrate
 
-### Data
-- `GET /api/prices` - قیمت‌های لحظه‌ای
-- `GET /api/transactions` - تاریخچه تراکنش‌ها
-- `GET /api/health` - Health Check
+# Seed دیتابیس
+npm run db:seed
 
-## 🎨 UI/UX Features
+# باز کردن Prisma Studio
+npm run db:studio
+```
 
-- **RTL Support** - پشتیبانی کامل از راست‌چین
-- **Persian Font** - فونت Vazirmatn
-- **Responsive Design** - سازگار با تمام دستگاه‌ها
-- **Modern UI** - طراحی مدرن و زیبا
-- **Loading States** - نمایش وضعیت بارگذاری
-- **Error Handling** - مدیریت خطاها
-- **Form Validation** - اعتبارسنجی فرم‌ها
+## 🔧 تنظیمات
 
-## 🔒 Security
+### متغیرهای محیطی
 
-- **Input Validation** - اعتبارسنجی ورودی‌ها
-- **Database Constraints** - محدودیت‌های دیتابیس
-- **Error Handling** - مدیریت خطاها
-- **Environment Variables** - متغیرهای محیطی
+```env
+DATABASE_URL=postgresql://...
+JWT_SECRET=your-jwt-secret
+JWT_REFRESH_SECRET=your-refresh-secret
+EXTERNAL_PRICE_API_URL=https://...
+```
 
-## 📊 Database Schema
+### Health Check
 
-### Tables
-- **users** - اطلاعات کاربران
-- **wallets** - کیف پول‌های ریالی و طلایی
-- **transactions** - تراکنش‌های مالی
-- **orders** - سفارش‌های خرید و فروش
-- **prices** - قیمت‌های لحظه‌ای
-- **commissions** - تنظیمات کارمزد
-- **system_settings** - تنظیمات سیستم
+```bash
+curl http://localhost:3001/health
+```
+
+## 📱 صفحات اصلی
+
+- **صفحه اصلی**: معرفی خدمات
+- **ورود/ثبت‌نام**: احراز هویت کاربران
+- **داشبورد**: نمایش قیمت‌ها و موجودی
+- **خرید/فروش**: معاملات طلا و سکه
+- **کیف پول**: مدیریت موجودی
+- **انتقال**: انتقال بین کاربران
+- **پروفایل**: تنظیمات کاربری
 
 ## 🚀 Deployment Checklist
 
-- [x] Dockerfile آماده
-- [x] docker-compose.yml آماده
+- [x] Node.js Server آماده
 - [x] Health Check API
 - [x] Environment Variables
-- [x] Database Migration
-- [x] Production Build
-- [x] Security Headers
-- [x] Error Handling
+- [x] Database Connection
+- [x] Authentication System
+- [x] API Routes
+- [x] Frontend Components
 
-## 📝 License
+## 📞 پشتیبانی
 
-MIT License
+برای پشتیبانی و راهنمایی با تیم توسعه تماس بگیرید.
 
 ---
 
-**توسعه‌دهنده:** تیم کیمیاگر  
-**آخرین به‌روزرسانی:** 22 تیر 1403
+**کیمیاگر** - مدیریت طلا و کیف پول دیجیتال
