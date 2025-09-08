@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET || 'kimiagar-jwt-secret-2024-production-key';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'kimiagar-refresh-secret-2024-production-key';
 
 export interface JWTPayload {
   userId: string;
