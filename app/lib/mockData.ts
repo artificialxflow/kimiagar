@@ -92,7 +92,13 @@ export const mockWallets = [
     type: 'GOLD',
     balance: 0.00,
     currency: 'IRR',
-    createdAt: new Date()
+    createdAt: new Date(),
+    // اضافه کردن موجودی سکه‌ها
+    coins: {
+      fullCoin: 0,      // سکه تمام
+      halfCoin: 0,     // نیم سکه
+      quarterCoin: 0    // ربع سکه
+    }
   },
   {
     id: 'mock_wallet_2',
