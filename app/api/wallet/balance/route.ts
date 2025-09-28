@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
+import { isDevelopment, mockWallets, mockTransactions } from '@/app/lib/mockData';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +12,15 @@ export async function GET(request: NextRequest) {
         { error: 'شناسه کاربر الزامی است' },
         { status: 400 }
       );
+    }
+
+    // در development mode از mock data استفاده کن
+    if (isDevelopment) {
+      return NextResponse.json({
+        success: true,
+        wallets: mockWallets,
+        recentTransactions: mockTransactions
+      });
     }
 
     // دریافت کیف پول‌های کاربر
