@@ -145,13 +145,31 @@ export default function ChargeWallet() {
           </div>
 
           {/* Info Card */}
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-800 mb-2">نکات مهم:</h3>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• مبلغ بلافاصله به کیف پول ریالی شما اضافه می‌شود</li>
-              <li>• تراکنش در تاریخچه کیف پول ثبت می‌شود</li>
-              <li>• از این مبلغ برای خرید طلا و سکه استفاده کنید</li>
-            </ul>
+          <div className="mt-6 space-y-4">
+            {/* Operator Approval Notice */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h3 className="font-medium text-yellow-800 mb-2 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-2" />
+                اطلاعیه مهم
+              </h3>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>• واریز وجه نیاز به تایید اپراتور دارد</li>
+                <li>• پس از واریز، منتظر تایید اپراتور باشید</li>
+                <li>• زمان تایید معمولاً کمتر از 24 ساعت است</li>
+              </ul>
+            </div>
+
+            {/* Personal Account Only */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-blue-800 mb-2">نکات مهم:</h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• واریز فقط از حساب شخصی خودتان انجام دهید</li>
+                <li>• از حساب شخص دیگر وجه واریز نکنید</li>
+                <li>• مبلغ بلافاصله به کیف پول ریالی شما اضافه می‌شود</li>
+                <li>• تراکنش در تاریخچه کیف پول ثبت می‌شود</li>
+                <li>• از این مبلغ برای خرید طلا و سکه استفاده کنید</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
