@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
-import { isDevelopment, mockWallets, mockTransactions } from '@/app/lib/mockData';
+import { mockWallets, mockTransactions } from '@/app/lib/mockData';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     // در development mode از mock data استفاده کن
-    if (isDevelopment) {
+    if (process.env.NODE_ENV === 'development') {
       return NextResponse.json({
         success: true,
         wallets: mockWallets,
