@@ -5,7 +5,7 @@ const WalletBalance: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Riyal Wallet */}
         <div className="bg-gradient-to-br from-background-100 to-background-200 rounded-xl p-6 border border-border-100">
           <div className="flex items-center justify-between mb-4">
@@ -61,6 +61,42 @@ const WalletBalance: React.FC = () => {
               <span className="text-sm">+1.8%</span>
             </div>
             <span className="text-sm text-text-500">نسبت به ماه گذشته</span>
+          </div>
+        </div>
+
+        {/* Coins Wallet */}
+        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3 space-x-reverse">
+              <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center">
+                <span className="text-text-50 font-bold text-lg">س</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-text-800">کیف پول سکه‌ها</h3>
+                <p className="text-sm text-text-600">COINS</p>
+              </div>
+            </div>
+            <button className="p-2 hover:bg-yellow-200 rounded-lg transition-colors">
+              <Eye className="w-5 h-5 text-yellow-600" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            <div className="text-2xl font-bold text-text-800">5</div>
+            <div className="text-sm text-text-600">سکه</div>
+          </div>
+          <div className="mt-3 space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="text-text-600">تمام:</span>
+              <span className="font-semibold text-yellow-700">2</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-text-600">نیم:</span>
+              <span className="font-semibold text-yellow-700">2</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-text-600">ربع:</span>
+              <span className="font-semibold text-yellow-700">1</span>
+            </div>
           </div>
         </div>
       </div>
