@@ -160,7 +160,9 @@ export default function SellPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {prices.map((price) => {
+                {prices.filter(price => 
+                  ['GOLD_18K', 'COIN_BAHAR_86', 'COIN_NIM_86', 'COIN_ROBE_86'].includes(price.productType)
+                ).map((price) => {
                   const balance = getGoldBalance(price.productType);
                   const canSell = balance > 0;
                   
@@ -230,7 +232,7 @@ export default function SellPage() {
                   <li>• فروش فقط از موجودی طلا انجام می‌شود</li>
                   <li>• قیمت‌ها لحظه‌ای و قابل تغییر هستند</li>
                   <li>• پس از تایید فروش، مبلغ به کیف پول ریالی اضافه می‌شود</li>
-                  <li>• امکان لغو معامله تا 5 دقیقه پس از تایید وجود دارد</li>
+                  <li>• امکان لغو معامله پس از تایید وجود ندارد</li>
                 </ul>
               </div>
             </div>
