@@ -20,6 +20,7 @@ export default function TransferPage() {
   const [success, setSuccess] = useState('');
   const [searching, setSearching] = useState(false);
   const [transferType, setTransferType] = useState<'RIAL' | 'GOLD'>('RIAL');
+  const [goldType, setGoldType] = useState<'GOLD_18K' | 'COIN_BAHAR_86' | 'COIN_NIM_86' | 'COIN_ROBE_86'>('GOLD_18K');
   const router = useRouter();
 
   useEffect(() => {
@@ -183,6 +184,20 @@ export default function TransferPage() {
     }
   };
 
+  const getGoldTypeName = (type: string) => {
+    switch (type) {
+      case 'GOLD_18K': return 'طلای 18 عیار';
+      case 'COIN_BAHAR_86': return 'سکه 86';
+      case 'COIN_NIM_86': return 'نیم سکه 86';
+      case 'COIN_ROBE_86': return 'ربع سکه 86';
+      default: return type;
+    }
+  };
+
+  const getGoldTypeUnit = (type: string) => {
+    return type === 'GOLD_18K' ? 'گرم' : 'عدد';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -277,6 +292,73 @@ export default function TransferPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Gold Type Selection (only for GOLD transfer) */}
+              {transferType === 'GOLD' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-3">
+                    نوع طلا
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setGoldType('GOLD_18K')}
+                      className={`px-4 py-3 rounded-lg border-2 transition-colors ${
+                        goldType === 'GOLD_18K'
+                          ? 'border-gold bg-gold-50 text-gold-700'
+                          : 'border-slate-300 text-slate-600 hover:border-slate-400'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="font-medium">طلای 18 عیار</div>
+                        <div className="text-xs text-slate-500">گرم</div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGoldType('COIN_BAHAR_86')}
+                      className={`px-4 py-3 rounded-lg border-2 transition-colors ${
+                        goldType === 'COIN_BAHAR_86'
+                          ? 'border-gold bg-gold-50 text-gold-700'
+                          : 'border-slate-300 text-slate-600 hover:border-slate-400'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="font-medium">سکه 86</div>
+                        <div className="text-xs text-slate-500">عدد</div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGoldType('COIN_NIM_86')}
+                      className={`px-4 py-3 rounded-lg border-2 transition-colors ${
+                        goldType === 'COIN_NIM_86'
+                          ? 'border-gold bg-gold-50 text-gold-700'
+                          : 'border-slate-300 text-slate-600 hover:border-slate-400'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="font-medium">نیم سکه 86</div>
+                        <div className="text-xs text-slate-500">عدد</div>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setGoldType('COIN_ROBE_86')}
+                      className={`px-4 py-3 rounded-lg border-2 transition-colors ${
+                        goldType === 'COIN_ROBE_86'
+                          ? 'border-gold bg-gold-50 text-gold-700'
+                          : 'border-slate-300 text-slate-600 hover:border-slate-400'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="font-medium">ربع سکه 86</div>
+                        <div className="text-xs text-slate-500">عدد</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* From Wallet */}
               <div className="space-y-4">
@@ -390,7 +472,11 @@ export default function TransferPage() {
                 <p className="text-xs text-slate-500 mt-1">
                   {transferData.fromWallet && (() => {
                     const wallet = wallets.find(w => w.id === transferData.fromWallet);
-                    return wallet?.type === 'RIAL' ? 'مبلغ به تومان وارد کنید' : 'مقدار به گرم وارد کنید';
+                    if (wallet?.type === 'RIAL') {
+                      return 'مبلغ به تومان وارد کنید';
+                    } else {
+                      return `مقدار به ${getGoldTypeUnit(goldType)} وارد کنید`;
+                    }
                   })()}
                 </p>
               </div>
@@ -416,7 +502,7 @@ export default function TransferPage() {
                     <span className="text-slate-600">مبلغ انتقال:</span>
                     <span className="font-medium">
                       {parseFloat(transferData.amount).toLocaleString('fa-IR')} 
-                      {transferType === 'RIAL' ? ' تومان' : ' گرم'}
+                      {transferType === 'RIAL' ? ' تومان' : ` ${getGoldTypeUnit(goldType)}`}
                     </span>
                   </div>
                   
@@ -424,7 +510,7 @@ export default function TransferPage() {
                     <span className="text-slate-600">کارمزد (0.5%):</span>
                     <span className="font-medium text-red-600">
                       {calculateTransferCommission().toLocaleString('fa-IR')} 
-                      {transferType === 'RIAL' ? ' تومان' : ' گرم'}
+                      {transferType === 'RIAL' ? ' تومان' : ` ${getGoldTypeUnit(goldType)}`}
                     </span>
                   </div>
                   
@@ -433,7 +519,7 @@ export default function TransferPage() {
                       <span className="font-semibold text-slate-800">کل مبلغ کسر شده:</span>
                       <span className="font-bold text-lg text-slate-800">
                         {calculateFinalAmount().toLocaleString('fa-IR')} 
-                        {transferType === 'RIAL' ? ' تومان' : ' گرم'}
+                        {transferType === 'RIAL' ? ' تومان' : ` ${getGoldTypeUnit(goldType)}`}
                       </span>
                     </div>
                   </div>
@@ -465,15 +551,34 @@ export default function TransferPage() {
         </div>
 
         {/* Info Card */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-800 mb-2">نکات مهم:</h4>
-          <ul className="text-sm text-blue-700 space-y-1">
-            <li>• انتقال بین کاربران مختلف امکان‌پذیر است</li>
-            <li>• مبلغ انتقال باید از موجودی کیف پول مبدا کمتر باشد</li>
-            <li>• عملیات انتقال غیرقابل بازگشت است</li>
-            <li>• تراکنش‌های انتقال در تاریخچه ثبت می‌شوند</li>
-            <li>• گیرنده باید در سیستم ثبت‌نام کرده باشد</li>
-          </ul>
+        <div className="mt-6 space-y-4">
+          {/* Physical Delivery Info */}
+          {transferType === 'GOLD' && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h4 className="font-semibold text-green-800 mb-2 flex items-center">
+                <Coins className="w-4 h-4 mr-2" />
+                تحویل فیزیکی
+              </h4>
+              <ul className="text-sm text-green-700 space-y-1">
+                <li>• تحویل فیزیکی طلا امکان‌پذیر است</li>
+                <li>• زمان تحویل: 1 هفته تا 10 روز کاری</li>
+                <li>• هزینه تحویل بر عهده گیرنده است</li>
+                <li>• برای درخواست تحویل فیزیکی با پشتیبانی تماس بگیرید</li>
+              </ul>
+            </div>
+          )}
+
+          {/* General Info */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-800 mb-2">نکات مهم:</h4>
+            <ul className="text-sm text-blue-700 space-y-1">
+              <li>• انتقال بین کاربران مختلف امکان‌پذیر است</li>
+              <li>• مبلغ انتقال باید از موجودی کیف پول مبدا کمتر باشد</li>
+              <li>• عملیات انتقال غیرقابل بازگشت است</li>
+              <li>• تراکنش‌های انتقال در تاریخچه ثبت می‌شوند</li>
+              <li>• گیرنده باید در سیستم ثبت‌نام کرده باشد</li>
+            </ul>
+          </div>
         </div>
       </div>
     </Layout>
