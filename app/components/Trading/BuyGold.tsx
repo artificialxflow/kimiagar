@@ -1,29 +1,53 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Calculator, AlertCircle, Scale, DollarSign, CreditCard, Wallet } from 'lucide-react';
+import { ShoppingCart, Calculator, AlertCircle, Scale, DollarSign, Wallet, Clock } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface BuyGoldProps {
   prices?: any[];
 }
 
 export default function BuyGold({ prices = [] }: BuyGoldProps) {
-  const [selectedProduct, setSelectedProduct] = useState('');
+  const params = useParams();
+  const productType = params.productType as string;
+  
   const [inputType, setInputType] = useState<'weight' | 'money'>('weight');
   const [weightAmount, setWeightAmount] = useState('');
   const [moneyAmount, setMoneyAmount] = useState('');
-  const [isAutomatic, setIsAutomatic] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'gateway'>('wallet');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [walletBalance, setWalletBalance] = useState(0);
   const [description, setDescription] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const [isOrderPlaced, setIsOrderPlaced] = useState(false);
+  const [volatilityMessage, setVolatilityMessage] = useState('');
 
-  const selectedPrice = prices.find(p => p.productType === selectedProduct);
+  const selectedPrice = prices.find(p => p.productType === productType);
 
   // دریافت موجودی کیف پول
   useEffect(() => {
     fetchWalletBalance();
+    checkVolatility();
   }, []);
+
+  // شمارنده معکوس
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [countdown]);
+
+  const checkVolatility = () => {
+    // شبیه‌سازی بررسی نوسان - در واقعیت باید از API دریافت شود
+    const isHighVolatility = Math.random() > 0.7; // 30% احتمال نوسان بالا
+    if (isHighVolatility) {
+      setVolatilityMessage('⚠️ امروز روز پرنوسانی است. قیمت‌ها ممکن است تغییر کنند.');
+    }
+  };
 
   const fetchWalletBalance = async () => {
     try {
@@ -105,8 +129,8 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
 
   // اعتبارسنجی ورودی
   const validateInput = () => {
-    if (!selectedProduct) {
-      setError('لطفاً محصول را انتخاب کنید');
+    if (!productType) {
+      setError('محصول مشخص نشده است');
       return false;
     }
 
@@ -117,7 +141,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
       }
       
       // برای سکه‌ها، تعداد باید صحیح باشد
-      if (selectedProduct !== 'GOLD_18K') {
+      if (productType !== 'GOLD_18K') {
         const amount = parseFloat(weightAmount);
         if (amount !== Math.floor(amount)) {
           setError('برای سکه‌ها، تعداد باید عدد صحیح باشد');
@@ -132,7 +156,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
     }
 
     // بررسی موجودی کیف پول
-    if (paymentMethod === 'wallet' && calculateFinalTotal() > walletBalance) {
+    if (calculateFinalTotal() > walletBalance) {
       setError('موجودی کیف پول کافی نیست');
       return false;
     }
@@ -160,83 +184,41 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
 
       const user = JSON.parse(userData);
 
-      if (paymentMethod === 'wallet') {
-        // پرداخت از کیف پول
-        const response = await fetch('/api/trading/buy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            productType: selectedProduct,
-            amount: getAmount(),
-            isAutomatic: true,
-            description: description.trim() || null
-          }),
-        });
+      // پرداخت از کیف پول
+      const response = await fetch('/api/trading/buy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          productType: productType,
+          amount: getAmount(),
+          isAutomatic: true,
+          description: description.trim() || null
+        }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (response.ok) {
-          alert('سفارش خرید با موفقیت ثبت شد!');
-          setSelectedProduct('');
-          setWeightAmount('');
-          setMoneyAmount('');
-          setDescription('');
-          fetchWalletBalance(); // به‌روزرسانی موجودی
-          // به‌روزرسانی صفحه بعد از 2 ثانیه
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 2000);
-        } else {
-          setError(data.error || 'خطا در ثبت سفارش');
-        }
-      } else {
-        // پرداخت از درگاه
-        const response = await fetch('/api/trading/buy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: user.id,
-            productType: selectedProduct,
-            amount: getAmount(),
-            isAutomatic: false,
-            description: description.trim() || null
-          }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          // ایجاد تراکنش پرداخت
-          const paymentResponse = await fetch('/api/payment/gateway', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: user.id,
-              orderId: data.order.id,
-              amount: calculateFinalTotal(),
-              paymentMethod: 'CARD',
-              callbackUrl: `${window.location.origin}/trading?tab=buy&payment=success`
-            }),
-          });
-
-          const paymentData = await paymentResponse.json();
-
-          if (paymentResponse.ok) {
-            // هدایت به درگاه پرداخت
-            window.location.href = paymentData.paymentTransaction.paymentUrl;
-          } else {
-            setError(paymentData.error || 'خطا در اتصال به درگاه پرداخت');
+      if (response.ok) {
+        setIsOrderPlaced(true);
+        setCountdown(180); // 3 دقیقه شمارنده معکوس
+        setWeightAmount('');
+        setMoneyAmount('');
+        setDescription('');
+        fetchWalletBalance(); // به‌روزرسانی موجودی
+        
+        // نمایش پیام موفقیت و لینک فاکتور
+        const transactionId = data.transactionId || 'mock_transaction_' + Date.now();
+        setTimeout(() => {
+          if (confirm('معامله با موفقیت انجام شد! آیا می‌خواهید فاکتور را مشاهده کنید؟')) {
+            window.open(`/invoice?id=${transactionId}`, '_blank');
           }
-        } else {
-          setError(data.error || 'خطا در ثبت سفارش');
-        }
+          window.location.href = '/dashboard';
+        }, 2000); // 2 ثانیه تاخیر برای نمایش پیام
+      } else {
+        setError(data.error || 'خطا در ثبت سفارش');
       }
     } catch (error) {
       setError('خطا در اتصال به سرور');
@@ -259,7 +241,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
   };
 
   const getUnit = () => {
-    return selectedProduct === 'GOLD_18K' ? 'گرم' : 'عدد';
+    return productType === 'GOLD_18K' ? 'گرم' : 'عدد';
   };
 
   return (
@@ -268,9 +250,37 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <ShoppingCart className="w-8 h-8 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">خرید طلا</h2>
-        <p className="text-slate-600">انتخاب محصول و مقدار مورد نظر</p>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          خرید {getProductDisplayName(productType)}
+        </h2>
+        <p className="text-slate-600">مقدار مورد نظر خود را وارد کنید</p>
       </div>
+
+      {/* پیام نوسان */}
+      {volatilityMessage && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
+            <p className="text-yellow-800 text-sm">{volatilityMessage}</p>
+          </div>
+        </div>
+      )}
+
+      {/* شمارنده معکوس */}
+      {isOrderPlaced && countdown > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <Clock className="w-5 h-5 text-green-600 mr-2" />
+              <span className="font-semibold text-green-800">در حال انجام معامله لطفا صبور باشید</span>
+            </div>
+            <div className="text-2xl font-bold text-green-700">
+              {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+            </div>
+            <p className="text-green-600 text-sm mt-1">زمان باقی‌مانده تا تکمیل معامله</p>
+          </div>
+        </div>
+      )}
 
       {/* موجودی کیف پول */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -286,25 +296,6 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Product Selection */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            انتخاب محصول
-          </label>
-          <select
-            value={selectedProduct}
-            onChange={(e) => setSelectedProduct(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-            required
-          >
-            <option value="">انتخاب کنید</option>
-            {prices.map((price) => (
-              <option key={price.id} value={price.productType}>
-                {getProductDisplayName(price.productType)}
-              </option>
-            ))}
-          </select>
-        </div>
 
         {/* Input Type Selection */}
         <div>
@@ -359,7 +350,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
                 required
                 min="0.01"
-                step={selectedProduct === 'GOLD_18K' ? "0.01" : "1"}
+                step={productType === 'GOLD_18K' ? "0.01" : "1"}
               />
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
                 {getUnit()}
@@ -384,7 +375,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
           )}
 
           {/* Conversion Display */}
-          {selectedProduct && (weightAmount || moneyAmount) && (
+          {selectedPrice && (weightAmount || moneyAmount) && (
             <div className="mt-2 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
               <div className="flex justify-between">
                 <span>معادل:</span>
@@ -399,42 +390,6 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
           )}
         </div>
 
-        {/* Payment Method Selection */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-3">
-            روش پرداخت
-          </label>
-          <div className="flex space-x-4 space-x-reverse">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('wallet')}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
-                paymentMethod === 'wallet'
-                  ? 'border-gold bg-gold-50 text-gold'
-                  : 'border-slate-300 text-slate-600 hover:border-slate-400'
-              }`}
-            >
-              <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                <Wallet className="w-5 h-5" />
-                <span>کیف پول</span>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaymentMethod('gateway')}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
-                paymentMethod === 'gateway'
-                  ? 'border-gold bg-gold-50 text-gold'
-                  : 'border-slate-300 text-slate-600 hover:border-slate-400'
-              }`}
-            >
-              <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                <CreditCard className="w-5 h-5" />
-                <span>کارت بانکی</span>
-              </div>
-            </button>
-          </div>
-        </div>
 
         {/* Description Field */}
         <div>
@@ -455,7 +410,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
         </div>
 
         {/* Price Calculation */}
-        {selectedProduct && selectedPrice && (weightAmount || moneyAmount) && (
+        {productType && selectedPrice && (weightAmount || moneyAmount) && (
           <div className="bg-slate-50 rounded-lg p-4 space-y-3">
             <h3 className="font-medium text-slate-800 flex items-center">
               <Calculator className="w-4 h-4 mr-2" />
@@ -501,18 +456,16 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
               </div>
 
               {/* موجودی کافی یا ناکافی */}
-              {paymentMethod === 'wallet' && (
-                <div className={`mt-3 p-2 rounded-lg text-sm ${
-                  calculateFinalTotal() <= walletBalance
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
-                }`}>
-                  {calculateFinalTotal() <= walletBalance
-                    ? '✅ موجودی کافی است'
-                    : '❌ موجودی کافی نیست'
-                  }
-                </div>
-              )}
+              <div className={`mt-3 p-2 rounded-lg text-sm ${
+                calculateFinalTotal() <= walletBalance
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-700'
+              }`}>
+                {calculateFinalTotal() <= walletBalance
+                  ? '✅ موجودی کافی است'
+                  : '❌ موجودی کافی نیست'
+                }
+              </div>
             </div>
           </div>
         )}
@@ -528,10 +481,10 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || !selectedProduct || (!weightAmount && !moneyAmount) || (paymentMethod === 'wallet' && calculateFinalTotal() > walletBalance)}
-          className="w-full bg-gold text-white py-3 px-4 rounded-lg font-semibold hover:bg-gold-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          disabled={loading || !productType || (!weightAmount && !moneyAmount) || calculateFinalTotal() > walletBalance || isOrderPlaced}
+          className="w-full bg-green-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'در حال پردازش...' : `ثبت سفارش خرید (${paymentMethod === 'wallet' ? 'کیف پول' : 'کارت بانکی'})`}
+          {loading ? 'در حال پردازش...' : isOrderPlaced ? 'سفارش ثبت شده' : 'ثبت سفارش خرید (کیف پول)'}
         </button>
       </form>
     </div>
