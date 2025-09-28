@@ -1,21 +1,70 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Calculator, AlertCircle, Scale } from 'lucide-react';
+import { DollarSign, Calculator, AlertCircle, Scale, Clock } from 'lucide-react';
+import { useParams } from 'next/navigation';
 
 interface SellGoldProps {
   prices?: any[];
 }
 
 export default function SellGold({ prices = [] }: SellGoldProps) {
-  const [selectedProduct, setSelectedProduct] = useState('');
+  const params = useParams();
+  const productType = params.productType as string;
+  
   const [inputType, setInputType] = useState<'weight' | 'money'>('weight');
   const [weightAmount, setWeightAmount] = useState('');
   const [moneyAmount, setMoneyAmount] = useState('');
-  const [isAutomatic, setIsAutomatic] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const [isOrderPlaced, setIsOrderPlaced] = useState(false);
+  const [volatilityMessage, setVolatilityMessage] = useState('');
+  const [availableBalance, setAvailableBalance] = useState(0);
 
-  const selectedPrice = prices.find(p => p.productType === selectedProduct);
+  const selectedPrice = prices.find(p => p.productType === productType);
+
+  // دریافت موجودی و بررسی نوسان
+  useEffect(() => {
+    fetchAvailableBalance();
+    checkVolatility();
+  }, []);
+
+  // شمارنده معکوس
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (countdown > 0) {
+      interval = setInterval(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [countdown]);
+
+  const fetchAvailableBalance = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (!userData) return;
+
+      const user = JSON.parse(userData);
+      const response = await fetch(`/api/wallet/balance?userId=${user.id}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        const wallet = data.wallets.find((w: any) => w.type === productType);
+        setAvailableBalance(Number(wallet?.balance || 0));
+      }
+    } catch (error) {
+      console.error('خطا در دریافت موجودی:', error);
+    }
+  };
+
+  const checkVolatility = () => {
+    // شبیه‌سازی بررسی نوسان - در واقعیت باید از API دریافت شود
+    const isHighVolatility = Math.random() > 0.7; // 30% احتمال نوسان بالا
+    if (isHighVolatility) {
+      setVolatilityMessage('⚠️ امروز روز پرنوسانی است. قیمت‌ها ممکن است تغییر کنند.');
+    }
+  };
 
   // محاسبه مقدار بر اساس نوع ورودی
   const getAmount = () => {
@@ -74,8 +123,8 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
 
   // اعتبارسنجی ورودی
   const validateInput = () => {
-    if (!selectedProduct) {
-      setError('لطفاً محصول را انتخاب کنید');
+    if (!productType) {
+      setError('محصول مشخص نشده است');
       return false;
     }
 
@@ -86,16 +135,29 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
       }
       
       // برای سکه‌ها، تعداد باید صحیح باشد
-      if (selectedProduct !== 'GOLD_18K') {
+      if (productType !== 'GOLD_18K') {
         const amount = parseFloat(weightAmount);
         if (amount !== Math.floor(amount)) {
           setError('برای سکه‌ها، تعداد باید عدد صحیح باشد');
           return false;
         }
       }
+
+      // بررسی موجودی کافی
+      if (parseFloat(weightAmount) > availableBalance) {
+        setError('موجودی کافی نیست');
+        return false;
+      }
     } else {
       if (!moneyAmount || parseFloat(moneyAmount) <= 0) {
         setError('لطفاً مبلغ را به درستی وارد کنید');
+        return false;
+      }
+
+      // بررسی موجودی کافی بر اساس مبلغ
+      const requiredAmount = parseFloat(moneyAmount) / Number(selectedPrice.sellPrice);
+      if (requiredAmount > availableBalance) {
+        setError('موجودی کافی نیست');
         return false;
       }
     }
@@ -130,23 +192,29 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
         },
         body: JSON.stringify({
           userId: user.id,
-          productType: selectedProduct,
+          productType: productType,
           amount: getAmount(),
-          isAutomatic
+          isAutomatic: true
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        alert('سفارش فروش با موفقیت ثبت شد!');
-        setSelectedProduct('');
+        setIsOrderPlaced(true);
+        setCountdown(180); // 3 دقیقه شمارنده معکوس
         setWeightAmount('');
         setMoneyAmount('');
-        // به‌روزرسانی صفحه بعد از 2 ثانیه
+        fetchAvailableBalance(); // به‌روزرسانی موجودی
+        
+        // نمایش پیام موفقیت و لینک فاکتور
+        const transactionId = data.transactionId || 'mock_transaction_' + Date.now();
         setTimeout(() => {
+          if (confirm('معامله با موفقیت انجام شد! آیا می‌خواهید فاکتور را مشاهده کنید؟')) {
+            window.open(`/invoice?id=${transactionId}`, '_blank');
+          }
           window.location.href = '/dashboard';
-        }, 2000);
+        }, 2000); // 2 ثانیه تاخیر برای نمایش پیام
       } else {
         setError(data.error || 'خطا در ثبت سفارش');
       }
@@ -171,7 +239,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
   };
 
   const getUnit = () => {
-    return selectedProduct === 'GOLD_18K' ? 'گرم' : 'عدد';
+    return productType === 'GOLD_18K' ? 'گرم' : 'عدد';
   };
 
   return (
@@ -180,30 +248,52 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <DollarSign className="w-8 h-8 text-red-600" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">فروش طلا</h2>
-        <p className="text-slate-600">انتخاب محصول و مقدار مورد نظر</p>
+        <h2 className="text-2xl font-bold text-slate-800 mb-2">
+          فروش {getProductDisplayName(productType)}
+        </h2>
+        <p className="text-slate-600">مقدار مورد نظر خود را وارد کنید</p>
+      </div>
+
+      {/* پیام نوسان */}
+      {volatilityMessage && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
+            <p className="text-yellow-800 text-sm">{volatilityMessage}</p>
+          </div>
+        </div>
+      )}
+
+      {/* شمارنده معکوس */}
+      {isOrderPlaced && countdown > 0 && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <Clock className="w-5 h-5 text-green-600 mr-2" />
+              <span className="font-semibold text-green-800">در حال انجام معامله لطفا صبور باشید</span>
+            </div>
+            <div className="text-2xl font-bold text-green-700">
+              {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+            </div>
+            <p className="text-green-600 text-sm mt-1">زمان باقی‌مانده تا تکمیل معامله</p>
+          </div>
+        </div>
+      )}
+
+      {/* موجودی موجود */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <DollarSign className="w-5 h-5 text-blue-600 mr-2" />
+            <span className="font-medium text-blue-800">موجودی موجود:</span>
+          </div>
+          <span className="font-bold text-blue-800">
+            {availableBalance.toLocaleString('fa-IR')} {getUnit()}
+          </span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Product Selection */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            انتخاب محصول
-          </label>
-          <select
-            value={selectedProduct}
-            onChange={(e) => setSelectedProduct(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-            required
-          >
-            <option value="">انتخاب کنید</option>
-            {prices.map((price) => (
-              <option key={price.id} value={price.productType}>
-                {getProductDisplayName(price.productType)}
-              </option>
-            ))}
-          </select>
-        </div>
 
         {/* Input Type Selection */}
         <div>
@@ -258,7 +348,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
                 required
                 min="0.01"
-                step={selectedProduct === 'GOLD_18K' ? "0.01" : "1"}
+                step={productType === 'GOLD_18K' ? "0.01" : "1"}
               />
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
                 {getUnit()}
@@ -283,7 +373,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
           )}
 
           {/* Conversion Display */}
-          {selectedProduct && (weightAmount || moneyAmount) && (
+          {selectedPrice && (weightAmount || moneyAmount) && (
             <div className="mt-2 p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
               <div className="flex justify-between">
                 <span>معادل:</span>
@@ -298,31 +388,9 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
           )}
         </div>
 
-        {/* Automatic/Manual Toggle */}
-        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-          <div>
-            <h3 className="font-medium text-slate-800">نوع معامله</h3>
-            <p className="text-sm text-slate-600">
-              {isAutomatic ? 'اتوماتیک (فوری)' : 'دستی (تایید اپراتور)'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsAutomatic(!isAutomatic)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              isAutomatic ? 'bg-gold' : 'bg-slate-300'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                isAutomatic ? 'translate-x-6' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
 
         {/* Price Calculation */}
-        {selectedProduct && selectedPrice && (weightAmount || moneyAmount) && (
+        {productType && selectedPrice && (weightAmount || moneyAmount) && (
           <div className="bg-slate-50 rounded-lg p-4 space-y-3">
             <h3 className="font-medium text-slate-800 flex items-center">
               <Calculator className="w-4 h-4 mr-2" />
@@ -381,10 +449,10 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || !selectedProduct || (!weightAmount && !moneyAmount)}
-          className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          disabled={loading || !productType || (!weightAmount && !moneyAmount) || isOrderPlaced || availableBalance <= 0}
+          className="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'در حال پردازش...' : 'ثبت سفارش فروش'}
+          {loading ? 'در حال پردازش...' : isOrderPlaced ? 'سفارش ثبت شده' : availableBalance <= 0 ? 'موجودی صفر' : 'ثبت سفارش فروش'}
         </button>
       </form>
     </div>
