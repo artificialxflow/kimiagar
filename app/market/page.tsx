@@ -106,12 +106,12 @@ export default function MarketPage() {
             <p className="text-text-600 text-lg">قیمت‌های لحظه‌ای طلا و سکه</p>
           </div>
 
-          {/* External Prices Section */}
-          <div className="bg-white rounded-2xl shadow-lg border border-border-100 p-6 hover:shadow-xl transition-all duration-300 mb-8">
+          {/* Yazdan Gold Prices Section */}
+          <div className="bg-white rounded-2xl shadow-lg border border-border-100 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-text-800 flex items-center">
                 <div className="w-2 h-8 bg-gradient-to-b from-gold-400 to-gold-600 rounded-full ml-3"></div>
-                قیمت‌های خارجی
+                قیمت‌های یزدان طلا
               </h2>
               <button
                 onClick={fetchExternalPrices}
@@ -124,13 +124,15 @@ export default function MarketPage() {
             </div>
 
             {externalPrices?.data ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Object.entries(externalPrices.data).map(([key, price]: [string, any], index: number) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Object.entries(externalPrices.data)
+                  .filter(([key]) => ['GOLD_18K', 'COIN_BAHAR_86', 'COIN_NIM_86', 'COIN_ROBE_86'].includes(key))
+                  .map(([key, price]: [string, any], index: number) => (
                   <div key={index} className="bg-gradient-to-br from-gold-50 to-gold-100 rounded-xl p-4 border border-gold-200">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-gold-800">{price.persianName || key}</h3>
+                      <h3 className="font-semibold text-gold-800">{price.persianName || getProductName(key)}</h3>
                       <div className="w-8 h-8 bg-gold-500 rounded-lg flex items-center justify-center">
-                        <span className="text-gold-50 font-bold text-xs">ط</span>
+                        <span className="text-gold-50 font-bold text-xs">ی</span>
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -159,67 +161,9 @@ export default function MarketPage() {
                   <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-lg font-medium">قیمت‌های خارجی در دسترس نیست</p>
+                  <p className="text-lg font-medium">قیمت‌های یزدان طلا در دسترس نیست</p>
                   <p className="text-sm">لطفاً دکمه بروزرسانی را کلیک کنید</p>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Internal Prices Section */}
-          <div className="bg-white rounded-2xl shadow-lg border border-border-100 p-6 hover:shadow-xl transition-all duration-300">
-            <h2 className="text-xl font-semibold text-text-800 mb-6 flex items-center">
-              <div className="w-2 h-8 bg-gradient-to-b from-gold-400 to-gold-600 rounded-full ml-3"></div>
-              قیمت‌های داخلی
-            </h2>
-
-            {error ? (
-              <div className="text-center py-8">
-                <div className="text-red-500 mb-4">
-                  <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  <p className="text-lg font-medium text-red-600">خطا در دریافت قیمت‌ها</p>
-                  <p className="text-sm text-red-500">{error}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {prices.map((price) => (
-                  <div key={price.id} className="bg-gradient-to-br from-background-50 to-background-100 rounded-2xl shadow-lg border border-border-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-text-800 text-lg">
-                        {getProductName(price.productType)}
-                      </h3>
-                      <div className="w-10 h-10 bg-gradient-to-br from-gold-400 to-gold-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <span className="text-gold-50 font-bold text-sm">ط</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
-                        <span className="text-sm text-red-700 font-medium">قیمت خرید:</span>
-                        <span className="font-bold text-red-700 text-lg">
-                          {Number(price.buyPrice).toLocaleString('fa-IR')} تومان
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                        <span className="text-sm text-green-700 font-medium">قیمت فروش:</span>
-                        <span className="font-bold text-green-700 text-lg">
-                          {Number(price.sellPrice).toLocaleString('fa-IR')} تومان
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <span className="text-sm text-blue-700 font-medium">حاشیه:</span>
-                        <span className="font-bold text-blue-700">
-                          {Number(price.sellPrice - price.buyPrice).toLocaleString('fa-IR')} تومان
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>
