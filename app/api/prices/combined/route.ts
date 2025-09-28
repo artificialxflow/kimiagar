@@ -2,11 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import { getExternalPrices, transformExternalPrices, testExternalAPIConnection } from '@/app/lib/externalPriceService';
 import { Decimal } from '@prisma/client/runtime/library';
+import { isDevelopment, mockPrices } from '@/app/lib/mockData';
 
 
 
 export async function GET() {
   try {
+    // در development mode از mock data استفاده کن
+    if (isDevelopment) {
+      return NextResponse.json({
+        success: true,
+        data: mockPrices,
+        stats: {
+          total: mockPrices.combined.length,
+          internal: mockPrices.internal.length,
+          external: Object.keys(mockPrices.external).length,
+          externalConnectionStatus: true,
+          lastUpdate: new Date().toISOString()
+        },
+        externalPricesError: null,
+        timestamp: new Date().toISOString(),
+        sources: {
+          internal: mockPrices.internal.length,
+          external: Object.keys(mockPrices.external).length
+        }
+      });
+    }
+
     // دریافت قیمت‌های داخلی
     const internalPrices = await prisma.price.findMany({
       where: { isActive: true },
