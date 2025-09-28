@@ -55,9 +55,30 @@ export default function WalletSummary({ wallets = [], transactions = [] }: Walle
           </div>
           
           {/* موجودی طلا */}
-          <div className="text-lg font-bold text-text-800 bg-gradient-to-r from-gold-600 to-gold-700 bg-clip-text text-transparent">
+          <div className="text-lg font-bold text-text-800 bg-gradient-to-r from-gold-600 to-gold-700 bg-clip-text text-transparent mb-2">
             {Number(goldWallet.balance).toFixed(2)} گرم طلا
           </div>
+
+          {/* موجودی سکه‌ها */}
+          {goldWallet.coins && (
+            <div className="space-y-1">
+              <div className="text-xs text-text-600 mb-1">موجودی سکه‌ها:</div>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="bg-gold-100 rounded px-2 py-1 text-center">
+                  <div className="font-semibold text-gold-700">{goldWallet.coins.fullCoin || 0}</div>
+                  <div className="text-gold-600">تمام</div>
+                </div>
+                <div className="bg-gold-100 rounded px-2 py-1 text-center">
+                  <div className="font-semibold text-gold-700">{goldWallet.coins.halfCoin || 0}</div>
+                  <div className="text-gold-600">نیم</div>
+                </div>
+                <div className="bg-gold-100 rounded px-2 py-1 text-center">
+                  <div className="font-semibold text-gold-700">{goldWallet.coins.quarterCoin || 0}</div>
+                  <div className="text-gold-600">ربع</div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
