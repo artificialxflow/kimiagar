@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { generateTokens } from '@/app/lib/jwt';
+import { isDevelopment, mockUser } from '@/app/lib/mockData';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +15,47 @@ export async function POST(request: NextRequest) {
         { error: 'نام کاربری و رمز عبور الزامی هستند' },
         { status: 400 }
       );
+    }
+
+    // در development mode از mock user استفاده کن
+    if (isDevelopment) {
+      // بررسی نام کاربری mock
+      if (username === mockUser.username && password === 'Ronak#123Ronak') {
+        const tokens = generateTokens({
+          userId: mockUser.id,
+          username: mockUser.username,
+          isAdmin: false
+        });
+
+        const response = NextResponse.json({
+          success: true,
+          user: mockUser,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken
+        });
+
+        // تنظیم cookies
+        response.cookies.set('accessToken', tokens.accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 15 * 60 // 15 دقیقه
+        });
+
+        response.cookies.set('refreshToken', tokens.refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 // 7 روز
+        });
+
+        return response;
+      } else {
+        return NextResponse.json(
+          { error: 'نام کاربری یا رمز عبور اشتباه است' },
+          { status: 401 }
+        );
+      }
     }
 
     // بررسی اتصال به دیتابیس
