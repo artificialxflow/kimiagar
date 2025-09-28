@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import WalletSummary from './WalletSummary';
 import PriceChart from './PriceChart';
+import CoinPriceChart from './CoinPriceChart';
 import QuickActions from './QuickActions';
 import RecentTransactions from './RecentTransactions';
 import NewsAlerts from './NewsAlerts';
@@ -131,10 +132,10 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Grid - Desktop Layout */}
+        <div className="hidden lg:grid grid-cols-3 gap-8">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="col-span-2 space-y-8">
             {/* Wallet Summary */}
             <WalletSummary 
               wallets={walletData?.wallets || []}
@@ -146,14 +147,17 @@ export default function Dashboard() {
               transactions={walletData?.recentTransactions || []}
             />
 
-            {/* Price Chart */}
-            <div className="bg-white rounded-2xl shadow-lg border border-border-100 p-6 hover:shadow-xl transition-all duration-300">
-              <h2 className="text-xl font-semibold text-text-800 mb-4 flex items-center">
-                <div className="w-2 h-8 bg-gradient-to-b from-gold-400 to-gold-600 rounded-full ml-3"></div>
-                نمودار قیمت طلا
-              </h2>
-              <PriceChart />
-            </div>
+              {/* Price Chart */}
+              <div className="bg-white rounded-2xl shadow-lg border border-border-100 p-6 hover:shadow-xl transition-all duration-300">
+                <h2 className="text-xl font-semibold text-text-800 mb-4 flex items-center">
+                  <div className="w-2 h-8 bg-gradient-to-b from-gold-400 to-gold-600 rounded-full ml-3"></div>
+                  نمودار قیمت طلا
+                </h2>
+                <PriceChart />
+              </div>
+
+              {/* Coin Price Chart */}
+              <CoinPriceChart />
           </div>
 
           {/* Right Column */}
@@ -164,6 +168,38 @@ export default function Dashboard() {
             {/* News & Alerts */}
             <NewsAlerts />
           </div>
+        </div>
+
+        {/* Mobile Layout - New Order */}
+        <div className="lg:hidden space-y-8">
+          {/* 1. Wallet Summary */}
+          <WalletSummary 
+            wallets={walletData?.wallets || []}
+            transactions={walletData?.recentTransactions || []}
+          />
+
+          {/* 2. Quick Actions */}
+          <QuickActions />
+
+          {/* 3. Recent Transactions */}
+          <RecentTransactions 
+            transactions={walletData?.recentTransactions || []}
+          />
+
+            {/* 4. Price Chart */}
+            <div className="bg-white rounded-2xl shadow-lg border border-border-100 p-6 hover:shadow-xl transition-all duration-300">
+              <h2 className="text-xl font-semibold text-text-800 mb-4 flex items-center">
+                <div className="w-2 h-8 bg-gradient-to-b from-gold-400 to-gold-600 rounded-full ml-3"></div>
+                نمودار قیمت طلا
+              </h2>
+              <PriceChart />
+            </div>
+
+            {/* 5. Coin Price Chart */}
+            <CoinPriceChart />
+
+            {/* 6. News & Alerts */}
+            <NewsAlerts />
         </div>
       </div>
     </div>
