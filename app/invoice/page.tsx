@@ -1,9 +1,21 @@
 "use client";
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Layout from '../components/Layout/Layout';
-import Invoice from '../components/Invoice/Invoice';
 import { ArrowLeft, FileText } from 'lucide-react';
+
+// Lazy load Invoice component
+const Invoice = dynamic(() => import('../components/Invoice/Invoice'), {
+  loading: () => (
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto"></div>
+        <p className="mt-4 text-slate-600">در حال بارگذاری فاکتور...</p>
+      </div>
+    </div>
+  )
+});
 
 function InvoiceContent() {
   const [user, setUser] = useState<any>(null);
