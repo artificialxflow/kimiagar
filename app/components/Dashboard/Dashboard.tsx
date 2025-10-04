@@ -1,13 +1,24 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import WalletSummary from './WalletSummary';
-import PriceChart from './PriceChart';
-import CoinPriceChart from './CoinPriceChart';
 import QuickActions from './QuickActions';
 import RecentTransactions from './RecentTransactions';
-import NewsAlerts from './NewsAlerts';
-import ExternalPricesList from './ExternalPricesList';
 import { RefreshCw } from 'lucide-react';
+
+// Lazy load heavy components
+const PriceChart = dynamic(() => import('./PriceChart'), { 
+  loading: () => <div className="animate-pulse bg-gray-200 rounded-lg h-64 flex items-center justify-center"><p className="text-gray-500">در حال بارگذاری نمودار...</p></div> 
+});
+const CoinPriceChart = dynamic(() => import('./CoinPriceChart'), { 
+  loading: () => <div className="animate-pulse bg-gray-200 rounded-lg h-64 flex items-center justify-center"><p className="text-gray-500">در حال بارگذاری نمودار سکه...</p></div> 
+});
+const NewsAlerts = dynamic(() => import('./NewsAlerts'), { 
+  loading: () => <div className="animate-pulse bg-gray-200 rounded-lg h-32 flex items-center justify-center"><p className="text-gray-500">در حال بارگذاری اخبار...</p></div> 
+});
+const ExternalPricesList = dynamic(() => import('./ExternalPricesList'), { 
+  loading: () => <div className="animate-pulse bg-gray-200 rounded-lg h-48 flex items-center justify-center"><p className="text-gray-500">در حال بارگذاری قیمت‌ها...</p></div> 
+});
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
