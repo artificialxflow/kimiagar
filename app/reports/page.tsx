@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/app/hooks/useAuth';
 import { formatNumber } from '@/app/lib/utils';
 import Layout from '@/app/components/Layout/Layout';
 
@@ -24,26 +23,60 @@ interface ReportData {
 }
 
 export default function ReportsPage() {
-  const { user, token } = useAuth();
+  const [user, setUser] = useState<any>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(false);
   const [dateRange, setDateRange] = useState('30'); // 7, 30, 90, 365
   const [reportType, setReportType] = useState('all'); // all, transactions, orders, wallet
 
   useEffect(() => {
-    if (user && token) {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
       fetchReports();
     }
-  }, [user, token, dateRange]);
+  }, [dateRange]);
 
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/reports?days=${dateRange}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // در development mode از mock data استفاده کن
+      if (process.env.NODE_ENV === 'development') {
+        const mockData = {
+          transactions: {
+            total: 25000000,
+            count: 15,
+            monthly: [
+              { month: 'آبان 1403', amount: 15000000 },
+              { month: 'آذر 1403', amount: 10000000 }
+            ]
+          },
+          orders: {
+            total: 18000000,
+            count: 12,
+            monthly: [
+              { month: 'آبان 1403', amount: 12000000 },
+              { month: 'آذر 1403', amount: 6000000 }
+            ],
+            topProducts: [
+              { product: 'طلای 18 عیار', count: 8, amount: 12000000 },
+              { product: 'سکه بهار آزادی', count: 4, amount: 6000000 }
+            ]
+          },
+          wallet: {
+            balance: 5000000,
+            monthly: [
+              { month: 'آبان 1403', balance: 3000000 },
+              { month: 'آذر 1403', balance: 5000000 }
+            ]
+          }
+        };
+        setReportData(mockData);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/reports?days=${dateRange}`);
       
       if (response.ok) {
         const data = await response.json();
