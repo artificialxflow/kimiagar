@@ -349,7 +349,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
                 placeholder={`مقدار را به ${getUnit()} وارد کنید`}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
                 required
-                min="0.01"
+                min={productType === 'GOLD_18K' ? "0.01" : "1"}
                 step={productType === 'GOLD_18K' ? "0.01" : "1"}
               />
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
@@ -469,6 +469,17 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
             </div>
           </div>
         )}
+
+        {/* Confirmation Message */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
+            <div className="text-yellow-800 text-sm">
+              <p className="font-semibold mb-1">تایید موجودی:</p>
+              <p>امکا نی لغو معامله پس از تایید وجود ندارد. لطفاً قبل از تأیید نهایی، موجودی کیف پول خود را بررسی کنید.</p>
+            </div>
+          </div>
+        </div>
 
         {/* Error Display */}
         {error && (
