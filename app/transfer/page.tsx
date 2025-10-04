@@ -107,7 +107,7 @@ export default function TransferPage() {
   };
 
   const validateForm = () => {
-    if (!transferData.fromWallet || !transferData.toPhone || !transferData.amount) {
+    if (!transferData.toPhone || !transferData.amount) {
       setError('لطفاً تمام فیلدها را پر کنید');
       return false;
     }
@@ -123,9 +123,29 @@ export default function TransferPage() {
       return false;
     }
 
-    const fromWallet = wallets.find(w => w.id === transferData.fromWallet);
+    const wallet = wallets.find(w => w.type === transferType);
+    if (!wallet) {
+      setError('کیف پول مورد نظر یافت نشد');
+      return false;
+    }
+
+    let balance = 0;
+    if (transferType === 'RIAL') {
+      balance = parseFloat(wallet.balance);
+    } else {
+      if (goldType === 'GOLD_18K') {
+        balance = parseFloat(wallet.balance);
+      } else {
+        balance = wallet.coins && (
+          (goldType === 'COIN_BAHAR_86' ? wallet.coins.fullCoin || 0 :
+           goldType === 'COIN_NIM_86' ? wallet.coins.halfCoin || 0 :
+           goldType === 'COIN_ROBE_86' ? wallet.coins.quarterCoin || 0 : 0)
+        ) || 0;
+      }
+    }
+
     const finalAmount = calculateFinalAmount();
-    if (fromWallet && finalAmount > parseFloat(fromWallet.balance)) {
+    if (finalAmount > balance) {
       setError('موجودی کافی نیست (شامل کارمزد)');
       return false;
     }
@@ -141,6 +161,8 @@ export default function TransferPage() {
     setSuccess('');
 
     try {
+      const wallet = wallets.find(w => w.type === transferType);
+      
       const response = await fetch('/api/transfer', {
         method: 'POST',
         headers: {
@@ -149,7 +171,12 @@ export default function TransferPage() {
         body: JSON.stringify({
           userId: user.id,
           recipientId: recipientInfo.id,
-          ...transferData
+          fromWallet: wallet?.id,
+          toPhone: transferData.toPhone,
+          amount: transferData.amount,
+          description: transferData.description,
+          transferType,
+          goldType: transferType === 'GOLD' ? goldType : undefined
         }),
       });
 
@@ -157,12 +184,12 @@ export default function TransferPage() {
 
       if (response.ok) {
         setSuccess('انتقال با موفقیت انجام شد');
-        setTransferData({
-          fromWallet: '',
+        setTransferData(prev => ({
+          ...prev,
           toPhone: '',
           amount: '',
           description: ''
-        });
+        }));
         setRecipientInfo(null);
         // به‌روزرسانی موجودی‌ها
         fetchWallets(user.id);
@@ -360,46 +387,50 @@ export default function TransferPage() {
                 </div>
               )}
 
-              {/* From Wallet */}
+              {/* Wallet Balance Display */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center space-x-2 space-x-reverse">
-                  <Wallet className="w-5 h-5 text-red-500" />
-                  <span>کیف پول مبدا</span>
+                  <Wallet className="w-5 h-5 text-blue-500" />
+                  <span>موجودی کیف پول</span>
                 </h3>
                 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">انتخاب کیف پول</label>
-                  <select
-                    value={transferData.fromWallet}
-                    onChange={(e) => handleInputChange('fromWallet', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">انتخاب کنید</option>
-                    {wallets
-                      .filter(wallet => wallet.type === transferType)
-                      .map((wallet) => (
-                        <option key={wallet.id} value={wallet.id}>
-                          {getWalletDisplayName(wallet)}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                {transferData.fromWallet && (
-                  <div className="p-4 bg-slate-50 rounded-lg">
-                    <p className="text-sm text-slate-600">موجودی فعلی:</p>
-                    <p className="text-lg font-semibold text-slate-800">
+                <div className="p-4 bg-slate-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      {transferType === 'RIAL' ? (
+                        <Wallet className="w-5 h-5 text-blue-600" />
+                      ) : (
+                        <Coins className="w-5 h-5 text-yellow-600" />
+                      )}
+                      <span className="font-medium text-slate-700">
+                        {transferType === 'RIAL' ? 'کیف پول ریالی' : `کیف پول طلا (${getGoldTypeName(goldType)})`}
+                      </span>
+                    </div>
+                    <span className="text-lg font-semibold text-slate-800">
                       {(() => {
-                        const wallet = wallets.find(w => w.id === transferData.fromWallet);
-                        if (wallet?.type === 'RIAL') {
+                        const wallet = wallets.find(w => w.type === transferType);
+                        if (!wallet) return '0';
+                        
+                        if (transferType === 'RIAL') {
                           return `${parseFloat(wallet.balance).toLocaleString()} تومان`;
                         } else {
-                          return `${parseFloat(wallet.balance)} گرم طلا`;
+                          // برای طلا، موجودی سکه‌ها یا گرم طلا
+                          if (goldType === 'GOLD_18K') {
+                            return `${parseFloat(wallet.balance)} گرم طلا`;
+                          } else {
+                            // برای سکه‌های مختلف
+                            const coinBalance = wallet.coins && (
+                              (goldType === 'COIN_BAHAR_86' ? wallet.coins.fullCoin || 0 :
+                               goldType === 'COIN_NIM_86' ? wallet.coins.halfCoin || 0 :
+                               goldType === 'COIN_ROBE_86' ? wallet.coins.quarterCoin || 0 : 0)
+                            );
+                            return `${coinBalance || 0} ${getGoldTypeUnit(goldType)}`;
+                          }
                         }
                       })()}
-                    </p>
+                    </span>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Recipient Search */}
@@ -531,7 +562,7 @@ export default function TransferPage() {
             <div className="mt-8 pt-6 border-t border-slate-200">
               <button
                 onClick={handleTransfer}
-                disabled={processing || !transferData.fromWallet || !recipientInfo || !transferData.amount}
+                disabled={processing || !recipientInfo || !transferData.amount || !transferData.toPhone}
                 className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 space-x-reverse"
               >
                 {processing ? (
