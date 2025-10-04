@@ -59,9 +59,9 @@ export default function SellPage() {
       case 'GOLD_18K':
         return 'طلای 18 عیار';
       case 'COIN_BAHAR':
-        return 'سکه بهار آزادی';
+        return 'طلای 18 عیار'; // تغییر: نقد خرد به طلای 18 عیار
       case 'COIN_NIM':
-        return 'نیم سکه';
+        return 'طلای 18 عیار'; // تغییر: صد تیتر به طلای 18 عیار
       case 'COIN_ROBE':
         return 'ربع سکه';
       case 'COIN_BAHAR_86':
@@ -78,8 +78,28 @@ export default function SellPage() {
   const getGoldBalance = (productType: string) => {
     if (!walletData?.wallets) return 0;
     
-    const wallet = walletData.wallets.find((w: any) => w.type === productType);
-    return Number(wallet?.balance || 0);
+    // پیدا کردن کیف پول مناسب بر اساس نوع محصول
+    let balance = 0;
+    
+    if (productType === 'GOLD_18K') {
+      // برای طلای 18 عیار، کیف پول GOLD را پیدا کن
+      const wallet = walletData.wallets.find((w: any) => w.type === 'GOLD');
+      balance = Number(wallet?.balance || 0);
+    } else if (['COIN_BAHAR_86', 'COIN_NIM_86', 'COIN_ROBE_86'].includes(productType)) {
+      // برای سکه‌ها، کیف پول GOLD و موجودی سکه‌ها را بررسی کن
+      const wallet = walletData.wallets.find((w: any) => w.type === 'GOLD');
+      if (wallet && wallet.coins) {
+        if (productType === 'COIN_BAHAR_86') {
+          balance = wallet.coins.fullCoin || 0;
+        } else if (productType === 'COIN_NIM_86') {
+          balance = wallet.coins.halfCoin || 0;
+        } else if (productType === 'COIN_ROBE_86') {
+          balance = wallet.coins.quarterCoin || 0;
+        }
+      }
+    }
+    
+    return balance;
   };
 
   const handleSellClick = (price: any) => {
@@ -197,7 +217,7 @@ export default function SellPage() {
                         <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
                           <span className="text-sm text-blue-700 font-medium">موجودی شما:</span>
                           <span className="font-bold text-blue-700">
-                            {balance.toLocaleString('fa-IR')} گرم
+                            {balance.toLocaleString('fa-IR')} {price.productType === 'GOLD_18K' ? 'گرم' : 'عدد'}
                           </span>
                         </div>
                         
