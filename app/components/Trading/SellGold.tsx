@@ -50,7 +50,30 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
       const data = await response.json();
 
       if (response.ok) {
-        const wallet = data.wallets.find((w: any) => w.type === productType);
+        // پیدا کردن کیف پول مناسب بر اساس نوع producto
+        let wallet = null;
+        
+        if (productType === 'GOLD_18K') {
+          // برای طلای 18 عیار، کیف پول GOLD را پیدا کن
+          wallet = data.wallets.find((w: any) => w.type === 'GOLD');
+        } else if (['COIN_BAHAR_86', 'COIN_NIM_86', 'COIN_ROBE_86'].includes(productType)) {
+          // برای سکه‌ها، کوال پول GOLD و موجودی سکه‌ها را بررسی کن
+          wallet = data.wallets.find((w: any) => w.type === 'GOLD');
+          if (wallet && wallet.coins) {
+            // موجودی سکه‌ها را محاسبه کن
+            let coinBalance = 0;
+            if (productType === 'COIN_BAHAR_86') {
+              coinBalance = wallet.coins.fullCoin || 0;
+            } else if (productType === 'COIN_NIM_86') {
+              coinBalance = wallet.coins.halfCoin || 0;
+            } else if (productType === 'COIN_ROBE_86') {
+              coinBalance = wallet.coins.quarterCoin || 0;
+            }
+            setAvailableBalance(coinBalance);
+            return;
+          }
+        }
+        
         setAvailableBalance(Number(wallet?.balance || 0));
       }
     } catch (error) {
@@ -347,7 +370,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
                 placeholder={`مقدار را به ${getUnit()} وارد کنید`}
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
                 required
-                min="0.01"
+                min={productType === 'GOLD_18K' ? "0.01" : "1"}
                 step={productType === 'GOLD_18K' ? "0.01" : "1"}
               />
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
@@ -437,6 +460,17 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
             </div>
           </div>
         )}
+
+        {/* Confirmation Message */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
+            <div className="text-yellow-800 text-sm">
+              <p className="font-semibold mb-1">تایید موجودی:</p>
+              <p>امکا نی لغو معامله پس از تایید وجود ندارد. لطفاً قبل از تأیید نهایی، موجودی طلا و سکه خود را بررسی کنید.</p>
+            </div>
+          </div>
+        </div>
 
         {/* Error Display */}
         {error && (
