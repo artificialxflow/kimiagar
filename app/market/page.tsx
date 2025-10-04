@@ -63,9 +63,9 @@ export default function MarketPage() {
       case 'GOLD_18K':
         return 'طلای 18 عیار';
       case 'COIN_BAHAR':
-        return 'سکه بهار آزادی';
+        return 'طلای 18 عیار'; // تغییر: نقد خرد به طلای 18 عیار
       case 'COIN_NIM':
-        return 'نیم سکه';
+        return 'طلای 18 عیار'; // تغییر: صد تیتر به طلای 18 عیار
       case 'COIN_ROBE':
         return 'ربع سکه';
       case 'COIN_BAHAR_86':
