@@ -5,6 +5,41 @@ import { verifyToken } from '@/app/lib/jwt';
 // تولید گزارش‌های مالی
 export async function GET(request: NextRequest) {
   try {
+    // در development mode از mock data استفاده کن
+    if (process.env.NODE_ENV === 'development') {
+      const mockReportData = {
+        transactions: {
+          total: 25000000,
+          count: 15,
+          monthly: [
+            { month: 'آبان 1403', amount: 15000000 },
+            { month: 'آذر 1403', amount: 10000000 }
+          ]
+        },
+        orders: {
+          total: 18000000,
+          count: 12,
+          monthly: [
+            { month: 'آبان 1403', amount: 12000000 },
+            { month: 'آذر 1403', amount: 6000000 }
+          ],
+          topProducts: [
+            { product: 'طلای 18 عیار', count: 8, amount: 12000000 },
+            { product: 'سکه بهار آزادی', count: 4, amount: 6000000 }
+          ]
+        },
+        wallet: {
+          balance: 5000000,
+          monthly: [
+            { month: 'آبان 1403', balance: 3000000 },
+            { month: 'آذر 1403', balance: 5000000 }
+          ]
+        }
+      };
+
+      return NextResponse.json(mockReportData);
+    }
+
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) {
       return NextResponse.json({ error: 'توکن احراز هویت یافت نشد' }, { status: 401 });
