@@ -87,19 +87,19 @@ export const mockUser = {
 };
 
 export const mockWallets = [
-  {
-    id: 'mock_wallet_1',
-    type: 'GOLD',
-    balance: 0.00,
-    currency: 'IRR',
-    createdAt: new Date(),
-    // اضافه کردن موجودی سکه‌ها
-    coins: {
-      fullCoin: 0,      // سکه تمام
-      halfCoin: 0,     // نیم سکه
-      quarterCoin: 0    // ربع سکه
-    }
-  },
+       {
+         id: 'mock_wallet_1',
+         type: 'GOLD',
+         balance: 0,       // موجودی پیش‌فرض طلا
+         currency: 'IRR',
+         createdAt: new Date(),
+         // اضافه کردن موجودی سکه‌ها
+         coins: {
+           fullCoin: 0,     // موجودی پیش‌فرض سکه تمام
+           halfCoin: 0,     // موجودی پیش‌فرض نیم سکه  
+           quarterCoin: 0   // موجودی پیش‌فرض ربع سکه
+         }
+       },
   {
     id: 'mock_wallet_2',
     type: 'RIAL',
@@ -115,6 +115,30 @@ export const mockTransactions = [
     type: 'DEPOSIT',
     amount: 1000000,
     description: 'واریز اولیه',
+    status: 'COMPLETED',
+    createdAt: new Date()
+  },
+  {
+    id: 'mock_transaction_2',
+    type: 'BUY',
+    productType: 'GOLD_18K',
+    amount: 2.5,
+    price: 2500000,
+    total: 6250000,
+    commission: 62500,
+    finalTotal: 6312500,
+    status: 'COMPLETED',
+    createdAt: new Date()
+  },
+  {
+    id: 'mock_transaction_3',
+    type: 'SELL',
+    productType: 'COIN_BAHAR_86',
+    amount: 1,
+    price: 30000000,
+    total: 30000000,
+    commission: 150000,
+    finalTotal: 29850000,
     status: 'COMPLETED',
     createdAt: new Date()
   }
