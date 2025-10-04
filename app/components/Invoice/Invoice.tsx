@@ -58,34 +58,7 @@ export default function Invoice({ transaction, user }: InvoiceProps) {
     setIsGenerating(true);
     
     try {
-      // روش جدید: استفاده از html2canvas برای کیفیت بهتر
-      if (invoiceRef.current) {
-        const canvas = await html2canvas(invoiceRef.current, { 
-          scale: 4, // کیفیت بالا
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          logging: false
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-        const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-        const imgX = (pdfWidth - imgWidth * ratio) / 2;
-        const imgY = 30;
-        
-        pdf.addImage(imgData, 'PNG', imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-        pdf.save(`invoice-${transaction.id}.pdf`);
-        setIsGenerating(false);
-        return;
-      }
-      
-      // روش قدیمی (fallback)
+      // استفاده از روش ساده‌تر برای حجم کمتر
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       
