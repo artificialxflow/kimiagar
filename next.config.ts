@@ -16,6 +16,32 @@ const nextConfig: NextConfig = {
     if (isServer) {
       config.externals.push('@prisma/client');
     }
+    
+    // کاهش حجم bundle با tree shaking بهتر
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+          pdf: {
+            test: /[\\/]node_modules[\\/](jspdf|html2canvas)[\\/]/,
+            name: 'pdf-lib',
+            chunks: 'all',
+          },
+          charts: {
+            test: /[\\/]components[\\/]Dashboard[\\/](PriceChart|CoinPriceChart)[\\/]/,
+            name: 'charts',
+            chunks: 'async',
+          },
+        },
+      },
+    };
+    
     return config;
   },
   // Force production optimizations
@@ -23,6 +49,10 @@ const nextConfig: NextConfig = {
   generateEtags: false,
   poweredByHeader: false,
   trailingSlash: false,
+  // کاهش حجم تصاویر
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'jspdf', 'html2canvas'],
+  },
 };
 
 export default nextConfig;
