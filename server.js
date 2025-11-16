@@ -55,27 +55,60 @@ app.prepare().then(async () => {
   })(); // اجرای async بدون await - non-blocking
   
   const server = createServer(async (req, res) => {
+    let parsedUrl = null;
+    const startTime = Date.now();
+    
     try {
-      const parsedUrl = parse(req.url, true);
+      // Log incoming request for debugging
+      console.log(`📥 [Server] ${req.method} ${req.url || '(no url)'} - ${req.headers['user-agent'] || 'unknown'}`);
+      
+      // Validate req.url before parsing
+      if (!req.url) {
+        console.error('❌ [Server] Request URL is missing');
+        if (!res.headersSent) {
+          res.statusCode = 400;
+          res.end('Bad Request: Missing URL');
+        }
+        return;
+      }
+
+      parsedUrl = parse(req.url, true);
       const { pathname } = parsedUrl;
 
       // Health check endpoint - redirect to Next.js API route for detailed checks
       // The /api/health route has full database and migration checks
       if (pathname === '/health') {
+        console.log('🔍 [Server] Health check requested, redirecting to /api/health');
         // Let Next.js handle it through /api/health for detailed checks
         const healthUrl = parse('/api/health', true);
         await handle(req, res, healthUrl);
+        const duration = Date.now() - startTime;
+        console.log(`✅ [Server] Health check completed in ${duration}ms`);
         return;
       }
 
+      // Handle all other requests through Next.js
       await handle(req, res, parsedUrl);
+      const duration = Date.now() - startTime;
+      console.log(`✅ [Server] ${req.method} ${pathname} completed in ${duration}ms`);
+      
     } catch (err) {
-      console.error('❌ [Server] Error handling request:', err);
-      console.error('❌ [Server] Request path:', parsedUrl.pathname);
-      console.error('❌ [Server] Error message:', err?.message);
-      console.error('❌ [Server] Error stack:', err?.stack);
+      const duration = Date.now() - startTime;
+      console.error('❌ [Server] ========== Error handling request ==========');
+      console.error('❌ [Server] Request method:', req.method);
+      console.error('❌ [Server] Request URL:', req.url);
+      console.error('❌ [Server] Request path:', parsedUrl?.pathname || 'N/A');
+      console.error('❌ [Server] Error type:', err?.constructor?.name || 'Unknown');
+      console.error('❌ [Server] Error message:', err?.message || 'No message');
+      console.error('❌ [Server] Error code:', err?.code || 'No code');
+      console.error('❌ [Server] Error stack:', err?.stack || 'No stack');
+      console.error('❌ [Server] Duration before error:', `${duration}ms`);
+      console.error('❌ [Server] Headers sent:', res.headersSent);
+      console.error('❌ [Server] ===========================================');
+      
       if (!res.headersSent) {
         res.statusCode = 500;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.end('Internal server error');
       }
     }
@@ -85,6 +118,30 @@ app.prepare().then(async () => {
     console.log(`✅ Server ready on http://${hostname}:${port}`);
     console.log(`🔗 Health check: http://${hostname}:${port}/health`);
     console.log(`📊 Process ID: ${process.pid}`);
+    console.log(`⏰ Server started at: ${new Date().toISOString()}`);
+  });
+
+  // Handle server errors
+  server.on('error', (err) => {
+    console.error('❌ [Server] Server error:', err);
+    console.error('❌ [Server] Error code:', err.code);
+    console.error('❌ [Server] Error message:', err.message);
+    
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ [Server] Port ${port} is already in use!`);
+      console.error('❌ [Server] Please check if another process is using this port');
+    } else if (err.code === 'EACCES') {
+      console.error(`❌ [Server] Permission denied to bind to port ${port}`);
+      console.error('❌ [Server] Try using a port above 1024 or run with sudo');
+    }
+    
+    process.exit(1);
+  });
+
+  // Handle client connection errors
+  server.on('clientError', (err, socket) => {
+    console.error('❌ [Server] Client error:', err.message);
+    socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
   });
 }).catch((err) => {
   console.error('Failed to prepare Next.js app:', err);
