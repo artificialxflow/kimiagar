@@ -26,30 +26,54 @@ const app = next({
 
 const handle = app.getRequestHandler();
 
-app.prepare().then(() => {
+app.prepare().then(async () => {
   console.log('✅ Next.js app prepared successfully in PRODUCTION mode');
+  
+  // بررسی اتصال به دیتابیس (به صورت non-blocking)
+  // Prisma خودش در app/lib/prisma.ts connect می‌کند، پس فقط اطلاعات را نمایش می‌دهیم
+  (async () => {
+    console.log('🔍 بررسی اتصال به دیتابیس...');
+    
+    // چک کردن DATABASE_URL
+    if (process.env.DATABASE_URL) {
+      const dbUrl = process.env.DATABASE_URL;
+      // فقط نمایش host و database name (نه password)
+      const urlMatch = dbUrl.match(/postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)/);
+      if (urlMatch) {
+        console.log(`🔗 دیتابیس: ${urlMatch[5]}@${urlMatch[3]}:${urlMatch[4]}`);
+      } else {
+        console.log('🔗 DATABASE_URL تعریف شده است');
+      }
+    } else {
+      console.error('❌ DATABASE_URL تعریف نشده است!');
+    }
+    
+    // Prisma خودش در app/lib/prisma.ts connect می‌کند
+    // لاگ‌های اتصال از آنجا نمایش داده می‌شوند
+    console.log('💡 Prisma Client به صورت خودکار به دیتابیس متصل می‌شود');
+    console.log('💡 برای بررسی دقیق وضعیت از /api/health استفاده کنید');
+  })(); // اجرای async بدون await - non-blocking
   
   const server = createServer(async (req, res) => {
     try {
       const parsedUrl = parse(req.url, true);
       const { pathname } = parsedUrl;
 
-      // Health check endpoint
+      // Health check endpoint - redirect to Next.js API route for detailed checks
+      // The /api/health route has full database and migration checks
       if (pathname === '/health') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
-          status: 'ok', 
-          timestamp: new Date().toISOString(),
-          port: port,
-          environment: process.env.NODE_ENV,
-          mode: 'production'
-        }));
+        // Let Next.js handle it through /api/health for detailed checks
+        const healthUrl = parse('/api/health', true);
+        await handle(req, res, healthUrl);
         return;
       }
 
       await handle(req, res, parsedUrl);
     } catch (err) {
-      console.error('Error handling request:', err);
+      console.error('❌ [Server] Error handling request:', err);
+      console.error('❌ [Server] Request path:', parsedUrl.pathname);
+      console.error('❌ [Server] Error message:', err?.message);
+      console.error('❌ [Server] Error stack:', err?.stack);
       if (!res.headersSent) {
         res.statusCode = 500;
         res.end('Internal server error');
@@ -70,9 +94,26 @@ app.prepare().then(() => {
 
 // Handle errors gracefully
 process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
+  console.error('❌ Uncaught Exception:', err);
+  console.error('📋 Stack:', err.stack);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle SIGTERM gracefully
+process.on('SIGTERM', () => {
+  console.log('⚠️ SIGTERM received - shutting down gracefully...');
+  console.log('📊 Process ID:', process.pid);
+  console.log('⏰ Time:', new Date().toISOString());
+  // Give time for logs to flush
+  setTimeout(() => {
+    process.exit(0);
+  }, 1000);
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️ SIGINT received - shutting down gracefully...');
+  process.exit(0);
 });
