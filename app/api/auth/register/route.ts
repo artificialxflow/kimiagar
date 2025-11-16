@@ -223,59 +223,85 @@ export async function POST(request: NextRequest) {
       emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 دقیقه
     }
 
-    // ایجاد کاربر جدید
+    // ایجاد کاربر جدید با transaction برای اطمینان از atomicity
     console.error('📝 [Register] در حال ایجاد کاربر جدید در دیتابیس...');
-    const user = await prisma.user.create({
-      data: {
-        username,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        email,
-        phoneNumber,
-        nationalId,
-        bankAccount,
-        postalCode,
-        isVerified: false, // نیاز به تایید موبایل
-        isEmailVerified: false, // نیاز به تایید ایمیل
-        emailVerificationCode,
-        emailVerificationExpires
-      }
-    });
-
-    // ایجاد کیف پول‌های پیش‌فرض
-    console.error('📝 [Register] در حال ایجاد کیف پول‌های پیش‌فرض...');
-    await prisma.wallet.createMany({
-      data: [
-        {
-          userId: user.id,
-          type: 'RIAL',
-          balance: 0,
-          currency: 'IRR',
-          isActive: true
-        },
-        {
-          userId: user.id,
-          type: 'GOLD',
-          balance: 0,
-          currency: 'GOLD',
-          isActive: true
+    console.error('📋 [Register] داده‌های کاربر:', JSON.stringify({
+      username,
+      firstName,
+      lastName,
+      phoneNumber,
+      nationalId,
+      email: email ? '✓' : '✗',
+      hasPassword: !!hashedPassword
+    }));
+    
+    const result = await prisma.$transaction(async (tx) => {
+      // ایجاد کاربر
+      console.error('📝 [Register] Step 1: ایجاد کاربر...');
+      const user = await tx.user.create({
+        data: {
+          username,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          email,
+          phoneNumber,
+          nationalId,
+          bankAccount,
+          postalCode,
+          isVerified: false, // نیاز به تایید موبایل
+          isEmailVerified: false, // نیاز به تایید ایمیل
+          emailVerificationCode,
+          emailVerificationExpires
         }
-      ]
+      });
+      console.error('✅ [Register] کاربر ایجاد شد با ID:', user.id);
+      console.error('📋 [Register] walletAddress ایجاد شده:', user.walletAddress);
+
+      // ایجاد کیف پول‌های پیش‌فرض
+      console.error('📝 [Register] Step 2: ایجاد کیف پول‌های پیش‌فرض...');
+      const wallets = await Promise.all([
+        tx.wallet.create({
+          data: {
+            userId: user.id,
+            type: 'RIAL',
+            balance: 0,
+            currency: 'IRR',
+            isActive: true
+          }
+        }),
+        tx.wallet.create({
+          data: {
+            userId: user.id,
+            type: 'GOLD',
+            balance: 0,
+            currency: 'GOLD',
+            isActive: true
+          }
+        })
+      ]);
+      console.error('✅ [Register] کیف پول‌ها ایجاد شدند:', wallets.length);
+
+      // ایجاد تنظیمات کاربر
+      console.error('📝 [Register] Step 3: ایجاد تنظیمات کاربر...');
+      const userSetting = await tx.userSetting.create({
+        data: {
+          userId: user.id,
+          smsEnabled: true,
+          emailEnabled: true,
+          pushEnabled: true,
+          language: 'fa',
+          timezone: 'Asia/Tehran'
+        }
+      });
+      console.error('✅ [Register] تنظیمات کاربر ایجاد شد');
+
+      return { user, wallets, userSetting };
+    }, {
+      timeout: 10000, // 10 second timeout
     });
 
-    // ایجاد تنظیمات کاربر
-    console.error('📝 [Register] در حال ایجاد تنظیمات کاربر...');
-    await prisma.userSetting.create({
-      data: {
-        userId: user.id,
-        smsEnabled: true,
-        emailEnabled: true,
-        pushEnabled: true,
-        language: 'fa',
-        timezone: 'Asia/Tehran'
-      }
-    });
+    const user = result.user;
 
     // TODO: ارسال کد تایید ایمیل
     if (email && emailVerificationCode) {
@@ -343,7 +369,29 @@ export async function POST(request: NextRequest) {
     console.error('📋 [Register] پیام خطا:', error?.message || 'بدون پیام');
     console.error('📋 [Register] کد خطا:', error?.code || 'بدون کد');
     console.error('📋 [Register] Stack:', error?.stack || 'بدون stack');
-    console.error('📋 [Register] Error Object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    
+    // لاگ کردن جزئیات بیشتر برای Prisma errors
+    if (error?.meta) {
+      console.error('📋 [Register] Prisma Meta:', JSON.stringify(error.meta, null, 2));
+    }
+    if (error?.cause) {
+      console.error('📋 [Register] Error Cause:', error.cause);
+    }
+    
+    // لاگ کردن تمام properties خطا
+    try {
+      const errorDetails: any = {};
+      Object.getOwnPropertyNames(error).forEach(key => {
+        try {
+          errorDetails[key] = error[key];
+        } catch (e) {
+          errorDetails[key] = '[Cannot serialize]';
+        }
+      });
+      console.error('📋 [Register] Error Object:', JSON.stringify(errorDetails, null, 2));
+    } catch (serializeError) {
+      console.error('📋 [Register] نتوانست Error Object را serialize کند');
+    }
     
     // چک کردن نوع خطاهای Prisma
     if (error?.code === 'P2002') {
