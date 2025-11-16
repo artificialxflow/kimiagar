@@ -4,8 +4,24 @@ import bcrypt from 'bcryptjs';
 import { generateTokens } from '@/app/lib/jwt';
 
 export async function POST(request: NextRequest) {
+  // لاگ‌های اولیه - باید همیشه نمایش داده شوند
+  console.error('📝 [Register] ========== شروع ثبت‌نام ==========');
+  console.error('📝 [Register] درخواست ثبت‌نام دریافت شد');
+  console.error('📝 [Register] Time:', new Date().toISOString());
+  const startTime = Date.now();
+  
   try {
+    console.error('📝 [Register] در حال خواندن body...');
     const body = await request.json();
+    console.error('📝 [Register] Body خوانده شد');
+    console.error('📋 [Register] Body دریافت شد:', JSON.stringify({
+      username: body.username ? '✓' : '✗',
+      phoneNumber: body.phoneNumber ? '✓' : '✗',
+      nationalId: body.nationalId ? '✓' : '✗',
+      firstName: body.firstName ? '✓' : '✗',
+      lastName: body.lastName ? '✓' : '✗',
+      email: body.email ? '✓' : '✗'
+    }));
     const { 
       username, 
       password, 
@@ -138,9 +154,11 @@ export async function POST(request: NextRequest) {
     }
 
     // بررسی وجود کاربر
+    console.error('📝 [Register] در حال بررسی وجود کاربر...');
     const existingUser = await prisma.user.findUnique({
       where: { username }
     });
+    console.error('📝 [Register] بررسی کاربر انجام شد:', existingUser ? 'کاربر موجود است' : 'کاربر جدید');
 
     if (existingUser) {
       return NextResponse.json(
@@ -192,7 +210,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash کردن رمز عبور
+    console.error('📝 [Register] در حال hash کردن رمز عبور...');
     const hashedPassword = await bcrypt.hash(password, 12);
+    console.error('📝 [Register] رمز عبور hash شد');
 
     // تولید کد تایید ایمیل (اگر ایمیل ارائه شده)
     let emailVerificationCode = null;
@@ -204,6 +224,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ایجاد کاربر جدید
+    console.error('📝 [Register] در حال ایجاد کاربر جدید در دیتابیس...');
     const user = await prisma.user.create({
       data: {
         username,
@@ -223,6 +244,7 @@ export async function POST(request: NextRequest) {
     });
 
     // ایجاد کیف پول‌های پیش‌فرض
+    console.error('📝 [Register] در حال ایجاد کیف پول‌های پیش‌فرض...');
     await prisma.wallet.createMany({
       data: [
         {
@@ -243,6 +265,7 @@ export async function POST(request: NextRequest) {
     });
 
     // ایجاد تنظیمات کاربر
+    console.error('📝 [Register] در حال ایجاد تنظیمات کاربر...');
     await prisma.userSetting.create({
       data: {
         userId: user.id,
@@ -263,6 +286,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ایجاد JWT tokens
+    console.error('📝 [Register] در حال ایجاد JWT tokens...');
     const tokens = generateTokens({
       userId: user.id,
       username: user.username,
@@ -308,12 +332,70 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60 // 7 روز
     });
 
+    console.error('✅ [Register] ========== ثبت‌نام موفق ==========');
     return response;
 
-  } catch (error) {
-    console.error('خطا در ثبت‌نام:', error);
+  } catch (error: any) {
+    // استفاده از console.error برای اطمینان از نمایش در stderr
+    console.error('❌ [Register] ========== خطا در ثبت‌نام ==========');
+    console.error('❌ [Register] خطا در ثبت‌نام:', error);
+    console.error('📋 [Register] نوع خطا:', error?.constructor?.name || 'Unknown');
+    console.error('📋 [Register] پیام خطا:', error?.message || 'بدون پیام');
+    console.error('📋 [Register] کد خطا:', error?.code || 'بدون کد');
+    console.error('📋 [Register] Stack:', error?.stack || 'بدون stack');
+    console.error('📋 [Register] Error Object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    
+    // چک کردن نوع خطاهای Prisma
+    if (error?.code === 'P2002') {
+      const target = error?.meta?.target || [];
+      console.error('⚠️ خطای تکراری: فیلد تکراری در دیتابیس');
+      console.error('📋 فیلد(های) تکراری:', target.join(', '));
+      return NextResponse.json(
+        { 
+          error: `این ${target.join(' یا ')} قبلاً استفاده شده است`,
+          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        },
+        { status: 400 }
+      );
+    } else if (error?.code === 'P1001') {
+      console.error('⚠️ خطای اتصال: نمی‌تواند به دیتابیس متصل شود');
+      return NextResponse.json(
+        { 
+          error: 'خطا در اتصال به دیتابیس',
+          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        },
+        { status: 503 }
+      );
+    } else if (error?.code === 'P1003') {
+      console.error('⚠️ خطای دیتابیس: دیتابیس وجود ندارد');
+      return NextResponse.json(
+        { 
+          error: 'خطا در دسترسی به دیتابیس',
+          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        },
+        { status: 503 }
+      );
+    } else if (error?.code === 'P2003') {
+      console.error('⚠️ خطای Foreign Key: رکورد مرتبط وجود ندارد');
+      return NextResponse.json(
+        { 
+          error: 'خطا در ایجاد رکورد مرتبط',
+          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        },
+        { status: 400 }
+      );
+    }
+    
+    // لاگ کردن stack trace در development
+    if (process.env.NODE_ENV === 'development' && error?.stack) {
+      console.error('📋 Stack Trace:', error.stack);
+    }
+    
     return NextResponse.json(
-      { error: 'خطا در ثبت‌نام کاربر' },
+      { 
+        error: 'خطا در ثبت‌نام کاربر',
+        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      },
       { status: 500 }
     );
   }
