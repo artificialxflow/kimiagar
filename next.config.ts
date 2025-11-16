@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  // output: 'standalone', // غیرفعال شده چون از server.js استفاده می‌کنیم
   serverExternalPackages: ['@prisma/client'],
   images: {
     domains: ['localhost', 'kimiagar-node.liara.run'],
