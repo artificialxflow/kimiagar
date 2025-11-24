@@ -43,36 +43,23 @@ function InvoiceContent() {
 
   const fetchTransaction = async (id: string) => {
     try {
-      // در development mode از mock data استفاده کن
-      if (process.env.NODE_ENV === 'development') {
-        // شبیه‌سازی داده معامله
-        const mockTransaction = {
-          id: id,
-          type: 'BUY',
-          productType: 'GOLD_18K',
-          amount: 2.5,
-          price: 2500000,
-          total: 6250000,
-          commission: 62500,
-          finalTotal: 6312500,
-          createdAt: new Date(),
-          status: 'COMPLETED'
-        };
-        setTransaction(mockTransaction);
-        setLoading(false);
-        return;
-      }
-
-      // در production mode از API استفاده کن
+      console.log('📝 [Invoice] در حال دریافت معامله:', id);
+      
+      // استفاده از API برای دریافت معامله
       const response = await fetch(`/api/transactions/${id}`);
       const data = await response.json();
 
-      if (response.ok) {
+      console.log('📝 [Invoice] پاسخ API:', { ok: response.ok, data });
+
+      if (response.ok && data.success && data.transaction) {
         setTransaction(data.transaction);
       } else {
-        setError(data.error || 'خطا در دریافت اطلاعات معامله');
+        const errorMessage = data.error || 'خطا در دریافت اطلاعات معامله';
+        console.error('❌ [Invoice] خطا:', errorMessage);
+        setError(errorMessage);
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ [Invoice] خطا در اتصال:', error);
       setError('خطا در اتصال به سرور');
     } finally {
       setLoading(false);
