@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ایجاد سفارش
+    // ایجاد سفارش - همیشه با status PENDING (ادمین باید تایید کند)
     const order = await prisma.order.create({
       data: {
         userId,
@@ -69,72 +69,13 @@ export async function POST(request: NextRequest) {
         totalPrice,
         commission,
         commissionRate: commissionRateValue,
-        status: isAutomatic ? 'COMPLETED' : 'PENDING',
-        isAutomatic
+        status: 'PENDING', // همیشه PENDING - ادمین باید تایید کند
+        isAutomatic: false // غیرفعال کردن حالت اتوماتیک
       }
     });
 
-    if (isAutomatic) {
-      // اگر اتوماتیک است، تراکنش‌ها را انجام بده
-      await prisma.$transaction(async (tx: any) => {
-        // کسر از کیف پول طلایی
-        await tx.wallet.update({
-          where: { id: goldWallet.id },
-          data: {
-            balance: {
-              decrement: amount
-            }
-          }
-        });
-
-        // اضافه کردن به کیف پول ریالی
-        const rialWallet = await tx.wallet.findFirst({
-          where: {
-            userId,
-            type: 'RIAL'
-          }
-        });
-
-        if (rialWallet) {
-          await tx.wallet.update({
-            where: { id: rialWallet.id },
-            data: {
-              balance: {
-                increment: finalPrice
-              }
-            }
-          });
-        }
-
-        // ثبت تراکنش کسر از کیف پول طلایی
-        await tx.transaction.create({
-          data: {
-            userId,
-            walletId: goldWallet.id,
-            type: 'WITHDRAW',
-            amount,
-            description: `فروش ${amount} ${productType === 'GOLD_18K' ? 'گرم' : 'عدد'} ${productType}`,
-            status: 'COMPLETED',
-            referenceId: order.id
-          }
-        });
-
-        // ثبت تراکنش اضافه به کیف پول ریالی
-        if (rialWallet) {
-          await tx.transaction.create({
-            data: {
-              userId,
-              walletId: rialWallet.id,
-              type: 'DEPOSIT',
-              amount: finalPrice,
-              description: `فروش ${amount} ${productType === 'GOLD_18K' ? 'گرم' : 'عدد'} ${productType}`,
-              status: 'COMPLETED',
-              referenceId: order.id
-            }
-          });
-        }
-      });
-    }
+    // حذف منطق اتوماتیک - ادمین باید تایید کند
+    // تراکنش‌ها فقط زمانی انجام می‌شوند که ادمین سفارش را به COMPLETED تغییر دهد
 
     return NextResponse.json({
       success: true,
@@ -146,7 +87,6 @@ export async function POST(request: NextRequest) {
         commission: order.commission,
         finalPrice,
         status: order.status,
-        isAutomatic: order.isAutomatic,
         createdAt: order.createdAt
       }
     });
