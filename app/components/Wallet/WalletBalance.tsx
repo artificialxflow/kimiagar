@@ -1,133 +1,249 @@
-import React from 'react';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Eye } from 'lucide-react';
+"use client";
+import React, { useState, useEffect } from 'react';
+import { ArrowUpRight, ArrowDownRight, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const WalletBalance: React.FC = () => {
+  const [wallets, setWallets] = useState<any[]>([]);
+  const [statistics, setStatistics] = useState<any>(null);
+  const [coins, setCoins] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [balanceVisible, setBalanceVisible] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchWalletData();
+  }, []);
+
+  const fetchWalletData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        router.push('/login');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      const response = await fetch(`/api/wallet/balance?userId=${user.id}`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setWallets(data.wallets || []);
+        setStatistics(data.statistics || {});
+        setCoins(data.coins || { fullCoin: 0, halfCoin: 0, quarterCoin: 0, total: 0 });
+      } else {
+        setError(data.error || 'خطا در دریافت اطلاعات کیف پول');
+      }
+    } catch (error: any) {
+      console.error('خطا در دریافت موجودی:', error);
+      setError('خطا در اتصال به سرور');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const rialWallet = wallets.find(w => w.type === 'RIAL') || { balance: 0 };
+  const goldWallet = wallets.find(w => w.type === 'GOLD') || { balance: 0 };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('fa-IR').format(value);
+  };
+
+  const formatGold = (value: number) => {
+    return new Intl.NumberFormat('fa-IR', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 3
+    }).format(value);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-gold-600 mx-auto mb-4" />
+          <p className="text-text-600">در حال بارگذاری موجودی...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={fetchWalletData}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+        >
+          تلاش مجدد
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Riyal Wallet */}
-        <div className="bg-gradient-to-br from-background-100 to-background-200 rounded-xl p-6 border border-border-100">
+        <div className="bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 rounded-2xl p-6 border-2 border-blue-300 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3 space-x-reverse">
-              <div className="w-12 h-12 bg-status-info rounded-xl flex items-center justify-center">
-                <span className="text-text-50 font-bold text-lg">ر</span>
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-xl">ر</span>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-text-800">کیف پول ریالی</h3>
-                <p className="text-sm text-text-600">IRR</p>
+                <h3 className="text-lg font-bold text-slate-800">کیف پول ریالی</h3>
+                <p className="text-xs text-slate-600 font-medium">IRR</p>
               </div>
             </div>
-            <button className="p-2 hover:bg-status-info/20 rounded-lg transition-colors">
-              <Eye className="w-5 h-5 text-status-info" />
+            <button
+              onClick={() => setBalanceVisible(!balanceVisible)}
+              className="p-2 hover:bg-blue-200/50 rounded-lg transition-colors"
+              title={balanceVisible ? 'مخفی کردن موجودی' : 'نمایش موجودی'}
+            >
+              {balanceVisible ? (
+                <Eye className="w-5 h-5 text-blue-700" />
+              ) : (
+                <EyeOff className="w-5 h-5 text-blue-700" />
+              )}
             </button>
           </div>
           <div className="space-y-2">
-            <div className="text-3xl font-bold text-text-800">45,250,000</div>
-            <div className="text-sm text-text-600">تومان</div>
-          </div>
-          <div className="flex items-center space-x-2 space-x-reverse mt-4">
-            <div className="flex items-center space-x-1 space-x-reverse text-status-success">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-sm">+2.5%</span>
+            <div className="text-3xl font-bold text-slate-800">
+              {balanceVisible ? formatCurrency(Number(rialWallet.balance)) : '••••••••'}
             </div>
-            <span className="text-sm text-text-500">نسبت به ماه گذشته</span>
+            <div className="text-sm text-slate-600 font-medium">تومان</div>
           </div>
         </div>
 
         {/* Gold Wallet */}
-        <div className="bg-gradient-to-br from-gold-50 to-gold-100 rounded-xl p-6 border border-gold-200">
+        <div className="bg-gradient-to-br from-gold-50 via-gold-100 to-gold-200 rounded-2xl p-6 border-2 border-gold-300 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3 space-x-reverse">
-              <div className="w-12 h-12 bg-gold-500 rounded-xl flex items-center justify-center">
-                <span className="text-text-50 font-bold text-lg">ط</span>
+              <div className="w-14 h-14 bg-gradient-to-br from-gold-500 to-gold-600 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-xl">ط</span>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-text-800">کیف پول طلا</h3>
-                <p className="text-sm text-text-600">GOLD</p>
+                <h3 className="text-lg font-bold text-slate-800">کیف پول طلا</h3>
+                <p className="text-xs text-slate-600 font-medium">GOLD</p>
               </div>
             </div>
-            <button className="p-2 hover:bg-gold-200 rounded-lg transition-colors">
-              <Eye className="w-5 h-5 text-gold-600" />
+            <button
+              onClick={() => setBalanceVisible(!balanceVisible)}
+              className="p-2 hover:bg-gold-200/50 rounded-lg transition-colors"
+              title={balanceVisible ? 'مخفی کردن موجودی' : 'نمایش موجودی'}
+            >
+              {balanceVisible ? (
+                <Eye className="w-5 h-5 text-gold-700" />
+              ) : (
+                <EyeOff className="w-5 h-5 text-gold-700" />
+              )}
             </button>
           </div>
           <div className="space-y-2">
-            <div className="text-3xl font-bold text-text-800">12.5</div>
-            <div className="text-sm text-text-600">گرم</div>
-          </div>
-          <div className="flex items-center space-x-2 space-x-reverse mt-4">
-            <div className="flex items-center space-x-1 space-x-reverse text-status-success">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-sm">+1.8%</span>
+            <div className="text-3xl font-bold text-slate-800">
+              {balanceVisible ? formatGold(Number(goldWallet.balance)) : '••••••'}
             </div>
-            <span className="text-sm text-text-500">نسبت به ماه گذشته</span>
+            <div className="text-sm text-slate-600 font-medium">گرم</div>
           </div>
         </div>
 
         {/* Coins Wallet */}
-        <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border border-yellow-200">
+        <div className="bg-gradient-to-br from-yellow-50 via-yellow-100 to-yellow-200 rounded-2xl p-6 border-2 border-yellow-300 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3 space-x-reverse">
-              <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center">
-                <span className="text-text-50 font-bold text-lg">س</span>
+              <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-xl">س</span>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-text-800">کیف پول سکه‌ها</h3>
-                <p className="text-sm text-text-600">COINS</p>
+                <h3 className="text-lg font-bold text-slate-800">کیف پول سکه‌ها</h3>
+                <p className="text-xs text-slate-600 font-medium">COINS</p>
               </div>
             </div>
-            <button className="p-2 hover:bg-yellow-200 rounded-lg transition-colors">
-              <Eye className="w-5 h-5 text-yellow-600" />
+            <button
+              onClick={() => setBalanceVisible(!balanceVisible)}
+              className="p-2 hover:bg-yellow-200/50 rounded-lg transition-colors"
+              title={balanceVisible ? 'مخفی کردن موجودی' : 'نمایش موجودی'}
+            >
+              {balanceVisible ? (
+                <Eye className="w-5 h-5 text-yellow-700" />
+              ) : (
+                <EyeOff className="w-5 h-5 text-yellow-700" />
+              )}
             </button>
           </div>
           <div className="space-y-2">
-            <div className="text-2xl font-bold text-text-800">5</div>
-            <div className="text-sm text-text-600">سکه</div>
+            <div className="text-3xl font-bold text-slate-800">
+              {balanceVisible ? (coins?.total || 0) : '•••'}
+            </div>
+            <div className="text-sm text-slate-600 font-medium">سکه</div>
           </div>
-          <div className="mt-3 space-y-1">
-            <div className="flex justify-between text-xs">
-              <span className="text-text-600">تمام:</span>
-              <span className="font-semibold text-yellow-700">2</span>
+          {balanceVisible && coins && (
+            <div className="mt-4 pt-4 border-t border-yellow-300 space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-slate-600 font-medium">تمام:</span>
+                <span className="font-bold text-yellow-800">{coins.fullCoin || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-slate-600 font-medium">نیم:</span>
+                <span className="font-bold text-yellow-800">{coins.halfCoin || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-slate-600 font-medium">ربع:</span>
+                <span className="font-bold text-yellow-800">{coins.quarterCoin || 0}</span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-text-600">نیم:</span>
-              <span className="font-semibold text-yellow-700">2</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-text-600">ربع:</span>
-              <span className="font-semibold text-yellow-700">1</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button className="flex items-center justify-center space-x-3 space-x-reverse bg-status-success/10 hover:bg-status-success/20 border-2 border-status-success/30 rounded-xl p-4 transition-colors duration-200">
-          <ArrowUpRight className="w-6 h-6 text-status-success" />
-          <span className="text-status-success font-semibold">شارژ کیف پول</span>
+        <button
+          onClick={() => router.push('/wallet?tab=charge')}
+          className="flex items-center justify-center space-x-3 space-x-reverse bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl p-5 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+        >
+          <ArrowUpRight className="w-6 h-6" />
+          <span className="font-bold text-lg">شارژ کیف پول</span>
         </button>
-        <button className="flex items-center justify-center space-x-3 space-x-reverse bg-status-error/10 hover:bg-status-error/20 border-2 border-status-error/30 rounded-xl p-4 transition-colors duration-200">
-          <ArrowDownRight className="w-6 h-6 text-status-error" />
-          <span className="text-status-error font-semibold">برداشت وجه</span>
+        <button
+          onClick={() => router.push('/wallet?tab=withdraw')}
+          className="flex items-center justify-center space-x-3 space-x-reverse bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl p-5 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+        >
+          <ArrowDownRight className="w-6 h-6" />
+          <span className="font-bold text-lg">برداشت وجه</span>
         </button>
       </div>
 
       {/* Summary Statistics */}
-      <div className="bg-background-100 rounded-xl p-6 border border-border-100">
-        <h3 className="text-lg font-semibold text-text-800 mb-4">آمار کلی</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-text-800">127</div>
-            <div className="text-sm text-text-600">کل تراکنش‌ها</div>
+      <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border-2 border-slate-200 shadow-lg">
+        <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+          <div className="w-1.5 h-6 bg-gradient-to-b from-gold-400 to-gold-600 rounded-full ml-3"></div>
+          آمار کلی
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl p-5 text-center shadow-md hover:shadow-lg transition-shadow">
+            <div className="text-3xl font-bold text-slate-800 mb-2">
+              {statistics ? formatCurrency(statistics.totalTransactions || 0) : '0'}
+            </div>
+            <div className="text-sm text-slate-600 font-medium">کل تراکنش‌ها</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-status-success">85,250,000</div>
-            <div className="text-sm text-text-600">کل شارژ (تومان)</div>
+          <div className="bg-white rounded-xl p-5 text-center shadow-md hover:shadow-lg transition-shadow">
+            <div className="text-3xl font-bold text-green-600 mb-2">
+              {statistics ? formatCurrency(statistics.totalDeposit || 0) : '0'}
+            </div>
+            <div className="text-sm text-slate-600 font-medium">کل شارژ (تومان)</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-status-error">40,000,000</div>
-            <div className="text-sm text-text-600">کل برداشت (تومان)</div>
+          <div className="bg-white rounded-xl p-5 text-center shadow-md hover:shadow-lg transition-shadow">
+            <div className="text-3xl font-bold text-red-600 mb-2">
+              {statistics ? formatCurrency(statistics.totalWithdraw || 0) : '0'}
+            </div>
+            <div className="text-sm text-slate-600 font-medium">کل برداشت (تومان)</div>
           </div>
         </div>
       </div>
