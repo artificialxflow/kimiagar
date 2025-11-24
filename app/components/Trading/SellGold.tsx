@@ -231,13 +231,21 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
         fetchAvailableBalance(); // به‌روزرسانی موجودی
         
         // نمایش پیام موفقیت و لینک فاکتور
-        const transactionId = data.transactionId || 'mock_transaction_' + Date.now();
-        setTimeout(() => {
-          if (confirm('معامله با موفقیت انجام شد! آیا می‌خواهید فاکتور را مشاهده کنید؟')) {
-            window.open(`/invoice?id=${transactionId}`, '_blank');
-          }
-          window.location.href = '/dashboard';
-        }, 2000); // 2 ثانیه تاخیر برای نمایش پیام
+        // استفاده از order.id برای فاکتور (API از orderId پشتیبانی می‌کند)
+        const orderId = data.order?.id || data.orderId;
+        if (orderId) {
+          setTimeout(() => {
+            if (confirm('سفارش با موفقیت ثبت شد! آیا می‌خواهید فاکتور را مشاهده کنید؟')) {
+              window.open(`/invoice?id=${orderId}`, '_blank');
+            }
+            window.location.href = '/dashboard';
+          }, 2000); // 2 ثانیه تاخیر برای نمایش پیام
+        } else {
+          // اگر order.id وجود نداشت، فقط به dashboard برو
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 2000);
+        }
       } else {
         setError(data.error || 'خطا در ثبت سفارش');
       }
