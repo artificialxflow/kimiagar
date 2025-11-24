@@ -15,6 +15,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'توکن نامعتبر است' }, { status: 401 });
     }
 
+    // بررسی دسترسی ادمین
+    const adminUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, isAdmin: true }
+    });
+
+    if (!adminUser || !adminUser.isAdmin) {
+      return NextResponse.json(
+        { error: 'دسترسی غیرمجاز. فقط ادمین‌ها می‌توانند به این بخش دسترسی داشته باشند' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -58,6 +71,13 @@ export async function GET(request: NextRequest) {
           lastLoginAt: true,
           createdAt: true,
           updatedAt: true,
+          wallets: {
+            select: {
+              type: true,
+              balance: true,
+              currency: true,
+            },
+          },
           _count: {
             select: {
               orders: true,
@@ -103,6 +123,19 @@ export async function PATCH(request: NextRequest) {
     const decoded = verifyToken(token);
     if (!decoded || !decoded.userId) {
       return NextResponse.json({ error: 'توکن نامعتبر است' }, { status: 401 });
+    }
+
+    // بررسی دسترسی ادمین
+    const adminUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, isAdmin: true }
+    });
+
+    if (!adminUser || !adminUser.isAdmin) {
+      return NextResponse.json(
+        { error: 'دسترسی غیرمجاز. فقط ادمین‌ها می‌توانند به این بخش دسترسی داشته باشند' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
