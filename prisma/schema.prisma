@@ -115,6 +115,9 @@ model Order {
   isAutomatic    Boolean     @default(false)
   notes          String? // یادداشت‌های کاربر
   adminNotes     String? // یادداشت‌های ادمین
+  statusReason   String?
+  priceLockedAt  DateTime? // زمان قفل شدن قیمت
+  expiresAt      DateTime? // پایان مهلت ۱۸۰ ثانیه‌ای
   processedAt    DateTime? // زمان پردازش
   completedAt    DateTime? // زمان تکمیل
   createdAt      DateTime    @default(now())
@@ -353,6 +356,9 @@ enum OrderStatus {
   CANCELLED // لغو شده
   FAILED // ناموفق
   REFUNDED // بازپرداخت شده
+  EXPIRED // منقضی شده
+  REJECTED // رد شده توسط ادمین
+  REJECTED_PRICE_CHANGE // رد به دلیل تغییر قیمت
 }
 
 enum TransferType {
