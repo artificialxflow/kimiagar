@@ -2,6 +2,59 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import { verifyToken } from '@/app/lib/jwt';
 
+async function expirePendingOrders() {
+  const now = new Date();
+  const pendingOrders = await prisma.order.findMany({
+    where: {
+      status: 'PENDING',
+      expiresAt: {
+        not: null,
+        lt: now,
+      },
+    },
+    select: {
+      id: true,
+      userId: true,
+      type: true,
+      productType: true,
+      amount: true,
+    },
+  });
+
+  if (!pendingOrders.length) return;
+
+  for (const order of pendingOrders) {
+    try {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'EXPIRED',
+          statusReason: 'مهلت ۱۸۰ ثانیه‌ای برای تایید به پایان رسید',
+          updatedAt: now,
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: order.userId,
+          type: 'ORDER',
+          title: 'مهلت سفارش به پایان رسید',
+          message: 'به دلیل پایان مهلت ۱۸۰ ثانیه‌ای، سفارش شما منقضی شد. لطفاً دوباره سفارش دهید.',
+          metadata: {
+            orderId: order.id,
+            orderType: order.type,
+            productType: order.productType,
+            amount: order.amount.toString(),
+            expiredAt: now.toISOString(),
+          },
+        },
+      });
+    } catch (error) {
+      console.error('خطا در منقضی کردن سفارش:', order.id, error);
+    }
+  }
+}
+
 // دریافت لیست سفارش‌ها
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +69,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+
+    await expirePendingOrders();
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status');
@@ -61,6 +116,9 @@ export async function GET(request: NextRequest) {
           isAutomatic: true,
           notes: true,
           adminNotes: true,
+          statusReason: true,
+          priceLockedAt: true,
+          expiresAt: true,
           processedAt: true,
           completedAt: true,
           createdAt: true,
@@ -81,9 +139,68 @@ export async function GET(request: NextRequest) {
       prisma.order.count({ where }),
     ]);
 
+    // اضافه کردن موجودی کیف پول‌ها و بررسی موجودی کافی برای هر سفارش
+    const ordersWithWallet = await Promise.all(
+      orders.map(async (order) => {
+        // دریافت کیف پول‌های کاربر
+        const wallets = await prisma.wallet.findMany({
+          where: { userId: order.userId },
+          select: {
+            type: true,
+            balance: true,
+            currency: true,
+          },
+        });
+
+        const rialWallet = wallets.find((w) => w.type === 'RIAL');
+        const goldWallet = wallets.find((w) => w.type === 'GOLD');
+
+        const rialBalance = rialWallet ? Number(rialWallet.balance) : 0;
+        const goldBalance = goldWallet ? Number(goldWallet.balance) : 0;
+
+        // بررسی موجودی کافی
+        let hasEnoughBalance = true;
+        let balanceCheck: any = null;
+
+        if (order.status === 'PENDING') {
+          if (order.type === 'BUY') {
+            // برای خرید: باید موجودی ریالی >= totalPrice باشد
+            const required = Number(order.totalPrice);
+            hasEnoughBalance = rialBalance >= required;
+            balanceCheck = {
+              type: 'RIAL',
+              current: rialBalance,
+              required,
+              shortage: hasEnoughBalance ? 0 : required - rialBalance,
+            };
+          } else if (order.type === 'SELL') {
+            // برای فروش: باید موجودی طلایی >= amount باشد
+            const required = Number(order.amount);
+            hasEnoughBalance = goldBalance >= required;
+            balanceCheck = {
+              type: 'GOLD',
+              current: goldBalance,
+              required,
+              shortage: hasEnoughBalance ? 0 : required - goldBalance,
+            };
+          }
+        }
+
+        return {
+          ...order,
+          userWallet: {
+            rial: rialBalance,
+            gold: goldBalance,
+          },
+          hasEnoughBalance,
+          balanceCheck,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      orders,
+      orders: ordersWithWallet,
       pagination: {
         page,
         limit,
