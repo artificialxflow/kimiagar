@@ -75,6 +75,25 @@ export function truncateText(text: string, maxLength: number): string {
 }
 
 /**
+ * فرمت کردن شمارنده معکوس به صورت mm:ss
+ * @param seconds - تعداد ثانیه
+ * @returns رشته فرمت شده
+ */
+export function formatCountdown(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined || seconds <= 0) {
+    return '00:00';
+  }
+
+  const minutesPart = Math.floor(seconds / 60);
+  const secondsPart = seconds % 60;
+
+  const minutesString = String(minutesPart).padStart(2, '0');
+  const secondsString = String(secondsPart).padStart(2, '0');
+
+  return `${minutesString}:${secondsString}`;
+}
+
+/**
  * تبدیل بایت به واحدهای خوانا
  * @param bytes - تعداد بایت
  * @returns رشته فرمت شده
