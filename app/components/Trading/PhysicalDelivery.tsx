@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Truck, MapPin, Calendar, Clock, Phone, AlertCircle, CheckCircle } from 'lucide-react';
+import { Truck, MapPin, Calendar, Clock, Phone, AlertCircle, CheckCircle, PauseCircle } from 'lucide-react';
+import { useTradingMode } from '@/app/hooks/useTradingMode';
 
 interface PhysicalDeliveryProps {
   prices?: any[];
@@ -17,6 +18,7 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [deliveryCommissionRate, setDeliveryCommissionRate] = useState(0.02); // 2% پیش‌فرض
+  const { mode: tradingMode } = useTradingMode(15000);
 
   const selectedPrice = prices.find(p => p.productType === selectedProduct);
 
@@ -75,6 +77,11 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
 
   // اعتبارسنجی ورودی
   const validateInput = () => {
+    if (tradingMode.tradingPaused) {
+      setError(tradingMode.message || 'در حال حاضر امکان ثبت درخواست وجود ندارد.');
+      return false;
+    }
+
     if (!selectedProduct) {
       setError('لطفاً محصول را انتخاب کنید');
       return false;
@@ -237,6 +244,16 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         <h2 className="text-2xl font-bold text-slate-800 mb-2">درخواست تحویل طلا در فروشگاه</h2>
         <p className="text-slate-600">تحویل فیزیکی طلا و سکه در محل فروشگاه</p>
       </div>
+
+      {tradingMode.tradingPaused && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <PauseCircle className="w-5 h-5 text-red-600 mt-0.5" />
+          <div className="text-sm text-red-700">
+            <p className="font-semibold mb-1">مدیر آفلاین است</p>
+            <p>{tradingMode.message || 'معاملات به صورت موقت متوقف شده‌اند. لطفاً بعداً تلاش کنید.'}</p>
+          </div>
+        </div>
+      )}
 
       {/* قوانین تحویل */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -442,10 +459,14 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || !selectedProduct || !amount || !deliveryDate || !deliveryTime || !contactPhone}
+          disabled={tradingMode.tradingPaused || loading || !selectedProduct || !amount || !deliveryDate || !deliveryTime || !contactPhone}
           className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'در حال پردازش...' : 'ثبت درخواست تحویل'}
+          {tradingMode.tradingPaused
+            ? 'معاملات متوقف است'
+            : loading
+            ? 'در حال پردازش...'
+            : 'ثبت درخواست تحویل'}
         </button>
       </form>
     </div>

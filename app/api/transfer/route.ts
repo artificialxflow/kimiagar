@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
+import { getTradingMode } from '@/app/lib/systemSettings';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { userId, fromWallet, toWallet, amount, description } = body;
+
+    const tradingMode = await getTradingMode();
+    if (tradingMode.tradingPaused) {
+      return NextResponse.json(
+        { 
+          error: tradingMode.message || 'مدیر در حال حاضر معاملات را موقتا متوقف کرده است',
+          mode: tradingMode
+        },
+        { status: 423 }
+      );
+    }
 
     // اعتبارسنجی ورودی‌ها
     if (!userId || !fromWallet || !toWallet || !amount) {

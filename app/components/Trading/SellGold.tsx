@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Calculator, AlertCircle, Scale, Clock } from 'lucide-react';
+import { DollarSign, Calculator, AlertCircle, Scale, Clock, PauseCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { useTradingMode } from '@/app/hooks/useTradingMode';
 
 interface SellGoldProps {
   prices?: any[];
@@ -20,6 +21,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [volatilityMessage, setVolatilityMessage] = useState('');
   const [availableBalance, setAvailableBalance] = useState(0);
+  const { mode: tradingMode } = useTradingMode(15000);
 
   const selectedPrice = prices.find(p => p.productType === productType);
 
@@ -198,6 +200,11 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
     setLoading(true);
     setError('');
 
+    if (tradingMode.tradingPaused) {
+      setError(tradingMode.message || 'در حال حاضر امکان ثبت سفارش وجود ندارد.');
+      return;
+    }
+
     try {
       // دریافت اطلاعات کاربر از localStorage
       const userData = localStorage.getItem('user');
@@ -285,8 +292,18 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
         <p className="text-slate-600">مقدار مورد نظر خود را وارد کنید</p>
       </div>
 
-      {/* پیام نوسان */}
-      {volatilityMessage && (
+      {/* پیام نوسان / توقف معاملات */}
+      {tradingMode.tradingPaused && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <PauseCircle className="w-5 h-5 text-red-600 mt-0.5" />
+          <div className="text-sm text-red-700">
+            <p className="font-semibold mb-1">مدیر آفلاین است</p>
+            <p>{tradingMode.message || 'معاملات به صورت موقت متوقف شده‌اند. لطفاً بعداً تلاش کنید.'}</p>
+          </div>
+        </div>
+      )}
+
+      {!tradingMode.tradingPaused && volatilityMessage && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-center">
             <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
@@ -491,10 +508,25 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={loading || !productType || (!weightAmount && !moneyAmount) || isOrderPlaced || availableBalance <= 0}
+          disabled={
+            tradingMode.tradingPaused ||
+            loading ||
+            !productType ||
+            (!weightAmount && !moneyAmount) ||
+            isOrderPlaced ||
+            availableBalance <= 0
+          }
           className="w-full bg-red-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'در حال پردازش...' : isOrderPlaced ? 'سفارش ثبت شده' : availableBalance <= 0 ? 'موجودی صفر' : 'ثبت سفارش فروش'}
+          {tradingMode.tradingPaused
+            ? 'معاملات متوقف است'
+            : loading
+            ? 'در حال پردازش...'
+            : isOrderPlaced
+            ? 'سفارش ثبت شده'
+            : availableBalance <= 0
+            ? 'موجودی صفر'
+            : 'ثبت سفارش فروش'}
         </button>
       </form>
     </div>

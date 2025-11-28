@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
+import { getTradingMode } from '@/app/lib/systemSettings';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,6 +11,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'اطلاعات ناقص یا نامعتبر' },
         { status: 400 }
+      );
+    }
+
+    const tradingMode = await getTradingMode();
+    if (tradingMode.tradingPaused) {
+      return NextResponse.json(
+        { 
+          error: tradingMode.message || 'مدیر در حال حاضر معاملات را موقتا متوقف کرده است',
+          mode: tradingMode
+        },
+        { status: 423 }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, firstName: true, lastName: true }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'کاربر یافت نشد' },
+        { status: 404 }
       );
     }
 
@@ -58,6 +82,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 180 * 1000);
+
     // ایجاد سفارش - همیشه با status PENDING (ادمین باید تایید کند)
     const order = await prisma.order.create({
       data: {
@@ -69,13 +96,56 @@ export async function POST(request: NextRequest) {
         totalPrice,
         commission,
         commissionRate: commissionRateValue,
-        status: 'PENDING', // همیشه PENDING - ادمین باید تایید کند
-        isAutomatic: false // غیرفعال کردن حالت اتوماتیک
+        status: 'PENDING',
+        isAutomatic: false,
+        priceLockedAt: now,
+        expiresAt
       }
     });
 
-    // حذف منطق اتوماتیک - ادمین باید تایید کند
-    // تراکنش‌ها فقط زمانی انجام می‌شوند که ادمین سفارش را به COMPLETED تغییر دهد
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'ORDER',
+        title: 'سفارش فروش شما ثبت شد',
+        message: 'سفارش فروش شما در انتظار تایید ادمین است.',
+        metadata: {
+          orderId: order.id,
+          orderType: 'SELL',
+          productType,
+          amount: amount.toString(),
+          totalPrice: totalPrice.toString(),
+          expiresAt: expiresAt.toISOString(),
+        },
+      },
+    });
+
+    const adminUsers = await prisma.user.findMany({
+      where: { isAdmin: true, isBlocked: false },
+      select: { id: true },
+    });
+
+    await Promise.all(
+      adminUsers.map((admin) =>
+        prisma.notification.create({
+          data: {
+            userId: admin.id,
+            type: 'ORDER',
+            title: 'درخواست فروش جدید',
+            message: `کاربر ${user.firstName} ${user.lastName} درخواست فروش ${amount} واحد از ${productType} ثبت کرده است.`,
+            metadata: {
+              orderId: order.id,
+              userId,
+              userName: `${user.firstName} ${user.lastName}`,
+              productType,
+              amount: amount.toString(),
+              totalPrice: totalPrice.toString(),
+              expiresAt: expiresAt.toISOString(),
+            },
+          },
+        })
+      )
+    );
 
     return NextResponse.json({
       success: true,
@@ -87,7 +157,8 @@ export async function POST(request: NextRequest) {
         commission: order.commission,
         finalPrice,
         status: order.status,
-        createdAt: order.createdAt
+        createdAt: order.createdAt,
+        expiresAt
       }
     });
 

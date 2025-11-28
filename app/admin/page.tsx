@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/app/hooks/useAuth';
-import { formatNumber, formatCountdown } from '@/app/lib/utils';
+import { formatNumber, formatCountdown, formatDateTime } from '@/app/lib/utils';
 import ChargeWalletModal from '@/app/components/Admin/ChargeWalletModal';
 import UserWalletModal from '@/app/components/Admin/UserWalletModal';
 import { Wallet, Eye, AlertTriangle, AlertCircle, BellRing, Clock } from 'lucide-react';
+import type { TradingModePayload } from '@/app/lib/systemSettings';
 
 interface AdminStats {
   totalUsers: number;
@@ -64,6 +65,8 @@ interface Order {
   };
 }
 
+const GRAMS_PER_MITHQAL = 4.3318;
+
 export default function AdminPage() {
   const { user, token } = useAuth();
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -84,6 +87,9 @@ export default function AdminPage() {
   const [currentTime, setCurrentTime] = useState(Date.now());
   const titleIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const originalTitleRef = useRef<string>('');
+  const [tradingMode, setTradingMode] = useState<TradingModePayload | null>(null);
+  const [tradingMessage, setTradingMessage] = useState('');
+  const [tradingModeLoading, setTradingModeLoading] = useState(false);
 
   const playNotificationSound = () => {
     if (typeof window === 'undefined') return;
@@ -146,10 +152,64 @@ export default function AdminPage() {
     [token]
   );
 
+  const fetchUsersList = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      if (!token) return;
+      if (!options.silent) setLoading(true);
+      try {
+        const usersResponse = await fetch('/api/admin/users', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json();
+          setUsers(usersData.users);
+        }
+      } catch (error) {
+        console.error('خطا در دریافت کاربران:', error);
+      } finally {
+        if (!options.silent) setLoading(false);
+      }
+    },
+    [token]
+  );
+
+  const fetchTradingMode = useCallback(async () => {
+    if (!token) return;
+    try {
+      setTradingModeLoading(true);
+      const response = await fetch('/api/admin/system/trading-mode', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setTradingMode(data.mode);
+        setTradingMessage(data.mode?.message || '');
+      } else {
+        console.error('خطا در دریافت وضعیت معاملات:', data.error);
+      }
+    } catch (error) {
+      console.error('خطا در دریافت وضعیت معاملات:', error);
+    } finally {
+      setTradingModeLoading(false);
+    }
+  }, [token]);
+
   const fetchAdminData = useCallback(async () => {
     if (!token) return;
     if (activeTab === 'orders') {
       await fetchOrders();
+      return;
+    }
+
+    if (activeTab === 'users') {
+      await fetchUsersList();
+      return;
+    }
+
+    if (activeTab === 'system') {
+      setLoading(true);
+      await fetchTradingMode();
+      setLoading(false);
       return;
     }
 
@@ -164,21 +224,15 @@ export default function AdminPage() {
           const statsData = await statsResponse.json();
           setStats(statsData);
         }
-      } else if (activeTab === 'users') {
-        const usersResponse = await fetch('/api/admin/users', {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json();
-          setUsers(usersData.users);
-        }
       }
     } catch (error) {
       console.error('خطا در دریافت اطلاعات ادمین:', error);
     } finally {
-      setLoading(false);
+      if (activeTab !== 'system') {
+        setLoading(false);
+      }
     }
-  }, [activeTab, fetchOrders, token]);
+  }, [activeTab, fetchOrders, fetchTradingMode, fetchUsersList, token]);
 
   useEffect(() => {
     if (token) {
@@ -235,7 +289,41 @@ export default function AdminPage() {
     return () => clearInterval(interval);
   }, [activeTab, token, fetchOrders]);
 
+  useEffect(() => {
+    if (!token || activeTab !== 'users') return;
+    fetchUsersList({ silent: true });
+    const interval = setInterval(() => fetchUsersList({ silent: true }), 30000);
+    return () => clearInterval(interval);
+  }, [activeTab, token, fetchUsersList]);
+
   const reasonRequiredStatuses = ['CANCELLED', 'FAILED', 'REJECTED', 'REJECTED_PRICE_CHANGE'];
+
+  const getOrderWeightDetails = (order: Order) => {
+    const isGoldProduct = order.productType?.toUpperCase()?.includes('GOLD');
+    const rawAmount = Number(order.amount) || 0;
+    const grams = isGoldProduct ? rawAmount : 0;
+    const mithqal = isGoldProduct && grams > 0 ? grams / GRAMS_PER_MITHQAL : 0;
+    const commissionValue = Number(order.commission || 0);
+    const baseTotal = Number(order.totalPrice || 0);
+    const finalPrice =
+      order.type === 'BUY'
+        ? baseTotal + commissionValue
+        : Math.max(baseTotal - commissionValue, 0);
+    const gramRate = isGoldProduct && grams > 0 ? finalPrice / grams : 0;
+    const mithqalRate = gramRate * GRAMS_PER_MITHQAL;
+
+    return {
+      isGoldProduct,
+      amountDisplay: rawAmount,
+      grams,
+      mithqal,
+      commissionValue,
+      baseTotal,
+      finalPrice,
+      gramRate,
+      mithqalRate,
+    };
+  };
 
   const handleOrderStatusChange = (order: Order, newStatus: string) => {
     if (newStatus === order.status) return;
@@ -348,6 +436,45 @@ export default function AdminPage() {
     return Math.max(0, Math.floor((expiresTime - currentTime) / 1000));
   };
 
+  const updateTradingModeStatus = useCallback(
+    async (nextPaused: boolean, overrideMessage?: string) => {
+      if (!token) return;
+      try {
+        setTradingModeLoading(true);
+        const response = await fetch('/api/admin/system/trading-mode', {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tradingPaused: nextPaused,
+            message: (overrideMessage ?? tradingMessage).trim() || undefined,
+          }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          setTradingMode(data.mode);
+          setTradingMessage(data.mode?.message || '');
+          setMessage({
+            type: 'success',
+            text: nextPaused ? 'معاملات متوقف شد' : 'معاملات فعال شد',
+          });
+        } else {
+          setMessage({ type: 'error', text: data.error || 'خطا در بروزرسانی وضعیت معاملات' });
+        }
+      } catch (error) {
+        console.error('خطا در بروزرسانی وضعیت معاملات:', error);
+        setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+      } finally {
+        setTradingModeLoading(false);
+        setTimeout(() => setMessage(null), 4000);
+      }
+    },
+    [token, tradingMessage]
+  );
+
   const handleChargeWallet = async (user: User) => {
     // نمایش Confirmation Dialog
     setConfirmCharge({ show: true, user });
@@ -388,6 +515,15 @@ export default function AdminPage() {
     if (!user.wallets) return 0;
     const wallet = user.wallets.find(w => w.type === type);
     return wallet ? Number(wallet.balance) : 0;
+  };
+
+  const handleTradingModeToggle = (nextPaused: boolean) => {
+    updateTradingModeStatus(nextPaused);
+  };
+
+  const handleTradingMessageSave = () => {
+    if (!tradingMode) return;
+    updateTradingModeStatus(tradingMode.tradingPaused, tradingMessage);
   };
 
   if (loading) {
@@ -727,31 +863,31 @@ export default function AdminPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       سفارش
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       کاربر
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      نوع
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       محصول
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      مبلغ
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      وزن / مظنه
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      مبالغ
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       زمان باقی‌مانده
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       موجودی کاربر
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       وضعیت
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       عملیات
                     </th>
                   </tr>
@@ -760,40 +896,85 @@ export default function AdminPage() {
                   {orders.map((order) => {
                     const isNewOrder = newOrderIds.includes(order.id);
                     const remainingSeconds = getRemainingSeconds(order);
+                    const weightDetails = getOrderWeightDetails(order);
+                    const createdAt = new Date(order.createdAt);
 
                     return (
                       <tr key={order.id} className={isNewOrder ? 'bg-yellow-50/70 transition-colors' : ''}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {order.id.slice(-8)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {order.user.firstName} {order.user.lastName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {order.type === 'BUY' ? 'خرید' : 'فروش'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div className="space-y-1">
-                            <div>{getProductTypeLabel(order.productType)}</div>
-                            {order.notes && (
-                              <div className="text-xs text-gray-500">یادداشت کاربر: {order.notes}</div>
-                            )}
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs text-gray-600">{order.id.slice(-8)}</span>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                order.type === 'BUY' ? 'bg-green-100 text-green-700' : 'bg-indigo-100 text-indigo-700'
+                              }`}
+                            >
+                              {order.type === 'BUY' ? 'خ' : 'ف'}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {createdAt.toLocaleDateString('fa-IR')} - {createdAt.toLocaleTimeString('fa-IR')}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <div>
-                            <div>{formatNumber(order.totalPrice)} تومان</div>
-                            {order.commission && (
-                              <div className="text-xs text-gray-500">
-                                کارمزد: {formatNumber(order.commission)} تومان
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          <div className="font-semibold">
+                            {order.user.firstName} {order.user.lastName}
+                          </div>
+                          {order.notes && (
+                            <div className="text-xs text-gray-500 mt-1">پیام کاربر: {order.notes}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          <div>{getProductTypeLabel(order.productType)}</div>
+                          {order.adminNotes && (
+                            <div className="text-xs text-gray-500 mt-1">یادداشت ادمین: {order.adminNotes}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          {weightDetails.isGoldProduct ? (
+                            <>
+                              <div className="text-lg font-bold text-gray-900">
+                                {formatNumber(weightDetails.grams)}{' '}
+                                <span className="text-sm font-normal text-gray-500">گرم</span>
                               </div>
-                            )}
-                          </div>
+                              <div className="text-sm text-gray-600">
+                                ≈ {weightDetails.mithqal.toFixed(2)} مثقال
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                مظنه تمام‌شده: {formatNumber(Math.round(weightDetails.mithqalRate))} تومان
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                قیمت هر گرم: {formatNumber(Math.round(weightDetails.gramRate))} تومان
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-lg font-semibold text-gray-900">
+                              {formatNumber(weightDetails.amountDisplay)}{' '}
+                              <span className="text-sm font-normal text-gray-500">عدد</span>
+                            </div>
+                          )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          <div className="text-base font-bold text-gray-900">
+                            {formatNumber(Math.round(weightDetails.finalPrice))} تومان
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            قیمت پایه: {formatNumber(Number(order.totalPrice))} تومان
+                          </div>
+                          {order.commission && (
+                            <div className="text-xs text-gray-500">
+                              کارمزد: {formatNumber(Number(order.commission))} تومان
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
                           {order.status === 'PENDING' && order.expiresAt ? (
                             remainingSeconds && remainingSeconds > 0 ? (
-                              <div className={`flex items-center gap-1 font-mono ${remainingSeconds <= 30 ? 'text-red-600 animate-pulse' : 'text-gray-900'}`}>
+                              <div
+                                className={`flex items-center gap-1 font-mono ${
+                                  remainingSeconds <= 30 ? 'text-red-600 animate-pulse' : 'text-gray-900'
+                                }`}
+                              >
                                 <Clock className="w-4 h-4" />
                                 {formatCountdown(remainingSeconds)}
                               </div>
@@ -806,7 +987,7 @@ export default function AdminPage() {
                             <span className="text-gray-400 text-sm">-</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-4 py-4 align-top text-sm">
                           {order.userWallet ? (
                             <div>
                               {order.type === 'BUY' ? (
@@ -839,7 +1020,7 @@ export default function AdminPage() {
                             <span className="text-gray-400">-</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 align-top">
                           <div className="flex items-center gap-2">
                             {getStatusBadge(order.status)}
                             {order.status === 'PENDING' && order.hasEnoughBalance === false && (
@@ -857,7 +1038,7 @@ export default function AdminPage() {
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-4 py-4 align-top text-sm font-medium">
                           <select
                             value={order.status}
                             onChange={(e) => handleOrderStatusChange(order, e.target.value)}
@@ -868,15 +1049,12 @@ export default function AdminPage() {
                                 : 'border-gray-300'
                             }`}
                           >
-                            <option value="PENDING">در انتظار</option>
-                            <option value="CONFIRMED">تایید شده</option>
-                            <option value="PROCESSING">در حال پردازش</option>
-                            <option value="COMPLETED">تکمیل شده</option>
-                            <option value="CANCELLED">لغو شده</option>
-                            <option value="FAILED">ناموفق</option>
-                            <option value="REJECTED">رد شده</option>
-                            <option value="REJECTED_PRICE_CHANGE">معامله بسته نشد (تغییر قیمت)</option>
-                            <option value="EXPIRED">منقضی شده</option>
+                            <option value="PENDING" disabled>
+                              در انتظار
+                            </option>
+                            <option value="COMPLETED">تایید شد</option>
+                            <option value="EXPIRED">منقضی شد</option>
+                            <option value="REJECTED">عدم تایید</option>
                           </select>
                         </td>
                       </tr>
@@ -893,6 +1071,60 @@ export default function AdminPage() {
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">تنظیمات سیستم</h3>
             <div className="space-y-4">
+              <div className="p-5 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h4 className="text-base font-semibold text-gray-900">حالت آنلاین/آفلاین معاملات</h4>
+                    <p className="text-sm text-gray-600 mt-1">
+                      با این گزینه می‌توانید معاملات خرید، فروش، انتقال و تحویل فیزیکی را موقتا متوقف کنید.
+                    </p>
+                    <div className={`mt-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${tradingMode?.tradingPaused ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                      {tradingMode?.tradingPaused ? 'آفلاین (معاملات متوقف شده)' : 'آنلاین (معاملات فعال)'}
+                    </div>
+                    <p className="mt-2 text-sm text-gray-700">
+                      {tradingMode?.message || 'پیامی برای کاربران ثبت نشده است.'}
+                    </p>
+                    {tradingMode?.updatedAt && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        آخرین بروزرسانی: {formatDateTime(tradingMode.updatedAt)}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 w-full lg:w-auto">
+                    <button
+                      onClick={() => handleTradingModeToggle(!(tradingMode?.tradingPaused))}
+                      disabled={tradingModeLoading}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tradingMode?.tradingPaused ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-red-600 text-white hover:bg-red-700'} disabled:opacity-60`}
+                    >
+                      {tradingMode?.tradingPaused ? 'فعال کردن معاملات' : 'توقف معاملات'}
+                    </button>
+                    <button
+                      onClick={handleTradingMessageSave}
+                      disabled={tradingModeLoading || !tradingMode}
+                      className="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-60"
+                    >
+                      ذخیره پیام اعلان
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    متن اعلان هنگام توقف معاملات
+                  </label>
+                  <textarea
+                    value={tradingMessage}
+                    onChange={(e) => setTradingMessage(e.target.value)}
+                    disabled={tradingModeLoading}
+                    rows={3}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gold focus:ring-gold disabled:opacity-60"
+                    placeholder="مثال: مدیر آفلاین است؛ لطفاً چند دقیقه بعد دوباره تلاش کنید."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    این پیام در فرم‌های کاربر هنگام توقف معاملات نمایش داده می‌شود.
+                  </p>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
                   <h4 className="text-sm font-medium text-gray-900">مدیریت کارمزدها</h4>

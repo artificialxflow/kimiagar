@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from "../components/Layout/Layout";
-import { ArrowRight, Wallet, Coins, AlertCircle, CheckCircle, User, Phone, Search } from 'lucide-react';
+import { ArrowRight, Wallet, Coins, AlertCircle, CheckCircle, User, Phone, Search, PauseCircle } from 'lucide-react';
+import { useTradingMode } from '@/app/hooks/useTradingMode';
 
 export default function TransferPage() {
   const [user, setUser] = useState<any>(null);
@@ -22,6 +23,7 @@ export default function TransferPage() {
   const [transferType, setTransferType] = useState<'RIAL' | 'GOLD'>('RIAL');
   const [goldType, setGoldType] = useState<'GOLD_18K' | 'COIN_BAHAR_86' | 'COIN_NIM_86' | 'COIN_ROBE_86'>('GOLD_18K');
   const router = useRouter();
+  const { mode: tradingMode } = useTradingMode(15000);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -107,6 +109,11 @@ export default function TransferPage() {
   };
 
   const validateForm = () => {
+    if (tradingMode.tradingPaused) {
+      setError(tradingMode.message || 'در حال حاضر امکان ثبت سفارش وجود ندارد.');
+      return false;
+    }
+
     if (!transferData.toPhone || !transferData.amount) {
       setError('لطفاً تمام فیلدها را پر کنید');
       return false;
@@ -267,6 +274,15 @@ export default function TransferPage() {
           {/* Content */}
           <div className="p-6">
             {/* Messages */}
+            {tradingMode.tradingPaused && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                <PauseCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                <div>
+                  <p className="text-red-700 font-semibold mb-1">مدیر آفلاین است</p>
+                  <p className="text-red-600 text-sm">{tradingMode.message || 'معاملات به صورت موقت متوقف شده‌اند. لطفاً بعداً تلاش کنید.'}</p>
+                </div>
+              </div>
+            )}
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3 space-x-reverse">
                 <AlertCircle className="w-5 h-5 text-red-500" />
@@ -562,10 +578,15 @@ export default function TransferPage() {
             <div className="mt-8 pt-6 border-t border-slate-200">
               <button
                 onClick={handleTransfer}
-                disabled={processing || !recipientInfo || !transferData.amount || !transferData.toPhone}
+                disabled={tradingMode.tradingPaused || processing || !recipientInfo || !transferData.amount || !transferData.toPhone}
                 className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 space-x-reverse"
               >
-                {processing ? (
+                {tradingMode.tradingPaused ? (
+                  <>
+                    <PauseCircle className="w-5 h-5" />
+                    <span>معاملات متوقف است</span>
+                  </>
+                ) : processing ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     <span>در حال پردازش...</span>
