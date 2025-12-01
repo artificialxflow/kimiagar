@@ -162,29 +162,69 @@ export async function GET(request: NextRequest) {
         let hasEnoughBalance = true;
         let balanceCheck: any = null;
 
-        if (order.status === 'PENDING') {
-          if (order.type === 'BUY') {
-            // برای خرید: باید موجودی ریالی >= totalPrice باشد
-            const required = Number(order.totalPrice);
-            hasEnoughBalance = rialBalance >= required;
-            balanceCheck = {
-              type: 'RIAL',
-              current: rialBalance,
-              required,
-              shortage: hasEnoughBalance ? 0 : required - rialBalance,
-            };
-          } else if (order.type === 'SELL') {
-            // برای فروش: باید موجودی طلایی >= amount باشد
-            const required = Number(order.amount);
-            hasEnoughBalance = goldBalance >= required;
-            balanceCheck = {
-              type: 'GOLD',
-              current: goldBalance,
-              required,
-              shortage: hasEnoughBalance ? 0 : required - goldBalance,
-            };
+          if (order.status === 'PENDING') {
+            if (order.type === 'BUY') {
+              // برای خرید: باید موجودی ریالی >= totalPrice باشد
+              const required = Number(order.totalPrice);
+              hasEnoughBalance = rialBalance >= required;
+              balanceCheck = {
+                type: 'RIAL',
+                current: rialBalance,
+                required,
+                shortage: hasEnoughBalance ? 0 : required - rialBalance,
+              };
+            } else if (order.type === 'SELL') {
+              const isCoinProduct =
+                order.productType === 'COIN_BAHAR_86' ||
+                order.productType === 'COIN_NIM_86' ||
+                order.productType === 'COIN_ROBE_86';
+
+              if (isCoinProduct) {
+                // برای فروش سکه: باید تعداد سکه کافی از روی سفارش‌های تکمیل‌شده وجود داشته باشد
+                const completedOrders = await prisma.order.findMany({
+                  where: {
+                    userId: order.userId,
+                    productType: order.productType,
+                    status: 'COMPLETED',
+                  },
+                  select: {
+                    type: true,
+                    amount: true,
+                  },
+                });
+
+                let coinBalance = 0;
+                completedOrders.forEach((o) => {
+                  if (o.type === 'BUY') {
+                    coinBalance += Number(o.amount);
+                  } else if (o.type === 'SELL') {
+                    coinBalance -= Number(o.amount);
+                  }
+                });
+
+                coinBalance = Math.max(0, coinBalance);
+
+                const required = Number(order.amount);
+                hasEnoughBalance = coinBalance >= required;
+                balanceCheck = {
+                  type: 'COIN',
+                  current: coinBalance,
+                  required,
+                  shortage: hasEnoughBalance ? 0 : required - coinBalance,
+                };
+              } else {
+                // برای فروش طلای وزنی: باید موجودی طلایی >= amount باشد
+                const required = Number(order.amount);
+                hasEnoughBalance = goldBalance >= required;
+                balanceCheck = {
+                  type: 'GOLD',
+                  current: goldBalance,
+                  required,
+                  shortage: hasEnoughBalance ? 0 : required - goldBalance,
+                };
+              }
+            }
           }
-        }
 
         return {
           ...order,

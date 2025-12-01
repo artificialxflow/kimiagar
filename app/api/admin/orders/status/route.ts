@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 import { verifyToken } from '@/app/lib/jwt';
+import { getProductDisplayName, isCoinProductType } from '@/app/lib/utils';
 
 // به‌روزرسانی وضعیت سفارش
 export async function PATCH(request: NextRequest) {
@@ -104,13 +105,20 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const isGoldProduct =
+      existingOrder.productType === 'GOLD_18K' ||
+      existingOrder.productType === 'GOLD_24K';
+    const isCoinProduct = isCoinProductType(existingOrder.productType);
+    const productLabel = getProductDisplayName(existingOrder.productType);
+    const productUnit = isGoldProduct ? 'گرم' : (isCoinProduct ? 'عدد' : 'واحد');
+
     // اگر status به COMPLETED تغییر می‌کند و سفارش قبلاً COMPLETED نبوده، تراکنش‌ها را انجام بده
     if (status === 'COMPLETED' && existingOrder.status !== 'COMPLETED') {
       console.log('🔄 [Admin Order Status] در حال پردازش تراکنش‌ها...');
 
       // بررسی نوع سفارش و انجام تراکنش‌ها
       if (existingOrder.type === 'BUY') {
-        // سفارش خرید: کسر از ریالی، اضافه به طلایی
+        // سفارش خرید: کسر از ریالی، و در صورت طلای وزنی اضافه به کیف پول طلایی
         console.log('💰 [Admin Order Status] پردازش سفارش خرید...');
 
         // بررسی موجودی ریالی
@@ -162,42 +170,44 @@ export async function PATCH(request: NextRequest) {
             }
           });
 
-          // اضافه کردن به کیف پول طلایی
-          const goldWallet = await tx.wallet.findFirst({
-            where: {
-              userId: existingOrder.userId,
-              type: 'GOLD'
-            }
-          });
-
-          if (!goldWallet) {
-            // ایجاد کیف پول طلایی اگر وجود نداشت
-            const newGoldWallet = await tx.wallet.create({
-              data: {
+          // اگر محصول طلای وزنی است، به کیف پول طلایی اضافه کن
+          if (isGoldProduct) {
+            const goldWallet = await tx.wallet.findFirst({
+              where: {
                 userId: existingOrder.userId,
-                type: 'GOLD',
-                balance: 0,
-                currency: 'GOLD',
-                isActive: true
+                type: 'GOLD'
               }
             });
-            await tx.wallet.update({
-              where: { id: newGoldWallet.id },
-              data: {
-                balance: {
-                  increment: Number(existingOrder.amount)
+
+            if (!goldWallet) {
+              // ایجاد کیف پول طلایی اگر وجود نداشت
+              const newGoldWallet = await tx.wallet.create({
+                data: {
+                  userId: existingOrder.userId,
+                  type: 'GOLD',
+                  balance: 0,
+                  currency: 'GOLD',
+                  isActive: true
                 }
-              }
-            });
-          } else {
-            await tx.wallet.update({
-              where: { id: goldWallet.id },
-              data: {
-                balance: {
-                  increment: Number(existingOrder.amount)
+              });
+              await tx.wallet.update({
+                where: { id: newGoldWallet.id },
+                data: {
+                  balance: {
+                    increment: Number(existingOrder.amount)
+                  }
                 }
-              }
-            });
+              });
+            } else {
+              await tx.wallet.update({
+                where: { id: goldWallet.id },
+                data: {
+                  balance: {
+                    increment: Number(existingOrder.amount)
+                  }
+                }
+              });
+            }
           }
 
           // ثبت تراکنش کسر از کیف پول ریالی
@@ -207,12 +217,15 @@ export async function PATCH(request: NextRequest) {
               walletId: rialWallet.id,
               type: 'ORDER_PAYMENT',
               amount: requiredAmount,
-              description: `خرید ${existingOrder.amount} ${existingOrder.productType === 'GOLD_18K' ? 'گرم' : 'عدد'} ${existingOrder.productType} (تایید شده توسط ادمین)`,
+              description: `خرید ${existingOrder.amount} ${productUnit} ${productLabel} (تایید شده توسط ادمین)`,
               status: 'COMPLETED',
               referenceId: orderId,
               metadata: {
                 orderId: orderId,
                 orderType: 'BUY',
+                productType: existingOrder.productType,
+                productName: productLabel,
+                productUnit,
                 adminId: adminUser.id,
                 adminUsername: adminUser.username,
                 approvedAt: new Date().toISOString()
@@ -220,77 +233,126 @@ export async function PATCH(request: NextRequest) {
             }
           });
 
-          // ثبت تراکنش اضافه به کیف پول طلایی
-          const finalGoldWallet = await tx.wallet.findFirst({
-            where: {
-              userId: existingOrder.userId,
-              type: 'GOLD'
-            }
-          });
-
-          if (finalGoldWallet) {
-            await tx.transaction.create({
-              data: {
+          // اگر محصول طلای وزنی است، ثبت تراکنش اضافه به کیف پول طلایی
+          if (isGoldProduct) {
+            const finalGoldWallet = await tx.wallet.findFirst({
+              where: {
                 userId: existingOrder.userId,
-                walletId: finalGoldWallet.id,
-                type: 'DEPOSIT',
-                amount: Number(existingOrder.amount),
-                description: `خرید ${existingOrder.amount} ${existingOrder.productType === 'GOLD_18K' ? 'گرم' : 'عدد'} ${existingOrder.productType} (تایید شده توسط ادمین)`,
-                status: 'COMPLETED',
-                referenceId: orderId,
-                metadata: {
-                  orderId: orderId,
-                  orderType: 'BUY',
-                  adminId: adminUser.id,
-                  adminUsername: adminUser.username,
-                  approvedAt: new Date().toISOString()
-                }
+                type: 'GOLD'
               }
             });
+
+            if (finalGoldWallet) {
+              await tx.transaction.create({
+                data: {
+                  userId: existingOrder.userId,
+                  walletId: finalGoldWallet.id,
+                  type: 'DEPOSIT',
+                  amount: Number(existingOrder.amount),
+                  description: `خرید ${existingOrder.amount} گرم ${productLabel || existingOrder.productType} (تایید شده توسط ادمین)`,
+                  status: 'COMPLETED',
+                  referenceId: orderId,
+                  metadata: {
+                    orderId: orderId,
+                    orderType: 'BUY',
+                    productType: existingOrder.productType,
+                    productName: productLabel,
+                    productUnit: 'گرم',
+                    adminId: adminUser.id,
+                    adminUsername: adminUser.username,
+                    approvedAt: new Date().toISOString()
+                  }
+                }
+              });
+            }
           }
         });
 
         console.log('✅ [Admin Order Status] تراکنش‌های سفارش خرید با موفقیت انجام شد');
 
       } else if (existingOrder.type === 'SELL') {
-        // سفارش فروش: کسر از طلایی، اضافه به ریالی
+        // سفارش فروش: برای طلای وزنی کسر از طلایی، برای سکه فقط بررسی تعداد سکه و اضافه به ریالی
         console.log('💰 [Admin Order Status] پردازش سفارش فروش...');
 
-        // بررسی موجودی طلایی
-        const goldWallet = await prisma.wallet.findFirst({
-          where: {
-            userId: existingOrder.userId,
-            type: 'GOLD'
-          }
-        });
-
-        if (!goldWallet) {
-          console.error('❌ [Admin Order Status] کیف پول طلایی کاربر یافت نشد');
-          return NextResponse.json(
-            { error: 'کیف پول طلایی کاربر یافت نشد' },
-            { status: 404 }
-          );
-        }
-
-        const currentBalance = Number(goldWallet.balance);
+        let goldWallet = null as any;
+        let currentBalance = 0;
         const requiredAmount = Number(existingOrder.amount);
 
-        console.log('📊 [Admin Order Status] موجودی فعلی طلایی:', currentBalance);
-        console.log('📊 [Admin Order Status] مقدار مورد نیاز:', requiredAmount);
+        if (isGoldProduct) {
+          // بررسی موجودی طلایی فقط برای طلای وزنی
+          goldWallet = await prisma.wallet.findFirst({
+            where: {
+              userId: existingOrder.userId,
+              type: 'GOLD'
+            }
+          });
 
-        if (currentBalance < requiredAmount) {
-          console.error('❌ [Admin Order Status] موجودی طلایی کافی نیست');
-          return NextResponse.json(
-            { 
-              error: 'موجودی طلایی کافی نیست',
-              details: {
-                currentBalance,
-                requiredAmount,
-                shortage: requiredAmount - currentBalance
-              }
+          if (!goldWallet) {
+            console.error('❌ [Admin Order Status] کیف پول طلایی کاربر یافت نشد');
+            return NextResponse.json(
+              { error: 'کیف پول طلایی کاربر یافت نشد' },
+              { status: 404 }
+            );
+          }
+
+          currentBalance = Number(goldWallet.balance);
+
+          console.log('📊 [Admin Order Status] موجودی فعلی طلایی:', currentBalance);
+          console.log('📊 [Admin Order Status] مقدار مورد نیاز:', requiredAmount);
+
+          if (currentBalance < requiredAmount) {
+            console.error('❌ [Admin Order Status] موجودی طلایی کافی نیست');
+            return NextResponse.json(
+              { 
+                error: 'موجودی طلایی کافی نیست',
+                details: {
+                  currentBalance,
+                  requiredAmount,
+                  shortage: requiredAmount - currentBalance
+                }
+              },
+              { status: 400 }
+            );
+          }
+        } else if (isCoinProduct) {
+          // برای فروش سکه: بررسی تعداد سکه از روی سفارش‌های تکمیل‌شده
+          const completedOrders = await prisma.order.findMany({
+            where: {
+              userId: existingOrder.userId,
+              productType: existingOrder.productType,
+              status: 'COMPLETED',
             },
-            { status: 400 }
-          );
+            select: {
+              type: true,
+              amount: true,
+            },
+          });
+
+          let coinBalance = 0;
+          completedOrders.forEach((o) => {
+            if (o.type === 'BUY') {
+              coinBalance += Number(o.amount);
+            } else if (o.type === 'SELL') {
+              coinBalance -= Number(o.amount);
+            }
+          });
+
+          coinBalance = Math.max(0, coinBalance);
+
+          if (coinBalance < requiredAmount) {
+            console.error('❌ [Admin Order Status] تعداد سکه کافی نیست');
+            return NextResponse.json(
+              {
+                error: 'تعداد سکه کافی نیست',
+                details: {
+                  currentBalance: coinBalance,
+                  requiredAmount,
+                  shortage: requiredAmount - coinBalance,
+                },
+              },
+              { status: 400 }
+            );
+          }
         }
 
         // محاسبه مبلغ نهایی (بعد از کسر کارمزد)
@@ -298,15 +360,17 @@ export async function PATCH(request: NextRequest) {
 
         // انجام تراکنش‌ها با Prisma Transaction
         await prisma.$transaction(async (tx: any) => {
-          // کسر از کیف پول طلایی
-          await tx.wallet.update({
-            where: { id: goldWallet.id },
-            data: {
-              balance: {
-                decrement: requiredAmount
+          // برای طلای وزنی: کسر از کیف پول طلایی
+          if (isGoldProduct && goldWallet) {
+            await tx.wallet.update({
+              where: { id: goldWallet.id },
+              data: {
+                balance: {
+                  decrement: requiredAmount
+                }
               }
-            }
-          });
+            });
+          }
 
           // اضافه کردن به کیف پول ریالی
           const rialWallet = await tx.wallet.findFirst({
@@ -346,25 +410,30 @@ export async function PATCH(request: NextRequest) {
             });
           }
 
-          // ثبت تراکنش کسر از کیف پول طلایی
-          await tx.transaction.create({
-            data: {
-              userId: existingOrder.userId,
-              walletId: goldWallet.id,
-              type: 'WITHDRAW',
-              amount: requiredAmount,
-              description: `فروش ${existingOrder.amount} ${existingOrder.productType === 'GOLD_18K' ? 'گرم' : 'عدد'} ${existingOrder.productType} (تایید شده توسط ادمین)`,
-              status: 'COMPLETED',
-              referenceId: orderId,
-              metadata: {
-                orderId: orderId,
-                orderType: 'SELL',
-                adminId: adminUser.id,
-                adminUsername: adminUser.username,
-                approvedAt: new Date().toISOString()
+          // ثبت تراکنش کسر از کیف پول طلایی (فقط برای طلای وزنی)
+          if (isGoldProduct && goldWallet) {
+            await tx.transaction.create({
+              data: {
+                userId: existingOrder.userId,
+                walletId: goldWallet.id,
+                type: 'WITHDRAW',
+                amount: requiredAmount,
+                description: `فروش ${existingOrder.amount} گرم ${productLabel || existingOrder.productType} (تایید شده توسط ادمین)`,
+                status: 'COMPLETED',
+                referenceId: orderId,
+                metadata: {
+                  orderId: orderId,
+                  orderType: 'SELL',
+                  productType: existingOrder.productType,
+                  productName: productLabel,
+                  productUnit: 'گرم',
+                  adminId: adminUser.id,
+                  adminUsername: adminUser.username,
+                  approvedAt: new Date().toISOString()
+                }
               }
-            }
-          });
+            });
+          }
 
           // ثبت تراکنش اضافه به کیف پول ریالی
           const finalRialWallet = await tx.wallet.findFirst({
@@ -381,12 +450,15 @@ export async function PATCH(request: NextRequest) {
                 walletId: finalRialWallet.id,
                 type: 'DEPOSIT',
                 amount: finalPrice,
-                description: `فروش ${existingOrder.amount} ${existingOrder.productType === 'GOLD_18K' ? 'گرم' : 'عدد'} ${existingOrder.productType} (تایید شده توسط ادمین)`,
+                description: `فروش ${existingOrder.amount} ${productUnit} ${productLabel} (تایید شده توسط ادمین)`,
                 status: 'COMPLETED',
                 referenceId: orderId,
                 metadata: {
                   orderId: orderId,
                   orderType: 'SELL',
+                  productType: existingOrder.productType,
+                  productName: productLabel,
+                  productUnit,
                   adminId: adminUser.id,
                   adminUsername: adminUser.username,
                   approvedAt: new Date().toISOString()

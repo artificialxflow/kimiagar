@@ -76,30 +76,24 @@ export default function SellPage() {
   };
 
   const getGoldBalance = (productType: string) => {
-    if (!walletData?.wallets) return 0;
-    
-    // پیدا کردن کیف پول مناسب بر اساس نوع محصول
-    let balance = 0;
-    
+    if (!walletData) return 0;
+
     if (productType === 'GOLD_18K') {
-      // برای طلای 18 عیار، کیف پول GOLD را پیدا کن
-      const wallet = walletData.wallets.find((w: any) => w.type === 'GOLD');
-      balance = Number(wallet?.balance || 0);
-    } else if (['COIN_BAHAR_86', 'COIN_NIM_86', 'COIN_ROBE_86'].includes(productType)) {
-      // برای سکه‌ها، کیف پول GOLD و موجودی سکه‌ها را بررسی کن
-      const wallet = walletData.wallets.find((w: any) => w.type === 'GOLD');
-      if (wallet && wallet.coins) {
-        if (productType === 'COIN_BAHAR_86') {
-          balance = wallet.coins.fullCoin || 0;
-        } else if (productType === 'COIN_NIM_86') {
-          balance = wallet.coins.halfCoin || 0;
-        } else if (productType === 'COIN_ROBE_86') {
-          balance = wallet.coins.quarterCoin || 0;
-        }
-      }
+      const goldWallet = walletData.wallets?.find((w: any) => w.type === 'GOLD');
+      return Number(goldWallet?.balance || 0);
     }
-    
-    return balance;
+
+    const coins = walletData.coins || {};
+    switch (productType) {
+      case 'COIN_BAHAR_86':
+        return Number(coins.fullCoin || 0);
+      case 'COIN_NIM_86':
+        return Number(coins.halfCoin || 0);
+      case 'COIN_ROBE_86':
+        return Number(coins.quarterCoin || 0);
+      default:
+        return 0;
+    }
   };
 
   const handleSellClick = (price: any) => {

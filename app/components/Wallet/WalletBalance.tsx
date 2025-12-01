@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { formatGoldValue, formatRial } from '@/app/lib/utils';
 
 const WalletBalance: React.FC = () => {
   const [wallets, setWallets] = useState<any[]>([]);
   const [statistics, setStatistics] = useState<any>(null);
   const [coins, setCoins] = useState<any>(null);
+  const [pendingDeposits, setPendingDeposits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [balanceVisible, setBalanceVisible] = useState(true);
@@ -35,6 +37,7 @@ const WalletBalance: React.FC = () => {
         setWallets(data.wallets || []);
         setStatistics(data.statistics || {});
         setCoins(data.coins || { fullCoin: 0, halfCoin: 0, quarterCoin: 0, total: 0 });
+        setPendingDeposits(data.pendingDeposits || []);
       } else {
         setError(data.error || 'خطا در دریافت اطلاعات کیف پول');
       }
@@ -48,17 +51,6 @@ const WalletBalance: React.FC = () => {
 
   const rialWallet = wallets.find(w => w.type === 'RIAL') || { balance: 0 };
   const goldWallet = wallets.find(w => w.type === 'GOLD') || { balance: 0 };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fa-IR').format(value);
-  };
-
-  const formatGold = (value: number) => {
-    return new Intl.NumberFormat('fa-IR', {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 3
-    }).format(value);
-  };
 
   if (loading) {
     return (
@@ -115,7 +107,7 @@ const WalletBalance: React.FC = () => {
           </div>
           <div className="space-y-2">
             <div className="text-3xl font-bold text-slate-800">
-              {balanceVisible ? formatCurrency(Number(rialWallet.balance)) : '••••••••'}
+              {balanceVisible ? formatRial(Number(rialWallet.balance)) : '••••••••'}
             </div>
             <div className="text-sm text-slate-600 font-medium">تومان</div>
           </div>
@@ -147,7 +139,7 @@ const WalletBalance: React.FC = () => {
           </div>
           <div className="space-y-2">
             <div className="text-3xl font-bold text-slate-800">
-              {balanceVisible ? formatGold(Number(goldWallet.balance)) : '••••••'}
+              {balanceVisible ? formatGoldValue(Number(goldWallet.balance)) : '••••••'}
             </div>
             <div className="text-sm text-slate-600 font-medium">گرم</div>
           </div>
@@ -220,6 +212,68 @@ const WalletBalance: React.FC = () => {
         </button>
       </div>
 
+      {/* Pending Deposits */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 shadow-inner">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-bold text-yellow-800">واریزهای در انتظار تایید</h3>
+            <p className="text-sm text-yellow-700">
+              مبالغ زیر هنوز به موجودی شما اضافه نشده‌اند تا بعد از تایید ادمین
+            </p>
+          </div>
+          <span className="px-3 py-1 rounded-full text-sm font-semibold bg-yellow-200 text-yellow-800 border border-yellow-300">
+            {pendingDeposits.length} مورد
+          </span>
+        </div>
+
+        {pendingDeposits.length === 0 ? (
+          <div className="text-center py-4 text-yellow-700 font-medium">
+            در حال حاضر واریز معلقی ندارید.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingDeposits.map((deposit) => {
+              const metadata = typeof deposit.metadata === 'object' && deposit.metadata !== null
+                ? deposit.metadata
+                : {};
+
+              return (
+                <div
+                  key={deposit.id}
+                  className="bg-white rounded-xl border border-yellow-200 p-4 shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-yellow-600 mb-1">درخواست شارژ</p>
+                      <p className="text-lg font-bold text-yellow-900">{formatRial(Number(deposit.amount))} تومان</p>
+                    </div>
+                    <div className="text-right text-sm text-yellow-700">
+                      <p>{new Date(deposit.createdAt).toLocaleDateString('fa-IR')}</p>
+                      <p className="text-xs text-yellow-600">
+                        کد رهگیری: {deposit.referenceId || '—'}
+                      </p>
+                    </div>
+                  </div>
+                  {metadata.receiptNumber && (
+                    <p className="text-xs text-yellow-700 mt-2">
+                      شماره فیش: {metadata.receiptNumber}
+                    </p>
+                  )}
+                  {metadata.adminReason && (
+                    <p className="text-xs text-red-600 mt-2">
+                      دلیل: {metadata.adminReason}
+                    </p>
+                  )}
+                  {deposit.description && (
+                    <p className="text-xs text-yellow-800 mt-2">توضیح: {deposit.description}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Summary Statistics */}
       <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl p-6 border-2 border-slate-200 shadow-lg">
         <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
@@ -229,19 +283,19 @@ const WalletBalance: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-xl p-5 text-center shadow-md hover:shadow-lg transition-shadow">
             <div className="text-3xl font-bold text-slate-800 mb-2">
-              {statistics ? formatCurrency(statistics.totalTransactions || 0) : '0'}
+              {statistics ? (statistics.totalTransactions || 0).toLocaleString('fa-IR') : '0'}
             </div>
             <div className="text-sm text-slate-600 font-medium">کل تراکنش‌ها</div>
           </div>
           <div className="bg-white rounded-xl p-5 text-center shadow-md hover:shadow-lg transition-shadow">
             <div className="text-3xl font-bold text-green-600 mb-2">
-              {statistics ? formatCurrency(statistics.totalDeposit || 0) : '0'}
+              {statistics ? formatRial(statistics.totalDeposit || 0) : '0'}
             </div>
             <div className="text-sm text-slate-600 font-medium">کل شارژ (تومان)</div>
           </div>
           <div className="bg-white rounded-xl p-5 text-center shadow-md hover:shadow-lg transition-shadow">
             <div className="text-3xl font-bold text-red-600 mb-2">
-              {statistics ? formatCurrency(statistics.totalWithdraw || 0) : '0'}
+              {statistics ? formatRial(statistics.totalWithdraw || 0) : '0'}
             </div>
             <div className="text-sm text-slate-600 font-medium">کل برداشت (تومان)</div>
           </div>

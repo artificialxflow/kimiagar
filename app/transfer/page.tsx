@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Layout from "../components/Layout/Layout";
 import { ArrowRight, Wallet, Coins, AlertCircle, CheckCircle, User, Phone, Search, PauseCircle } from 'lucide-react';
 import { useTradingMode } from '@/app/hooks/useTradingMode';
+import { formatRial } from '@/app/lib/utils';
 
 export default function TransferPage() {
   const [user, setUser] = useState<any>(null);
@@ -212,7 +213,7 @@ export default function TransferPage() {
 
   const getWalletDisplayName = (wallet: any) => {
     if (wallet.type === 'RIAL') {
-      return `کیف پول ریالی - ${parseFloat(wallet.balance).toLocaleString()} تومان`;
+      return `کیف پول ریالی - ${formatRial(parseFloat(wallet.balance))} تومان`;
     } else {
       return `کیف پول طلایی - ${parseFloat(wallet.balance)} گرم`;
     }

@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { X, Wallet, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import { formatNumber } from '@/app/lib/utils';
+import { apiFetch } from '@/app/lib/apiClient';
+import {
+  formatGoldValue,
+  formatInputNumber,
+  formatRial,
+  normalizeDigits,
+  parseLocalizedNumber
+} from '@/app/lib/utils';
 
 interface ChargeWalletModalProps {
   isOpen: boolean;
@@ -35,6 +42,18 @@ export default function ChargeWalletModal({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
+  const sanitizeGoldInput = (value: string) => {
+    const normalized = normalizeDigits(value).replace(/[^0-9.]/g, '');
+    const parts = normalized.split('.');
+    if (parts.length <= 1) return normalized;
+    return `${parts[0]}.${parts.slice(1).join('')}`;
+  };
+
+  const numericAmount =
+    walletType === 'RIAL'
+      ? parseLocalizedNumber(amount)
+      : parseFloat(sanitizeGoldInput(amount)) || 0;
+
   // Reset form when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
@@ -54,12 +73,12 @@ export default function ChargeWalletModal({
     setSuccess(false);
 
     // Validation
-    if (!amount || parseFloat(amount) <= 0) {
+    if (!amount || numericAmount <= 0) {
       setError('مبلغ باید مثبت باشد');
       return;
     }
 
-    if (parseFloat(amount) > 1000000000000) {
+    if (numericAmount > 1000000000000) {
       setError('مبلغ خیلی بزرگ است');
       return;
     }
@@ -67,7 +86,7 @@ export default function ChargeWalletModal({
     setLoading(true);
 
     try {
-      const response = await fetch('/api/admin/wallet/charge', {
+      const response = await apiFetch('/api/admin/wallet/charge', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -75,7 +94,7 @@ export default function ChargeWalletModal({
         },
         body: JSON.stringify({
           userId,
-          amount: parseFloat(amount),
+          amount: numericAmount,
           walletType,
           description: description || undefined,
           receiptNumber: receiptNumber || undefined,
@@ -106,9 +125,8 @@ export default function ChargeWalletModal({
 
   if (!isOpen) return null;
 
-  const currentBalanceDisplay = walletType === 'RIAL' 
-    ? currentBalance?.rial || 0
-    : currentBalance?.gold || 0;
+  const currentBalanceDisplay =
+    walletType === 'RIAL' ? currentBalance?.rial || 0 : currentBalance?.gold || 0;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" dir="rtl">
@@ -146,7 +164,9 @@ export default function ChargeWalletModal({
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-gray-600">موجودی فعلی ({walletType === 'RIAL' ? 'ریالی' : 'طلایی'}):</p>
                 <p className="text-lg font-bold text-blue-900">
-                  {formatNumber(currentBalanceDisplay)} {walletType === 'RIAL' ? 'تومان' : 'گرم'}
+                  {walletType === 'RIAL'
+                    ? `${formatRial(currentBalanceDisplay)} تومان`
+                    : `${formatGoldValue(currentBalanceDisplay)} گرم`}
                 </p>
               </div>
             )}
@@ -163,7 +183,10 @@ export default function ChargeWalletModal({
                       type="radio"
                       value="RIAL"
                       checked={walletType === 'RIAL'}
-                      onChange={(e) => setWalletType(e.target.value as 'RIAL' | 'GOLD')}
+                      onChange={(e) => {
+                        setWalletType(e.target.value as 'RIAL' | 'GOLD');
+                        setAmount('');
+                      }}
                       className="ml-2"
                     />
                     <span className="text-sm text-gray-700">ریالی</span>
@@ -173,7 +196,10 @@ export default function ChargeWalletModal({
                       type="radio"
                       value="GOLD"
                       checked={walletType === 'GOLD'}
-                      onChange={(e) => setWalletType(e.target.value as 'RIAL' | 'GOLD')}
+                      onChange={(e) => {
+                        setWalletType(e.target.value as 'RIAL' | 'GOLD');
+                        setAmount('');
+                      }}
                       className="ml-2"
                     />
                     <span className="text-sm text-gray-700">طلایی</span>
@@ -186,18 +212,43 @@ export default function ChargeWalletModal({
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
                   مبلغ {walletType === 'RIAL' ? '(تومان)' : '(گرم)'}
                 </label>
-                <input
-                  type="number"
-                  id="amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="مثال: 1000000"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
-                  required
-                  min="0"
-                  step="0.01"
-                  disabled={loading}
-                />
+                {walletType === 'RIAL' ? (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      dir="ltr"
+                      id="amount"
+                      value={amount}
+                      onChange={(e) => setAmount(formatInputNumber(e.target.value))}
+                      placeholder="مثال: 1,000,000"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
+                      required
+                      disabled={loading}
+                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                      تومان
+                    </span>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      dir="ltr"
+                      id="amount"
+                      value={amount}
+                      onChange={(e) => setAmount(sanitizeGoldInput(e.target.value))}
+                      placeholder="مثال: 10.5"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
+                      required
+                      disabled={loading}
+                    />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                      گرم
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Receipt Number */}

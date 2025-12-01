@@ -151,6 +151,7 @@ export default function Dashboard() {
             <WalletSummary 
               wallets={walletData?.wallets || []}
               transactions={walletData?.recentTransactions || []}
+              coins={walletData?.coins}
             />
 
             {/* Recent Transactions */}
@@ -187,6 +188,7 @@ export default function Dashboard() {
           <WalletSummary 
             wallets={walletData?.wallets || []}
             transactions={walletData?.recentTransactions || []}
+            coins={walletData?.coins}
           />
 
           {/* 2. Quick Actions */}

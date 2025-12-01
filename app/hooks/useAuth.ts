@@ -51,6 +51,13 @@ export function useAuth() {
       if (!response.ok) {
         // اگر refresh ناموفق بود، logout کن
         await logout();
+        return;
+      }
+
+      const data = await response.json();
+      if (data?.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+        setToken(data.accessToken);
       }
     } catch (error) {
       console.error('خطا در refresh token:', error);

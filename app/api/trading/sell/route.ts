@@ -25,6 +25,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // جلوگیری از ثبت سفارش جدید در صورت وجود سفارش PENDING فعال
+    const activePendingOrder = await prisma.order.findFirst({
+      where: {
+        userId,
+        status: 'PENDING',
+      },
+      select: { id: true, productType: true, type: true },
+    });
+
+    if (activePendingOrder) {
+      return NextResponse.json(
+        {
+          error: 'شما یک سفارش در حال بررسی دارید. لطفاً تا مشخص شدن نتیجه آن صبر کنید.',
+          activeOrderId: activePendingOrder.id,
+          activeOrderType: activePendingOrder.type,
+          activeProductType: activePendingOrder.productType,
+        },
+        { status: 400 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, firstName: true, lastName: true }

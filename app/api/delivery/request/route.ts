@@ -25,6 +25,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // جلوگیری از ثبت درخواست تحویل در صورت وجود سفارش PENDING فعال
+    const activePendingOrder = await prisma.order.findFirst({
+      where: {
+        userId,
+        status: 'PENDING',
+      },
+      select: { id: true, productType: true, type: true },
+    });
+
+    if (activePendingOrder) {
+      return NextResponse.json(
+        {
+          error: 'به دلیل وجود سفارش در حال بررسی، امکان ثبت درخواست تحویل وجود ندارد. لطفاً تا مشخص شدن نتیجه سفارش صبر کنید.',
+          activeOrderId: activePendingOrder.id,
+          activeOrderType: activePendingOrder.type,
+          activeProductType: activePendingOrder.productType,
+        },
+        { status: 400 }
+      );
+    }
+
     // بررسی موجودی کیف پول طلایی
     const goldWallet = await prisma.wallet.findFirst({
       where: {

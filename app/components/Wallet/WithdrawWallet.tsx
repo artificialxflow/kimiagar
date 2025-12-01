@@ -1,9 +1,17 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { ArrowDownRight, Shield, AlertCircle, CreditCard, CheckCircle } from 'lucide-react';
+import { formatRial } from '@/app/lib/utils';
+import { useFormattedRialInput } from '@/app/hooks/useFormattedRialInput';
 
 export default function WithdrawWallet() {
-  const [amount, setAmount] = useState('');
+  const {
+    value: amount,
+    numericValue,
+    onChange: handleAmountChange,
+    setFormattedValue: setAmount,
+    reset: resetAmount,
+  } = useFormattedRialInput();
   const [bankAccount, setBankAccount] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,12 +51,12 @@ export default function WithdrawWallet() {
       return;
     }
 
-    if (parseFloat(amount) < 10000) {
+    if (numericValue < 10000) {
       setError('حداقل مبلغ برداشت 10,000 تومان است');
       return;
     }
 
-    if (parseFloat(amount) > walletBalance) {
+    if (numericValue > walletBalance) {
       setError('موجودی کافی نیست');
       return;
     }
@@ -73,7 +81,7 @@ export default function WithdrawWallet() {
         },
         body: JSON.stringify({
           userId: user.id,
-          amount: parseFloat(amount),
+          amount: numericValue,
           bankAccount,
           description: description || `برداشت به حساب ${bankAccount}`
         }),
@@ -83,11 +91,11 @@ export default function WithdrawWallet() {
 
       if (response.ok) {
         setSuccess(true);
-        setAmount('');
+        resetAmount();
         setBankAccount('');
         setDescription('');
         // به‌روزرسانی موجودی
-        setWalletBalance(prev => prev - parseFloat(amount));
+        setWalletBalance(prev => prev - numericValue);
         // به‌روزرسانی صفحه بعد از 3 ثانیه
         setTimeout(() => {
           window.location.href = '/wallet';
@@ -121,7 +129,7 @@ export default function WithdrawWallet() {
               <div>
                 <div className="text-sm text-blue-700">موجودی قابل برداشت</div>
                 <div className="text-2xl font-bold text-blue-900">
-                  {walletBalance.toLocaleString()} تومان
+                  {formatRial(walletBalance)} تومان
                 </div>
               </div>
               <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
@@ -140,15 +148,14 @@ export default function WithdrawWallet() {
                 </label>
                 <div className="relative">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    dir="ltr"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={handleAmountChange}
                     placeholder="مبلغ را وارد کنید"
                     className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
-                    min="10000"
-                    step="1000"
-                    max={walletBalance}
                   />
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
                     تومان
@@ -164,10 +171,10 @@ export default function WithdrawWallet() {
                     <button
                       key={quickAmount}
                       type="button"
-                      onClick={() => setAmount(quickAmount.toString())}
+                      onClick={() => setAmount(quickAmount)}
                       className="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs transition-colors"
                     >
-                      {quickAmount === walletBalance ? 'تمام موجودی' : `${quickAmount.toLocaleString()}`}
+                      {quickAmount === walletBalance ? 'تمام موجودی' : formatRial(quickAmount)}
                     </button>
                   ))}
                 </div>
@@ -224,7 +231,13 @@ export default function WithdrawWallet() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || !amount || !bankAccount || parseFloat(amount) < 10000 || parseFloat(amount) > walletBalance}
+                disabled={
+                  loading ||
+                  !amount ||
+                  !bankAccount ||
+                  numericValue < 10000 ||
+                  numericValue > walletBalance
+                }
                 className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'در حال پردازش...' : 'درخواست برداشت'}

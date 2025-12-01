@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/app/hooks/useAuth';
-import { formatNumber, formatCountdown, formatDateTime } from '@/app/lib/utils';
+import { formatNumber, formatCountdown, formatDateTime, formatRial, formatGoldValue } from '@/app/lib/utils';
 import ChargeWalletModal from '@/app/components/Admin/ChargeWalletModal';
 import UserWalletModal from '@/app/components/Admin/UserWalletModal';
 import { Wallet, Eye, AlertTriangle, AlertCircle, BellRing, Clock } from 'lucide-react';
 import type { TradingModePayload } from '@/app/lib/systemSettings';
+import { apiFetch } from '@/app/lib/apiClient';
 
 interface AdminStats {
   totalUsers: number;
@@ -65,6 +66,26 @@ interface Order {
   };
 }
 
+interface DeliveryRequest {
+  id: string;
+  userId: string;
+  productType: string;
+  amount: number;
+  commission: number;
+  status: string;
+  deliveryAddress: string | null;
+  requestedAt: string;
+  approvedAt?: string | null;
+  readyAt?: string | null;
+  deliveredAt?: string | null;
+  adminNotes?: string | null;
+  user: {
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+  };
+}
+
 const GRAMS_PER_MITHQAL = 4.3318;
 
 export default function AdminPage() {
@@ -72,6 +93,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -90,6 +112,21 @@ export default function AdminPage() {
   const [tradingMode, setTradingMode] = useState<TradingModePayload | null>(null);
   const [tradingMessage, setTradingMessage] = useState('');
   const [tradingModeLoading, setTradingModeLoading] = useState(false);
+
+  const handleUnauthorized = useCallback(() => {
+    setMessage({
+      type: 'error',
+      text: 'نشست شما منقضی شده است. لطفاً مجدداً وارد حساب کاربری شوید.',
+    });
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?expired=1';
+      }
+    }, 2000);
+  }, []);
+
+  const isSessionExpiredError = (error: unknown) =>
+    error instanceof Error && error.message.includes('نشست کاربر منقضی شده');
 
   const playNotificationSound = () => {
     if (typeof window === 'undefined') return;
@@ -124,32 +161,36 @@ export default function AdminPage() {
       if (!token) return;
       if (!options.silent) setLoading(true);
       try {
-        const ordersResponse = await fetch('/api/admin/orders', {
+        const ordersResponse = await apiFetch('/api/admin/orders', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (ordersResponse.ok) {
-          const ordersData = await ordersResponse.json();
-          setOrders(ordersData.orders);
-          const pendingIds: string[] = (ordersData.orders || [])
-            .filter((order: Order) => order.status === 'PENDING')
-            .map((order: Order) => order.id);
-          setPendingOrdersCount(pendingIds.length);
-
-          const previousPending = new Set(lastPendingOrdersRef.current);
-          const newOnes = pendingIds.filter((id: string) => !previousPending.has(id));
-          if (newOnes.length > 0) {
-            setNewOrderIds(newOnes);
-            triggerOrderAlert(newOnes.length);
-          }
-          lastPendingOrdersRef.current = pendingIds;
+        if (!ordersResponse.ok) {
+          throw new Error('خطا در دریافت سفارش‌ها');
         }
+        const ordersData = await ordersResponse.json();
+        setOrders(ordersData.orders);
+        const pendingIds: string[] = (ordersData.orders || [])
+          .filter((order: Order) => order.status === 'PENDING')
+          .map((order: Order) => order.id);
+        setPendingOrdersCount(pendingIds.length);
+
+        const previousPending = new Set(lastPendingOrdersRef.current);
+        const newOnes = pendingIds.filter((id: string) => !previousPending.has(id));
+        if (newOnes.length > 0) {
+          setNewOrderIds(newOnes);
+          triggerOrderAlert(newOnes.length);
+        }
+        lastPendingOrdersRef.current = pendingIds;
       } catch (error) {
         console.error('خطا در دریافت سفارش‌ها:', error);
+        if (isSessionExpiredError(error)) {
+          handleUnauthorized();
+        }
       } finally {
         if (!options.silent) setLoading(false);
       }
     },
-    [token]
+    [token, handleUnauthorized]
   );
 
   const fetchUsersList = useCallback(
@@ -157,42 +198,112 @@ export default function AdminPage() {
       if (!token) return;
       if (!options.silent) setLoading(true);
       try {
-        const usersResponse = await fetch('/api/admin/users', {
+        const usersResponse = await apiFetch('/api/admin/users', {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (usersResponse.ok) {
-          const usersData = await usersResponse.json();
-          setUsers(usersData.users);
+        if (!usersResponse.ok) {
+          throw new Error('خطا در دریافت کاربران');
         }
+        const usersData = await usersResponse.json();
+        setUsers(usersData.users);
       } catch (error) {
         console.error('خطا در دریافت کاربران:', error);
+        if (isSessionExpiredError(error)) {
+          handleUnauthorized();
+        }
       } finally {
         if (!options.silent) setLoading(false);
       }
     },
-    [token]
+    [token, handleUnauthorized]
   );
 
   const fetchTradingMode = useCallback(async () => {
     if (!token) return;
     try {
       setTradingModeLoading(true);
-      const response = await fetch('/api/admin/system/trading-mode', {
+      const response = await apiFetch('/api/admin/system/trading-mode', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await response.json();
-      if (response.ok) {
-        setTradingMode(data.mode);
-        setTradingMessage(data.mode?.message || '');
-      } else {
-        console.error('خطا در دریافت وضعیت معاملات:', data.error);
+      if (!response.ok) {
+        throw new Error('خطا در دریافت وضعیت معاملات');
       }
+      const data = await response.json();
+      setTradingMode(data.mode);
+      setTradingMessage(data.mode?.message || '');
     } catch (error) {
       console.error('خطا در دریافت وضعیت معاملات:', error);
+      if (isSessionExpiredError(error)) {
+        handleUnauthorized();
+      }
     } finally {
       setTradingModeLoading(false);
     }
-  }, [token]);
+  }, [token, handleUnauthorized]);
+
+  const fetchDeliveryRequests = useCallback(
+    async (options: { silent?: boolean; status?: string } = {}) => {
+      if (!token) return;
+      if (!options.silent) setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (options.status && options.status !== 'ALL') {
+          params.set('status', options.status);
+        }
+        const url = `/api/admin/delivery${params.toString() ? `?${params.toString()}` : ''}`;
+        const response = await apiFetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          throw new Error('خطا در دریافت درخواست‌های تحویل');
+        }
+        const data = await response.json();
+        setDeliveryRequests(data.requests || []);
+      } catch (error) {
+        console.error('خطا در دریافت درخواست‌های تحویل:', error);
+        if (isSessionExpiredError(error)) {
+          handleUnauthorized();
+        }
+      } finally {
+        if (!options.silent) setLoading(false);
+      }
+    },
+    [token, handleUnauthorized]
+  );
+
+  const updateDeliveryStatus = useCallback(
+    async (id: string, status: string, adminNotes?: string) => {
+      if (!token) return;
+      try {
+        const response = await apiFetch('/api/admin/delivery', {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id, status, adminNotes }),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          setMessage({ type: 'error', text: data.error || 'خطا در تغییر وضعیت تحویل' });
+          setTimeout(() => setMessage(null), 5000);
+          return;
+        }
+        setMessage({ type: 'success', text: 'وضعیت درخواست تحویل با موفقیت به‌روزرسانی شد' });
+        setTimeout(() => setMessage(null), 3000);
+        await fetchDeliveryRequests({ silent: true });
+      } catch (error) {
+        console.error('خطا در تغییر وضعیت تحویل:', error);
+        if (isSessionExpiredError(error)) {
+          handleUnauthorized();
+        } else {
+          setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+          setTimeout(() => setMessage(null), 5000);
+        }
+      }
+    },
+    [token, handleUnauthorized, fetchDeliveryRequests]
+  );
 
   const fetchAdminData = useCallback(async () => {
     if (!token) return;
@@ -213,26 +324,35 @@ export default function AdminPage() {
       return;
     }
 
+    if (activeTab === 'delivery') {
+      await fetchDeliveryRequests();
+      return;
+    }
+
     try {
       setLoading(true);
 
       if (activeTab === 'dashboard') {
-        const statsResponse = await fetch('/api/admin/stats', {
+        const statsResponse = await apiFetch('/api/admin/stats', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          setStats(statsData);
+        if (!statsResponse.ok) {
+          throw new Error('خطا در دریافت آمار داشبورد');
         }
+        const statsData = await statsResponse.json();
+        setStats(statsData);
       }
     } catch (error) {
       console.error('خطا در دریافت اطلاعات ادمین:', error);
+      if (isSessionExpiredError(error)) {
+        handleUnauthorized();
+      }
     } finally {
       if (activeTab !== 'system') {
         setLoading(false);
       }
     }
-  }, [activeTab, fetchOrders, fetchTradingMode, fetchUsersList, token]);
+  }, [activeTab, fetchOrders, fetchTradingMode, fetchUsersList, handleUnauthorized, token]);
 
   useEffect(() => {
     if (token) {
@@ -368,7 +488,7 @@ export default function AdminPage() {
 
   const updateOrderStatus = async (orderId: string, status: string, reason?: string) => {
     try {
-      const response = await fetch('/api/admin/orders/status', {
+      const response = await apiFetch('/api/admin/orders/status', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -377,20 +497,24 @@ export default function AdminPage() {
         body: JSON.stringify({ orderId, status, statusReason: reason }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: data.message || 'وضعیت سفارش با موفقیت به‌روزرسانی شد' });
-        setTimeout(() => setMessage(null), 3000);
-        fetchAdminData(); // به‌روزرسانی داده‌ها
-      } else {
+      if (!response.ok) {
+        const data = await response.json();
         setMessage({ type: 'error', text: data.error || 'خطا در به‌روزرسانی وضعیت سفارش' });
         setTimeout(() => setMessage(null), 5000);
+        return;
       }
+      const data = await response.json();
+      setMessage({ type: 'success', text: data.message || 'وضعیت سفارش با موفقیت به‌روزرسانی شد' });
+      setTimeout(() => setMessage(null), 3000);
+      fetchAdminData(); // به‌روزرسانی داده‌ها
     } catch (error) {
       console.error('خطا در به‌روزرسانی سفارش:', error);
-      setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
-      setTimeout(() => setMessage(null), 5000);
+      if (isSessionExpiredError(error)) {
+        handleUnauthorized();
+      } else {
+        setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+        setTimeout(() => setMessage(null), 5000);
+      }
     }
   };
 
@@ -441,7 +565,7 @@ export default function AdminPage() {
       if (!token) return;
       try {
         setTradingModeLoading(true);
-        const response = await fetch('/api/admin/system/trading-mode', {
+        const response = await apiFetch('/api/admin/system/trading-mode', {
           method: 'PATCH',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -453,26 +577,32 @@ export default function AdminPage() {
           }),
         });
 
-        const data = await response.json();
-        if (response.ok) {
-          setTradingMode(data.mode);
-          setTradingMessage(data.mode?.message || '');
-          setMessage({
-            type: 'success',
-            text: nextPaused ? 'معاملات متوقف شد' : 'معاملات فعال شد',
-          });
-        } else {
+        if (!response.ok) {
+          const data = await response.json();
           setMessage({ type: 'error', text: data.error || 'خطا در بروزرسانی وضعیت معاملات' });
+          return;
         }
+
+        const data = await response.json();
+        setTradingMode(data.mode);
+        setTradingMessage(data.mode?.message || '');
+        setMessage({
+          type: 'success',
+          text: nextPaused ? 'معاملات متوقف شد' : 'معاملات فعال شد',
+        });
       } catch (error) {
         console.error('خطا در بروزرسانی وضعیت معاملات:', error);
-        setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+        if (isSessionExpiredError(error)) {
+          handleUnauthorized();
+        } else {
+          setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+        }
       } finally {
         setTradingModeLoading(false);
         setTimeout(() => setMessage(null), 4000);
       }
     },
-    [token, tradingMessage]
+    [token, tradingMessage, handleUnauthorized]
   );
 
   const handleChargeWallet = async (user: User) => {
@@ -485,23 +615,27 @@ export default function AdminPage() {
 
     try {
       // دریافت موجودی کاربر
-      const response = await fetch(`/api/admin/users/${confirmCharge.user.id}/wallet`, {
+      const response = await apiFetch(`/api/admin/users/${confirmCharge.user.id}/wallet`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUserWalletData(data);
-        setSelectedUser(confirmCharge.user);
-        setChargeModalOpen(true);
-        setConfirmCharge({ show: false, user: null });
-      } else {
+      if (!response.ok) {
         setMessage({ type: 'error', text: 'خطا در دریافت موجودی کاربر' });
         setConfirmCharge({ show: false, user: null });
+        return;
       }
+
+      const data = await response.json();
+      setUserWalletData(data);
+      setSelectedUser(confirmCharge.user);
+      setChargeModalOpen(true);
+      setConfirmCharge({ show: false, user: null });
     } catch (error) {
       console.error('خطا در دریافت موجودی:', error);
-      setMessage({ type: 'error', text: 'خطا در دریافت موجودی کاربر' });
+      if (isSessionExpiredError(error)) {
+        handleUnauthorized();
+      } else {
+        setMessage({ type: 'error', text: 'خطا در دریافت موجودی کاربر' });
+      }
       setConfirmCharge({ show: false, user: null });
     }
   };
@@ -557,6 +691,202 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Delivery Requests Tab */}
+        {activeTab === 'delivery' && (
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">درخواست‌های تحویل فیزیکی</h3>
+              {/* فیلتر وضعیت ساده */}
+              <select
+                className="border border-gray-300 rounded-md px-3 py-1 text-sm text-gray-700 focus:outline-none focus:ring-gold focus:border-gold"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  fetchDeliveryRequests({ status: value });
+                }}
+                defaultValue="ALL"
+              >
+                <option value="ALL">همه وضعیت‌ها</option>
+                <option value="PENDING">در انتظار تایید</option>
+                <option value="APPROVED">تایید شده</option>
+                <option value="PROCESSING">در حال آماده‌سازی</option>
+                <option value="READY">آماده تحویل</option>
+                <option value="DELIVERED">تحویل شده</option>
+                <option value="CANCELLED">لغو شده</option>
+              </select>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      کاربر
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      محصول / مقدار
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      کارمزد
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      وضعیت
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      زمان‌ها
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      عملیات
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {deliveryRequests.map((req) => {
+                    const requestedAt = new Date(req.requestedAt);
+                    const statusLabel =
+                      req.status === 'PENDING'
+                        ? 'در انتظار تایید'
+                        : req.status === 'APPROVED'
+                        ? 'تایید شده'
+                        : req.status === 'PROCESSING'
+                        ? 'در حال آماده‌سازی'
+                        : req.status === 'READY'
+                        ? 'آماده تحویل'
+                        : req.status === 'DELIVERED'
+                        ? 'تحویل شده'
+                        : 'لغو شده';
+
+                    return (
+                      <tr key={req.id}>
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          <div className="font-semibold">
+                            {req.user.firstName} {req.user.lastName}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {req.user.phoneNumber}
+                          </div>
+                          <div className="text-[11px] text-gray-400 mt-1 font-mono">
+                            {req.id.slice(-8)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          <div>{req.productType}</div>
+                          <div className="mt-1 text-sm text-gray-700">
+                            مقدار: {formatGoldValue(req.amount)}{' '}
+                            <span className="text-xs text-gray-500">
+                              {req.productType === 'GOLD_18K' ? 'گرم' : 'عدد'}
+                            </span>
+                          </div>
+                          {req.deliveryAddress && (
+                            <div className="mt-1 text-xs text-gray-500">
+                              آدرس: {req.deliveryAddress}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          <div className="font-semibold">
+                            {formatRial(req.commission)} تومان
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-gray-900">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              req.status === 'PENDING'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : req.status === 'APPROVED'
+                                ? 'bg-blue-100 text-blue-800'
+                                : req.status === 'PROCESSING'
+                                ? 'bg-indigo-100 text-indigo-800'
+                                : req.status === 'READY'
+                                ? 'bg-purple-100 text-purple-800'
+                                : req.status === 'DELIVERED'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {statusLabel}
+                          </span>
+                          {req.adminNotes && (
+                            <div className="mt-1 text-xs text-gray-500">
+                              یادداشت ادمین: {req.adminNotes}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 align-top text-xs text-gray-700">
+                          <div>
+                            ثبت: {requestedAt.toLocaleString('fa-IR')}
+                          </div>
+                          {req.approvedAt && (
+                            <div>تایید: {new Date(req.approvedAt).toLocaleString('fa-IR')}</div>
+                          )}
+                          {req.readyAt && (
+                            <div>آماده: {new Date(req.readyAt).toLocaleString('fa-IR')}</div>
+                          )}
+                          {req.deliveredAt && (
+                            <div>تحویل: {new Date(req.deliveredAt).toLocaleString('fa-IR')}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm">
+                          <div className="flex flex-col gap-2">
+                            {req.status === 'PENDING' && (
+                              <button
+                                onClick={() => updateDeliveryStatus(req.id, 'APPROVED')}
+                                className="px-3 py-1 rounded-md bg-blue-600 text-white text-xs hover:bg-blue-700"
+                              >
+                                تایید درخواست
+                              </button>
+                            )}
+                            {req.status === 'APPROVED' && (
+                              <button
+                                onClick={() => updateDeliveryStatus(req.id, 'PROCESSING')}
+                                className="px-3 py-1 rounded-md bg-indigo-600 text-white text-xs hover:bg-indigo-700"
+                              >
+                                شروع آماده‌سازی
+                              </button>
+                            )}
+                            {req.status === 'PROCESSING' && (
+                              <button
+                                onClick={() => updateDeliveryStatus(req.id, 'READY')}
+                                className="px-3 py-1 rounded-md bg-purple-600 text-white text-xs hover:bg-purple-700"
+                              >
+                                علامت به‌عنوان آماده تحویل
+                              </button>
+                            )}
+                            {req.status === 'READY' && (
+                              <button
+                                onClick={() => updateDeliveryStatus(req.id, 'DELIVERED')}
+                                className="px-3 py-1 rounded-md bg-green-600 text-white text-xs hover:bg-green-700"
+                              >
+                                ثبت تحویل شد
+                              </button>
+                            )}
+                            {req.status !== 'DELIVERED' && req.status !== 'CANCELLED' && (
+                              <button
+                                onClick={() => updateDeliveryStatus(req.id, 'CANCELLED')}
+                                className="px-3 py-1 rounded-md bg-red-600 text-white text-xs hover:bg-red-700"
+                              >
+                                لغو درخواست
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {deliveryRequests.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-4 py-8 text-center text-sm text-gray-500"
+                      >
+                        در حال حاضر هیچ درخواست تحویل ثبت نشده است.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm mb-8">
           <div className="border-b border-gray-200">
@@ -565,6 +895,7 @@ export default function AdminPage() {
                 { id: 'dashboard', name: 'داشبورد', icon: '📊' },
                 { id: 'users', name: 'کاربران', icon: '👥' },
                 { id: 'orders', name: 'سفارش‌ها', icon: '📋' },
+                { id: 'delivery', name: 'تحویل فیزیکی', icon: '🚚' },
                 { id: 'system', name: 'سیستم', icon: '⚙️' },
               ].map((tab) => (
                 <button
@@ -643,7 +974,7 @@ export default function AdminPage() {
                 </div>
                 <div className="mr-4">
                   <p className="text-sm font-medium text-gray-500">درآمد کل</p>
-                  <p className="text-2xl font-bold text-gray-900">{formatNumber(stats.totalRevenue)} تومان</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatRial(stats.totalRevenue)} تومان</p>
                 </div>
               </div>
             </div>
@@ -752,10 +1083,10 @@ export default function AdminPage() {
                         {user.phoneNumber}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatNumber(getWalletBalance(user, 'RIAL'))} تومان
+                        {formatRial(getWalletBalance(user, 'RIAL'))} تومان
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatNumber(getWalletBalance(user, 'GOLD'))} گرم
+                        {formatGoldValue(getWalletBalance(user, 'GOLD'), 3)} گرم
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
@@ -776,7 +1107,7 @@ export default function AdminPage() {
                             <button
                               onClick={async () => {
                                 try {
-                                  const response = await fetch('/api/admin/users', {
+                                  const response = await apiFetch('/api/admin/users', {
                                     method: 'PATCH',
                                     headers: {
                                       'Authorization': `Bearer ${token}`,
@@ -788,19 +1119,23 @@ export default function AdminPage() {
                                     }),
                                   });
 
-                                  if (response.ok) {
-                                    setMessage({ type: 'success', text: 'کاربر با موفقیت تایید شد' });
-                                    setTimeout(() => setMessage(null), 3000);
-                                    fetchAdminData();
-                                  } else {
+                                  if (!response.ok) {
                                     const data = await response.json();
                                     setMessage({ type: 'error', text: data.error || 'خطا در تایید کاربر' });
                                     setTimeout(() => setMessage(null), 5000);
+                                    return;
                                   }
+                                  setMessage({ type: 'success', text: 'کاربر با موفقیت تایید شد' });
+                                  setTimeout(() => setMessage(null), 3000);
+                                  fetchAdminData();
                                 } catch (error) {
                                   console.error('خطا در تایید کاربر:', error);
-                                  setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
-                                  setTimeout(() => setMessage(null), 5000);
+                                  if (isSessionExpiredError(error)) {
+                                    handleUnauthorized();
+                                  } else {
+                                    setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+                                    setTimeout(() => setMessage(null), 5000);
+                                  }
                                 }
                               }}
                               className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white rounded-md text-xs font-medium hover:bg-green-700 transition-colors shadow-sm"
@@ -934,17 +1269,17 @@ export default function AdminPage() {
                           {weightDetails.isGoldProduct ? (
                             <>
                               <div className="text-lg font-bold text-gray-900">
-                                {formatNumber(weightDetails.grams)}{' '}
+                                {formatGoldValue(weightDetails.grams)}{' '}
                                 <span className="text-sm font-normal text-gray-500">گرم</span>
                               </div>
                               <div className="text-sm text-gray-600">
                                 ≈ {weightDetails.mithqal.toFixed(2)} مثقال
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                مظنه تمام‌شده: {formatNumber(Math.round(weightDetails.mithqalRate))} تومان
+                                مظنه تمام‌شده: {formatRial(Math.round(weightDetails.mithqalRate))} تومان
                               </div>
                               <div className="text-xs text-gray-500">
-                                قیمت هر گرم: {formatNumber(Math.round(weightDetails.gramRate))} تومان
+                                قیمت هر گرم: {formatRial(Math.round(weightDetails.gramRate))} تومان
                               </div>
                             </>
                           ) : (
@@ -956,14 +1291,14 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-4 align-top text-sm text-gray-900">
                           <div className="text-base font-bold text-gray-900">
-                            {formatNumber(Math.round(weightDetails.finalPrice))} تومان
+                            {formatRial(Math.round(weightDetails.finalPrice))} تومان
                           </div>
                           <div className="text-xs text-gray-500">
-                            قیمت پایه: {formatNumber(Number(order.totalPrice))} تومان
+                            قیمت پایه: {formatRial(Number(order.totalPrice))} تومان
                           </div>
                           {order.commission && (
                             <div className="text-xs text-gray-500">
-                              کارمزد: {formatNumber(Number(order.commission))} تومان
+                              کارمزد: {formatRial(Number(order.commission))} تومان
                             </div>
                           )}
                         </td>
@@ -993,7 +1328,7 @@ export default function AdminPage() {
                               {order.type === 'BUY' ? (
                                 <>
                                   <div className="text-gray-900">
-                                    ریالی: {formatNumber(order.userWallet.rial)} تومان
+                                    ریالی: {formatRial(order.userWallet.rial)} تومان
                                   </div>
                                   {order.status === 'PENDING' && order.hasEnoughBalance === false && (
                                     <div className="flex items-center gap-1 text-red-600 text-xs mt-1">
@@ -1005,7 +1340,7 @@ export default function AdminPage() {
                               ) : (
                                 <>
                                   <div className="text-gray-900">
-                                    طلایی: {formatNumber(order.userWallet.gold)} گرم
+                                    طلایی: {formatGoldValue(order.userWallet.gold)} گرم
                                   </div>
                                   {order.status === 'PENDING' && order.hasEnoughBalance === false && (
                                     <div className="flex items-center gap-1 text-red-600 text-xs mt-1">
@@ -1191,17 +1526,40 @@ export default function AdminPage() {
                     {confirmOrderStatus.newStatus === 'COMPLETED' && (
                       <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
                         <p>⚠️ با تایید این سفارش:</p>
-                        {confirmOrderStatus.order.type === 'BUY' ? (
+                    {(() => {
+                      const isCoinProduct = confirmOrderStatus.order?.productType?.startsWith('COIN_');
+                      const productLabel = getProductTypeLabel(confirmOrderStatus.order.productType);
+                      const amountLabel = isCoinProduct
+                        ? `${formatNumber(Number(confirmOrderStatus.order.amount))} عدد ${productLabel}`
+                        : `${formatNumber(Number(confirmOrderStatus.order.amount))} گرم ${productLabel}`;
+                      const finalPrice = formatNumber(
+                        Number(confirmOrderStatus.order.totalPrice) - Number(confirmOrderStatus.order.commission || 0)
+                      );
+                      if (confirmOrderStatus.order.type === 'BUY') {
+                        return (
                           <ul className="list-disc list-inside mt-1 space-y-1">
                             <li>{formatNumber(Number(confirmOrderStatus.order.totalPrice))} تومان از موجودی ریالی کاربر کسر می‌شود</li>
-                            <li>{formatNumber(Number(confirmOrderStatus.order.amount))} گرم به موجودی طلایی کاربر اضافه می‌شود</li>
+                            <li>
+                              {isCoinProduct
+                                ? `${amountLabel} به موجودی سکه‌های کاربر اضافه می‌شود`
+                                : `${amountLabel} به موجودی طلای کاربر اضافه می‌شود`}
+                            </li>
                           </ul>
-                        ) : (
-                          <ul className="list-disc list-inside mt-1 space-y-1">
-                            <li>{formatNumber(Number(confirmOrderStatus.order.amount))} گرم از موجودی طلایی کاربر کسر می‌شود</li>
-                            <li>{formatNumber(Number(confirmOrderStatus.order.totalPrice) - Number(confirmOrderStatus.order.commission || 0))} تومان به موجودی ریالی کاربر اضافه می‌شود</li>
-                          </ul>
-                        )}
+                        );
+                      }
+                      return (
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>
+                            {isCoinProduct
+                              ? `${amountLabel} از موجودی سکه‌های کاربر کسر می‌شود`
+                              : `${amountLabel} از موجودی طلای کاربر کسر می‌شود`}
+                          </li>
+                          <li>
+                            {finalPrice} تومان به موجودی ریالی کاربر اضافه می‌شود
+                          </li>
+                        </ul>
+                      );
+                    })()}
                       </div>
                     )}
                   </div>
@@ -1227,7 +1585,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={confirmOrderStatusChange}
-                    className="flex-1 px-4 py-2 bg-gold text-white rounded-md hover:bg-gold-dark transition-colors"
+                    className="flex-1 px-4 py-2 bg-gold-600 text-white rounded-md hover:bg-gold-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 transition-colors"
                   >
                     تایید و ادامه
                   </button>
@@ -1268,7 +1626,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={confirmChargeAction}
-                    className="flex-1 px-4 py-2 bg-gold text-white rounded-md hover:bg-gold-dark transition-colors"
+                    className="flex-1 px-4 py-2 bg-gold-600 text-white rounded-md hover:bg-gold-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 transition-colors"
                   >
                     تایید و ادامه
                   </button>

@@ -45,11 +45,30 @@ export async function GET(request: NextRequest) {
         description: true,
         status: true,
         createdAt: true,
+        metadata: true,
         wallet: {
           select: {
             type: true
           }
         }
+      }
+    });
+
+    // تراکنش‌های واریز در انتظار
+    const pendingDeposits = await prisma.transaction.findMany({
+      where: {
+        userId,
+        type: 'DEPOSIT',
+        status: 'PENDING'
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        amount: true,
+        description: true,
+        createdAt: true,
+        metadata: true,
+        referenceId: true
       }
     });
 
@@ -144,7 +163,8 @@ export async function GET(request: NextRequest) {
         totalWithdraw: Number(totalWithdraw),
         totalTransactions
       },
-      coins
+      coins,
+      pendingDeposits
     });
 
   } catch (error: any) {

@@ -1,35 +1,69 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Calculator, AlertCircle, Scale, Clock, PauseCircle } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useTradingMode } from '@/app/hooks/useTradingMode';
+import { useFormattedRialInput } from '@/app/hooks/useFormattedRialInput';
+import { getProductDisplayName, isCoinProductType, parseLocalizedNumber } from '@/app/lib/utils';
 
 interface SellGoldProps {
   prices?: any[];
 }
 
+const COIN_BALANCE_KEY_MAP: Record<string, 'fullCoin' | 'halfCoin' | 'quarterCoin'> = {
+  COIN_BAHAR_86: 'fullCoin',
+  COIN_NIM_86: 'halfCoin',
+  COIN_ROBE_86: 'quarterCoin',
+  COIN_BAHAR: 'fullCoin',
+  COIN_NIM: 'halfCoin',
+  COIN_ROBE: 'quarterCoin'
+};
+
 export default function SellGold({ prices = [] }: SellGoldProps) {
   const params = useParams();
+  const searchParams = useSearchParams();
   const productType = params.productType as string;
   
   const [inputType, setInputType] = useState<'weight' | 'money'>('weight');
   const [weightAmount, setWeightAmount] = useState('');
-  const [moneyAmount, setMoneyAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
+  const [lockVisible, setLockVisible] = useState(false);
+  const [lockMessage, setLockMessage] = useState<string | null>(null);
+  const [finalStatus, setFinalStatus] = useState<'COMPLETED' | 'FAILED' | 'EXPIRED' | null>(null);
+  const [finalStatusMessage, setFinalStatusMessage] = useState<string | null>(null);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [volatilityMessage, setVolatilityMessage] = useState('');
-  const [availableBalance, setAvailableBalance] = useState(0);
+  const [availableBalance, setAvailableBalance] = useState(() => {
+    const initial = Number(searchParams.get('balance'));
+    return isNaN(initial) ? 0 : initial;
+  });
   const { mode: tradingMode } = useTradingMode(15000);
 
   const selectedPrice = prices.find(p => p.productType === productType);
+  const isCoinProduct = isCoinProductType(productType);
+  const {
+    value: moneyAmount,
+    onChange: handleMoneyInputChange,
+    setFormattedValue: setMoneyAmount,
+    numericValue: moneyValue,
+    reset: resetMoneyAmount
+  } = useFormattedRialInput();
+
+  // جلوگیری از تغییر ورودی به مبلغ برای سکه‌ها
+  useEffect(() => {
+    if (isCoinProduct && inputType === 'money') {
+      setInputType('weight');
+    }
+  }, [isCoinProduct, inputType]);
 
   // دریافت موجودی و بررسی نوسان
   useEffect(() => {
     fetchAvailableBalance();
     checkVolatility();
-  }, []);
+  }, [productType]);
 
   // شمارنده معکوس
   useEffect(() => {
@@ -38,9 +72,59 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
       interval = setInterval(() => {
         setCountdown(prev => prev - 1);
       }, 1000);
+    } else if (countdown === 0 && lockVisible && !finalStatus) {
+      setLockMessage('درخواست فروش شما در صف بررسی ادمین است. لطفاً تا تعیین تکلیف نهایی منتظر بمانید.');
     }
     return () => clearInterval(interval);
-  }, [countdown]);
+  }, [countdown, lockVisible, finalStatus]);
+
+  // پولینگ وضعیت سفارش تا خروج از PENDING
+  useEffect(() => {
+    if (!activeOrderId) return;
+
+    let polling: NodeJS.Timeout;
+
+    const pollStatus = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) return;
+
+        const res = await fetch(`/api/orders/status?id=${activeOrderId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const status = data.order?.status as 'PENDING' | 'COMPLETED' | 'FAILED' | 'EXPIRED';
+
+        if (status && status !== 'PENDING') {
+          setFinalStatus(status);
+
+          if (status === 'COMPLETED') {
+            setFinalStatusMessage('سفارش فروش شما با موفقیت انجام شد. مبلغ آن به کیف پول ریالی شما اضافه می‌شود.');
+          } else if (status === 'FAILED') {
+            setFinalStatusMessage(data.order?.adminMessage || 'سفارش شما توسط ادمین رد شد.');
+          } else if (status === 'EXPIRED') {
+            setFinalStatusMessage('مهلت انجام سفارش به پایان رسیده و سفارش منقضی شده است.');
+          }
+
+          setTimeout(() => {
+            setLockVisible(false);
+            setActiveOrderId(null);
+            window.location.href = '/dashboard';
+          }, 4000);
+        }
+      } catch (err) {
+        console.error('خطا در دریافت وضعیت سفارش فروش:', err);
+      }
+    };
+
+    polling = setInterval(pollStatus, 5000);
+    pollStatus();
+
+    return () => clearInterval(polling);
+  }, [activeOrderId]);
 
   const fetchAvailableBalance = async () => {
     try {
@@ -52,31 +136,18 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
       const data = await response.json();
 
       if (response.ok) {
-        // پیدا کردن کیف پول مناسب بر اساس نوع producto
-        let wallet = null;
-        
-        if (productType === 'GOLD_18K') {
-          // برای طلای 18 عیار، کیف پول GOLD را پیدا کن
-          wallet = data.wallets.find((w: any) => w.type === 'GOLD');
-        } else if (['COIN_BAHAR_86', 'COIN_NIM_86', 'COIN_ROBE_86'].includes(productType)) {
-          // برای سکه‌ها، کوال پول GOLD و موجودی سکه‌ها را بررسی کن
-          wallet = data.wallets.find((w: any) => w.type === 'GOLD');
-          if (wallet && wallet.coins) {
-            // موجودی سکه‌ها را محاسبه کن
-            let coinBalance = 0;
-            if (productType === 'COIN_BAHAR_86') {
-              coinBalance = wallet.coins.fullCoin || 0;
-            } else if (productType === 'COIN_NIM_86') {
-              coinBalance = wallet.coins.halfCoin || 0;
-            } else if (productType === 'COIN_ROBE_86') {
-              coinBalance = wallet.coins.quarterCoin || 0;
-            }
-            setAvailableBalance(coinBalance);
-            return;
-          }
+        if (isCoinProductType(productType)) {
+          const coins = data.coins || {};
+          const balanceKey = COIN_BALANCE_KEY_MAP[productType] || null;
+          const coinBalance = balanceKey ? Number(coins[balanceKey] || 0) : 0;
+          setAvailableBalance(coinBalance);
+          return;
         }
-        
-        setAvailableBalance(Number(wallet?.balance || 0));
+
+        const goldWallet = data.wallets?.find((w: any) => w.type === 'GOLD');
+        setAvailableBalance(Number(goldWallet?.balance || 0));
+      } else {
+        setAvailableBalance(0);
       }
     } catch (error) {
       console.error('خطا در دریافت موجودی:', error);
@@ -97,7 +168,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
       return parseFloat(weightAmount) || 0;
     } else {
       if (!selectedPrice) return 0;
-      return (parseFloat(moneyAmount) || 0) / Number(selectedPrice.sellPrice);
+      return moneyValue / Number(selectedPrice.sellPrice);
     }
   };
 
@@ -107,7 +178,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
       if (!selectedPrice) return 0;
       return (parseFloat(weightAmount) || 0) * Number(selectedPrice.sellPrice);
     } else {
-      return parseFloat(moneyAmount) || 0;
+      return moneyValue;
     }
   };
 
@@ -127,24 +198,34 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
 
   // تبدیل خودکار بین وزن و مبلغ
   useEffect(() => {
-    if (selectedPrice && inputType === 'weight' && weightAmount) {
+    if (!selectedPrice || inputType !== 'weight') {
+      return;
+    }
+
+    if (weightAmount) {
       const weight = parseFloat(weightAmount);
       if (weight > 0) {
         const money = weight * Number(selectedPrice.sellPrice);
         setMoneyAmount(money.toFixed(0));
+        return;
       }
     }
-  }, [weightAmount, selectedPrice, inputType]);
+
+    setMoneyAmount('');
+  }, [weightAmount, selectedPrice, inputType, setMoneyAmount]);
 
   useEffect(() => {
-    if (selectedPrice && inputType === 'money' && moneyAmount) {
-      const money = parseFloat(moneyAmount);
-      if (money > 0) {
-        const weight = money / Number(selectedPrice.sellPrice);
-        setWeightAmount(weight.toFixed(2));
-      }
+    if (!selectedPrice || inputType !== 'money') {
+      return;
     }
-  }, [moneyAmount, selectedPrice, inputType]);
+
+    if (moneyValue > 0) {
+      const weight = moneyValue / Number(selectedPrice.sellPrice);
+      setWeightAmount(weight.toFixed(isCoinProduct ? 0 : 2));
+    } else {
+      setWeightAmount('');
+    }
+  }, [moneyValue, selectedPrice, inputType, isCoinProduct]);
 
   // اعتبارسنجی ورودی
   const validateInput = () => {
@@ -160,7 +241,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
       }
       
       // برای سکه‌ها، تعداد باید صحیح باشد
-      if (productType !== 'GOLD_18K') {
+      if (isCoinProduct) {
         const amount = parseFloat(weightAmount);
         if (amount !== Math.floor(amount)) {
           setError('برای سکه‌ها، تعداد باید عدد صحیح باشد');
@@ -174,13 +255,13 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
         return false;
       }
     } else {
-      if (!moneyAmount || parseFloat(moneyAmount) <= 0) {
+      if (moneyValue <= 0) {
         setError('لطفاً مبلغ را به درستی وارد کنید');
         return false;
       }
 
       // بررسی موجودی کافی بر اساس مبلغ
-      const requiredAmount = parseFloat(moneyAmount) / Number(selectedPrice.sellPrice);
+      const requiredAmount = moneyValue / Number(selectedPrice.sellPrice);
       if (requiredAmount > availableBalance) {
         setError('موجودی کافی نیست');
         return false;
@@ -202,6 +283,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
 
     if (tradingMode.tradingPaused) {
       setError(tradingMode.message || 'در حال حاضر امکان ثبت سفارش وجود ندارد.');
+      setLoading(false);
       return;
     }
 
@@ -210,6 +292,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
       const userData = localStorage.getItem('user');
       if (!userData) {
         setError('کاربر یافت نشد');
+        setLoading(false);
         return;
       }
 
@@ -232,29 +315,19 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
 
       if (response.ok) {
         setIsOrderPlaced(true);
+        setLockVisible(true);
+        setLockMessage('درخواست فروش شما ثبت شد، لطفاً تا پایان شمارنده و بررسی ادمین منتظر بمانید.');
         setCountdown(180); // 3 دقیقه شمارنده معکوس
         setWeightAmount('');
-        setMoneyAmount('');
+        resetMoneyAmount();
         fetchAvailableBalance(); // به‌روزرسانی موجودی
-        
-        // نمایش پیام موفقیت و لینک فاکتور
-        // استفاده از order.id برای فاکتور (API از orderId پشتیبانی می‌کند)
+
         const orderId = data.order?.id || data.orderId;
         if (orderId) {
-          setTimeout(() => {
-            if (confirm('سفارش با موفقیت ثبت شد! آیا می‌خواهید فاکتور را مشاهده کنید؟')) {
-              window.open(`/invoice?id=${orderId}`, '_blank');
-            }
-            window.location.href = '/dashboard';
-          }, 2000); // 2 ثانیه تاخیر برای نمایش پیام
-        } else {
-          // اگر order.id وجود نداشت، فقط به dashboard برو
-          setTimeout(() => {
-            window.location.href = '/dashboard';
-          }, 2000);
+          setActiveOrderId(orderId);
         }
       } else {
-        setError(data.error || 'خطا در ثبت سفارش');
+        setError(data.error || 'خطا در ثبت سفارش فروش');
       }
     } catch (error) {
       setError('خطا در اتصال به سرور');
@@ -263,22 +336,13 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
     }
   };
 
-  const getProductDisplayName = (productType: string) => {
-    switch (productType) {
-      case 'GOLD_18K': return 'طلای 18 عیار';
-      case 'COIN_BAHAR': return 'سکه بهار آزادی';
-      case 'COIN_NIM': return 'نیم سکه';
-      case 'COIN_ROBE': return 'ربع سکه';
-      case 'COIN_BAHAR_86': return 'سکه بهار آزادی 86';
-      case 'COIN_NIM_86': return 'نیم سکه 86';
-      case 'COIN_ROBE_86': return 'ربع سکه 86';
-      default: return productType;
-    }
+  const getUnit = () => {
+    return isCoinProduct ? 'عدد' : 'گرم';
   };
 
-  const getUnit = () => {
-    return productType === 'GOLD_18K' ? 'گرم' : 'عدد';
-  };
+  const hasValidInput = inputType === 'weight'
+    ? parseFloat(weightAmount) > 0
+    : moneyValue > 0;
 
   return (
     <div className="space-y-6">
@@ -336,7 +400,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
             <span className="font-medium text-blue-800">موجودی موجود:</span>
           </div>
           <span className="font-bold text-blue-800">
-            {availableBalance.toLocaleString('fa-IR')} {getUnit()}
+            {isCoinProduct ? availableBalance.toLocaleString('fa-IR') : availableBalance.toLocaleString('fa-IR')} {getUnit()}
           </span>
         </div>
       </div>
@@ -363,21 +427,28 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
                 <span>بر اساس وزن</span>
               </div>
             </button>
-            <button
-              type="button"
-              onClick={() => setInputType('money')}
-              className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
-                inputType === 'money'
-                  ? 'border-gold bg-gold-50 text-gold'
-                  : 'border-slate-300 text-slate-600 hover:border-slate-400'
-              }`}
-            >
-              <div className="flex items-center justify-center space-x-2 space-x-reverse">
-                <DollarSign className="w-5 h-5" />
-                <span>بر اساس مبلغ</span>
-              </div>
-            </button>
+            {!isCoinProduct && (
+              <button
+                type="button"
+                onClick={() => setInputType('money')}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
+                  inputType === 'money'
+                    ? 'border-gold bg-gold-50 text-gold'
+                    : 'border-slate-300 text-slate-600 hover:border-slate-400'
+                }`}
+              >
+                <div className="flex items-center justify-center space-x-2 space-x-reverse">
+                  <DollarSign className="w-5 h-5" />
+                  <span>بر اساس مبلغ</span>
+                </div>
+              </button>
+            )}
           </div>
+          {isCoinProduct && (
+            <p className="text-xs text-slate-500 mt-2">
+              برای فروش سکه، فقط تعداد سکه مورد نظر را وارد کنید.
+            </p>
+          )}
         </div>
 
         {/* Amount Input */}
@@ -405,14 +476,13 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
           ) : (
             <div className="relative">
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 value={moneyAmount}
-                onChange={(e) => setMoneyAmount(e.target.value)}
+                onChange={handleMoneyInputChange}
                 placeholder="مبلغ را به تومان وارد کنید"
                 className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
                 required
-                min="1000"
-                step="1000"
               />
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
                 تومان
@@ -512,7 +582,7 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
             tradingMode.tradingPaused ||
             loading ||
             !productType ||
-            (!weightAmount && !moneyAmount) ||
+            !hasValidInput ||
             isOrderPlaced ||
             availableBalance <= 0
           }
@@ -529,6 +599,51 @@ export default function SellGold({ prices = [] }: SellGoldProps) {
             : 'ثبت سفارش فروش'}
         </button>
       </form>
+
+      {/* لایه فول‌اسکرین قفل معاملات */}
+      {lockVisible && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6 text-center">
+            <div className="flex flex-col items-center space-y-4">
+              <Clock className="w-10 h-10 text-gold" />
+              <h2 className="text-lg font-bold text-slate-900">
+                درخواست فروش شما در حال پردازش است
+              </h2>
+              {lockMessage && (
+                <p className="text-sm text-slate-600">{lockMessage}</p>
+              )}
+
+              {countdown > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs text-slate-500 mb-1">
+                    زمان باقی‌مانده تا انقضای قیمت
+                  </p>
+                  <div className="text-3xl font-mono font-bold text-slate-900">
+                    {Math.floor(countdown / 60)}:
+                    {(countdown % 60).toString().padStart(2, '0')}
+                  </div>
+                </div>
+              )}
+
+              {finalStatusMessage && (
+                <div
+                  className={`mt-3 w-full rounded-lg p-3 text-sm ${
+                    finalStatus === 'COMPLETED'
+                      ? 'bg-green-50 text-green-700'
+                      : 'bg-red-50 text-red-700'
+                  }`}
+                >
+                  {finalStatusMessage}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-400 mt-2">
+                تا زمان تعیین وضعیت سفارش، امکان انجام عملیات دیگر (خرید، فروش، برداشت و انتقال) وجود ندارد.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { Loader2, AlertCircle, ChevronRight, ChevronLeft } from 'lucide-react';
-import { formatNumber, formatDateTime } from '@/app/lib/utils';
+import {
+  buildTransactionDescription,
+  formatDateTime,
+  formatNumber,
+  formatTransactionAmount,
+  getTransactionTypeLabel,
+  normalizeTransactionMetadata
+} from '@/app/lib/utils';
+import { apiFetch } from '@/app/lib/apiClient';
 
 interface UserTransactionsProps {
   userId: string;
@@ -31,6 +39,7 @@ export default function UserTransactions({ userId, token, page: initialPage = 1,
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [page, setPage] = useState(initialPage);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -59,7 +68,7 @@ export default function UserTransactions({ userId, token, page: initialPage = 1,
         params.append('status', statusFilter);
       }
 
-      const response = await fetch(`/api/admin/users/${userId}/transactions?${params.toString()}`, {
+      const response = await apiFetch(`/api/admin/users/${userId}/transactions?${params.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
 
@@ -78,19 +87,6 @@ export default function UserTransactions({ userId, token, page: initialPage = 1,
     } finally {
       setLoading(false);
     }
-  };
-
-  const getTransactionTypeLabel = (type: string) => {
-    const labels: { [key: string]: string } = {
-      'DEPOSIT': 'واریز',
-      'WITHDRAW': 'برداشت',
-      'TRANSFER': 'انتقال',
-      'COMMISSION': 'کارمزد',
-      'ORDER_PAYMENT': 'پرداخت سفارش',
-      'DELIVERY_FEE': 'کارمزد تحویل',
-      'REFUND': 'بازپرداخت',
-    };
-    return labels[type] || type;
   };
 
   const getTransactionStatusBadge = (status: string) => {
@@ -114,6 +110,55 @@ export default function UserTransactions({ userId, token, page: initialPage = 1,
   const handleFilterChange = () => {
     setPage(1); // Reset to first page when filter changes
     fetchTransactions();
+  };
+
+  const handleDepositAction = async (transaction: Transaction, action: 'APPROVE' | 'REJECT') => {
+    try {
+      if (action === 'REJECT') {
+        const confirmed = window.confirm('آیا از رد این واریز مطمئن هستید؟');
+        if (!confirmed) return;
+      }
+
+      let reason: string | undefined;
+      if (action === 'REJECT') {
+        reason = window.prompt('لطفاً دلیل رد واریز را وارد کنید:', '') || undefined;
+        if (!reason) {
+          // کاربر دلیلی وارد نکرد
+          return;
+        }
+      }
+
+      setActionLoadingId(transaction.id);
+      setError('');
+
+      const response = await apiFetch('/api/admin/wallet/deposit/confirm', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transactionId: transaction.id,
+          action,
+          reason,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'خطا در پردازش واریز');
+        return;
+      }
+
+      // بروزرسانی لیست تراکنش‌ها بعد از موفقیت
+      fetchTransactions();
+    } catch (err) {
+      console.error('خطا در تایید/رد واریز:', err);
+      setError('خطا در اتصال به سرور هنگام پردازش واریز');
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   if (loading && transactions.length === 0) {
@@ -239,31 +284,67 @@ export default function UserTransactions({ userId, token, page: initialPage = 1,
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       تاریخ
                     </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      عملیات
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {transactions.map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getTransactionTypeLabel(transaction.type)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {formatNumber(transaction.amount)} {transaction.wallet.type === 'RIAL' ? 'تومان' : 'گرم'}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                        {transaction.description || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {transaction.referenceId || '-'}
-                      </td>
+                  {transactions.map((transaction) => {
+                    const metadata = normalizeTransactionMetadata(transaction.metadata);
+                    const amountText = formatTransactionAmount(
+                      transaction.amount,
+                      metadata.productType,
+                      transaction.wallet?.type
+                    );
+                    const descriptionText = buildTransactionDescription(transaction.description, metadata);
+                    const referenceText = metadata.receiptNumber || transaction.referenceId || '-';
+
+                    return (
+                      <tr key={transaction.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {getTransactionTypeLabel(transaction.type)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {amountText}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                          {descriptionText || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {referenceText}
+                        </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getTransactionStatusBadge(transaction.status)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDateTime(transaction.createdAt)}
                       </td>
-                    </tr>
-                  ))}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {transaction.type === 'DEPOSIT' && transaction.status === 'PENDING' ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleDepositAction(transaction, 'APPROVE')}
+                              disabled={!!actionLoadingId}
+                              className="px-3 py-1 rounded-md text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                            >
+                              تایید
+                            </button>
+                            <button
+                              onClick={() => handleDepositAction(transaction, 'REJECT')}
+                              disabled={!!actionLoadingId}
+                              className="px-3 py-1 rounded-md text-xs font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                            >
+                              رد
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/app/lib/prisma';
 
+// ثبت درخواست واریز توسط کاربر (مرحله اول - بدون شارژ مستقیم کیف پول)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, amount, description } = body;
+    const { userId, amount, description, receiptNumber } = body;
 
     if (!userId || !amount || amount <= 0) {
       return NextResponse.json(
@@ -28,36 +29,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // به‌روزرسانی موجودی کیف پول
-    const updatedWallet = await prisma.wallet.update({
-      where: { id: wallet.id },
-      data: {
-        balance: {
-          increment: amount
-        }
-      }
-    });
-
-    // ثبت تراکنش
+    // فقط ثبت تراکنش در حالت PENDING
     const transaction = await prisma.transaction.create({
       data: {
         userId,
         walletId: wallet.id,
         type: 'DEPOSIT',
         amount,
-        description: description || 'واریز به کیف پول',
-        status: 'COMPLETED',
-        referenceId: `DEP-${Date.now()}`
+        description: description || 'درخواست واریز به کیف پول',
+        status: 'PENDING',
+        referenceId: receiptNumber || `DEP-${Date.now()}`,
+        metadata: {
+          createdBy: 'USER',
+          source: 'WALLET_DEPOSIT_API',
+          receiptNumber: receiptNumber || null
+        }
       }
     });
 
     return NextResponse.json({
       success: true,
-      wallet: {
-        id: updatedWallet.id,
-        balance: updatedWallet.balance,
-        currency: updatedWallet.currency
-      },
+      message: 'درخواست واریز ثبت شد و در انتظار تایید ادمین است',
       transaction: {
         id: transaction.id,
         amount: transaction.amount,
@@ -67,10 +59,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('خطا در واریز:', error);
+    console.error('خطا در ثبت درخواست واریز:', error);
     return NextResponse.json(
-      { error: 'خطا در واریز به کیف پول' },
+      { error: 'خطا در ثبت درخواست واریز به کیف پول' },
       { status: 500 }
     );
   }
-} 
+}

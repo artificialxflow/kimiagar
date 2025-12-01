@@ -13,6 +13,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // جلوگیری از برداشت در صورت وجود سفارش PENDING فعال
+    const activePendingOrder = await prisma.order.findFirst({
+      where: {
+        userId,
+        status: 'PENDING',
+      },
+      select: { id: true, productType: true, type: true },
+    });
+
+    if (activePendingOrder) {
+      return NextResponse.json(
+        {
+          error: 'به دلیل وجود سفارش در حال بررسی، امکان برداشت از کیف پول وجود ندارد. لطفاً تا مشخص شدن نتیجه سفارش صبر کنید.',
+          activeOrderId: activePendingOrder.id,
+          activeOrderType: activePendingOrder.type,
+          activeProductType: activePendingOrder.productType,
+        },
+        { status: 400 }
+      );
+    }
+
     // دریافت کیف پول ریالی کاربر
     const wallet = await prisma.wallet.findFirst({
       where: {

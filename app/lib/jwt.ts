@@ -11,9 +11,9 @@ export interface JWTPayload {
   exp?: number;
 }
 
-// ایجاد Access Token (15 دقیقه)
+// ایجاد Access Token (۴ ساعت)
 export function generateAccessToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '4h' });
 }
 
 // ایجاد Refresh Token (7 روز)

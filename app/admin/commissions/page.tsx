@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { apiFetch } from '@/app/lib/apiClient';
 
 interface Commission {
   id: string;
@@ -71,18 +72,17 @@ export default function CommissionsPage() {
   const fetchCommissions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/commissions', {
+      const response = await apiFetch('/api/admin/commissions', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCommissions(data.commissions || []);
-      } else if (response.status === 403) {
-        router.push('/dashboard');
-      } else {
+      if (!response.ok) {
         setMessage({ type: 'error', text: 'خطا در دریافت کارمزدها' });
+        return;
       }
+
+      const data = await response.json();
+      setCommissions(data.commissions || []);
     } catch (error) {
       console.error('خطا در دریافت کارمزدها:', error);
       setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
@@ -122,7 +122,7 @@ export default function CommissionsPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const response = await fetch('/api/admin/commissions', {
+      const response = await apiFetch('/api/admin/commissions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,24 +131,25 @@ export default function CommissionsPage() {
         body: JSON.stringify(formData)
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setMessage({ type: 'success', text: data.message });
-        setShowForm(false);
-        setEditingId(null);
-        setFormData({
-          productType: '',
-          buyRate: 0.01,
-          sellRate: 0.01,
-          minAmount: 100000,
-          maxAmount: 1000000000,
-          isActive: true
-        });
-        fetchCommissions();
-      } else {
+      if (!response.ok) {
         const error = await response.json();
         setMessage({ type: 'error', text: error.error || 'خطا در ذخیره کارمزد' });
+        return;
       }
+
+      const data = await response.json();
+      setMessage({ type: 'success', text: data.message });
+      setShowForm(false);
+      setEditingId(null);
+      setFormData({
+        productType: '',
+        buyRate: 0.01,
+        sellRate: 0.01,
+        minAmount: 100000,
+        maxAmount: 1000000000,
+        isActive: true
+      });
+      fetchCommissions();
     } catch (error) {
       console.error('خطا در ذخیره کارمزد:', error);
       setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
@@ -162,18 +163,19 @@ export default function CommissionsPage() {
 
     try {
       setSaving(true);
-      const response = await fetch(`/api/admin/commissions?id=${commissionId}`, {
+      const response = await apiFetch(`/api/admin/commissions?id=${commissionId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'کارمزد با موفقیت حذف شد' });
-        fetchCommissions();
-      } else {
+      if (!response.ok) {
         const error = await response.json();
         setMessage({ type: 'error', text: error.error || 'خطا در حذف کارمزد' });
+        return;
       }
+
+      setMessage({ type: 'success', text: 'کارمزد با موفقیت حذف شد' });
+      fetchCommissions();
     } catch (error) {
       console.error('خطا در حذف کارمزد:', error);
       setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });

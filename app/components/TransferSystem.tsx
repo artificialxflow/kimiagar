@@ -3,29 +3,49 @@
 import React, { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { QrCode, Copy, CheckCircle, AlertCircle } from 'lucide-react';
-
-interface TransferData {
-  recipientUsername: string;
-  amount: number;
-  type: 'gold' | 'rial';
-  description?: string;
-}
+import { normalizeDigits } from '@/app/lib/utils';
+import { useFormattedRialInput } from '@/app/hooks/useFormattedRialInput';
 
 export function TransferSystem() {
   const { user } = useAuth();
-  const [transferData, setTransferData] = useState<TransferData>({
+  const [transferData, setTransferData] = useState({
     recipientUsername: '',
-    amount: 0,
     type: 'rial',
     description: ''
   });
+  const {
+    value: rialAmount,
+    numericValue: rialNumericAmount,
+    onChange: handleRialAmountChange,
+    reset: resetRialAmount
+  } = useFormattedRialInput();
+  const [goldAmount, setGoldAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showQR, setShowQR] = useState(false);
   const [walletCode, setWalletCode] = useState('');
 
+  const sanitizeDecimalInput = (value: string) => {
+    const normalized = normalizeDigits(value).replace(/[^0-9.]/g, '');
+    const parts = normalized.split('.');
+    if (parts.length <= 1) return normalized;
+    return `${parts[0]}.${parts.slice(1).join('')}`;
+  };
+
+  const numericAmount =
+    transferData.type === 'rial'
+      ? rialNumericAmount
+      : parseFloat(sanitizeDecimalInput(goldAmount)) || 0;
+
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!numericAmount || numericAmount <= 0) {
+      setMessage({
+        type: 'error',
+        text: 'لطفاً مبلغ یا مقدار معتبر وارد کنید'
+      });
+      return;
+    }
     setIsLoading(true);
     setMessage(null);
 
@@ -36,7 +56,10 @@ export function TransferSystem() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         },
-        body: JSON.stringify(transferData)
+        body: JSON.stringify({
+          ...transferData,
+          amount: numericAmount
+        })
       });
 
       if (response.ok) {
@@ -47,10 +70,11 @@ export function TransferSystem() {
         });
         setTransferData({
           recipientUsername: '',
-          amount: 0,
           type: 'rial',
           description: ''
         });
+        resetRialAmount();
+        setGoldAmount('');
       } else {
         const error = await response.json();
         setMessage({
@@ -112,7 +136,12 @@ export function TransferSystem() {
               </label>
               <select
                 value={transferData.type}
-                onChange={(e) => setTransferData({ ...transferData, type: e.target.value as 'gold' | 'rial' })}
+                onChange={(e) => {
+                  const nextType = e.target.value as 'gold' | 'rial';
+                  setTransferData({ ...transferData, type: nextType });
+                  resetRialAmount();
+                  setGoldAmount('');
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold"
               >
                 <option value="rial">ریال</option>
@@ -124,16 +153,39 @@ export function TransferSystem() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 مبلغ / مقدار
               </label>
-              <input
-                type="number"
-                value={transferData.amount}
-                onChange={(e) => setTransferData({ ...transferData, amount: parseFloat(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold"
-                placeholder={transferData.type === 'rial' ? 'مبلغ به تومان' : 'مقدار به گرم'}
-                step={transferData.type === 'rial' ? 1000 : 0.1}
-                min="0"
-                required
-              />
+              {transferData.type === 'rial' ? (
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    dir="ltr"
+                    value={rialAmount}
+                    onChange={handleRialAmountChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold"
+                    placeholder="مبلغ به تومان"
+                    required
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                    تومان
+                  </span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    dir="ltr"
+                    value={goldAmount}
+                    onChange={(e) => setGoldAmount(sanitizeDecimalInput(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold"
+                    placeholder="مقدار به گرم"
+                    required
+                  />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                    گرم
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -153,7 +205,7 @@ export function TransferSystem() {
           <div className="text-center">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || numericAmount <= 0}
               className="bg-gold hover:bg-gold-dark text-white px-8 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
             >
               {isLoading ? 'در حال انجام...' : 'انجام انتقال'}

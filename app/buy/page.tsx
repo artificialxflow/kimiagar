@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from "../components/Layout/Layout";
 import { ShoppingCart, Wallet, AlertCircle } from 'lucide-react';
+import { formatRial } from "../lib/utils";
 
 export default function BuyPage() {
   const [user, setUser] = useState<any>(null);
@@ -120,7 +121,7 @@ export default function BuyPage() {
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold">
-                    {Number(walletData.wallets?.find((w: any) => w.type === 'RIAL')?.balance || 0).toLocaleString('fa-IR')} تومان
+                    {formatRial(Number(walletData.wallets?.find((w: any) => w.type === 'RIAL')?.balance || 0))} تومان
                   </div>
                   <div className="text-green-100 text-sm">موجودی قابل استفاده</div>
                   <div className="text-green-200 text-xs mt-1">
@@ -164,7 +165,7 @@ export default function BuyPage() {
                       <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-200">
                         <span className="text-sm text-green-700 font-medium">قیمت خرید:</span>
                         <span className="font-bold text-green-700 text-xl">
-                          {Number(price.buyPrice).toLocaleString('fa-IR')} تومان
+                          {formatRial(Number(price.buyPrice))} تومان
                         </span>
                       </div>
                       

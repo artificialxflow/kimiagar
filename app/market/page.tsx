@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from "../components/Layout/Layout";
 import { RefreshCw } from 'lucide-react';
+import { formatRial } from "../lib/utils";
 
 export default function MarketPage() {
   const [user, setUser] = useState<any>(null);
@@ -139,13 +140,13 @@ export default function MarketPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gold-600">قیمت خرید:</span>
                         <span className="font-bold text-gold-700">
-                          {Number(price.buyPrice).toLocaleString('fa-IR')} تومان
+                          {formatRial(Number(price.buyPrice))} تومان
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gold-600">قیمت فروش:</span>
                         <span className="font-bold text-gold-700">
-                          {Number(price.sellPrice).toLocaleString('fa-IR')} تومان
+                          {formatRial(Number(price.sellPrice))} تومان
                         </span>
                       </div>
                     </div>

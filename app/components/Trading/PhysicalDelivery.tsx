@@ -17,6 +17,7 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [deliveryRequests, setDeliveryRequests] = useState<any[]>([]);
   const [deliveryCommissionRate, setDeliveryCommissionRate] = useState(0.02); // 2% پیش‌فرض
   const { mode: tradingMode } = useTradingMode(15000);
 
@@ -56,6 +57,28 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
     };
 
     fetchDeliveryCommission();
+  }, []);
+
+  // دریافت لیست درخواست‌های تحویل کاربر برای نمایش وضعیت
+  useEffect(() => {
+    const fetchUserDeliveryRequests = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) return;
+
+        const user = JSON.parse(userData);
+        const response = await fetch(`/api/delivery/request?userId=${user.id}`);
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setDeliveryRequests(data.deliveryRequests || []);
+        }
+      } catch (error) {
+        console.error('خطا در دریافت لیست درخواست‌های تحویل:', error);
+      }
+    };
+
+    fetchUserDeliveryRequests();
   }, []);
 
   // محاسبه کارمزد تحویل
@@ -177,6 +200,17 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         setDeliveryDate('');
         setDeliveryTime('');
         setContactPhone('');
+
+        // رفرش لیست وضعیت‌ها
+        try {
+          const listResponse = await fetch(`/api/delivery/request?userId=${user.id}`);
+          const listData = await listResponse.json();
+          if (listResponse.ok && listData.success) {
+            setDeliveryRequests(listData.deliveryRequests || []);
+          }
+        } catch (e) {
+          console.error('خطا در بروزرسانی لیست تحویل:', e);
+        }
         
         // بازگشت به حالت عادی بعد از 5 ثانیه
         setTimeout(() => {
@@ -268,6 +302,81 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
           <li>• تحویل در فروشگاه: 24-48 ساعت کاری</li>
           <li>• مراجعه حضوری به فروشگاه برای تحویل</li>
         </ul>
+      </div>
+
+      {/* لیست وضعیت درخواست‌های تحویل کاربر */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="font-medium text-slate-800 mb-3">وضعیت درخواست‌های تحویل شما</h3>
+        {deliveryRequests.length === 0 ? (
+          <p className="text-sm text-slate-600">
+            تاکنون هیچ درخواست تحویلی ثبت نکرده‌اید.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {deliveryRequests.map((req) => {
+              const statusLabel =
+                req.status === 'PENDING'
+                  ? 'در انتظار تایید'
+                  : req.status === 'APPROVED'
+                  ? 'تایید شده'
+                  : req.status === 'PROCESSING'
+                  ? 'در حال آماده‌سازی'
+                  : req.status === 'READY'
+                  ? 'آماده تحویل'
+                  : req.status === 'DELIVERED'
+                  ? 'تحویل شده'
+                  : 'لغو شده';
+
+              return (
+                <div
+                  key={req.id}
+                  className="border border-slate-200 rounded-md p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                >
+                  <div>
+                    <div className="text-sm font-medium text-slate-800">
+                      {getProductDisplayName(req.productType)} -{' '}
+                      {req.productType === 'GOLD_18K'
+                        ? `${req.amount} گرم`
+                        : `${req.amount} عدد`}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">
+                      ثبت: {new Date(req.requestedAt).toLocaleString('fa-IR')}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-start sm:items-end gap-1">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        req.status === 'PENDING'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : req.status === 'APPROVED'
+                          ? 'bg-blue-100 text-blue-800'
+                          : req.status === 'PROCESSING'
+                          ? 'bg-indigo-100 text-indigo-800'
+                          : req.status === 'READY'
+                          ? 'bg-purple-100 text-purple-800'
+                          : req.status === 'DELIVERED'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {statusLabel}
+                    </span>
+                    {req.status === 'READY' && (
+                      <span className="text-xs text-green-700">
+                        لطفاً برای تحویل به فروشگاه مراجعه کنید.
+                      </span>
+                    )}
+                    {req.status === 'DELIVERED' && (
+                      <span className="text-xs text-slate-500">
+                        تحویل نهایی انجام شده است.
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
