@@ -32,6 +32,24 @@ interface User {
     balance: number | string;
     currency: string;
   }>;
+  coinBalance?: {
+    fullCoin: number;
+    halfCoin: number;
+    quarterCoin: number;
+  };
+  pendingTransaction?: {
+    id: string;
+    type: string;
+    amount: number;
+    description: string | null;
+    createdAt: string;
+    metadata: any;
+    walletType: string;
+  } | null;
+  balanceBeforeTransaction?: {
+    rial: number;
+    gold: number;
+  };
 }
 
 interface Order {
@@ -95,10 +113,13 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [deliveryRequests, setDeliveryRequests] = useState<DeliveryRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('orders');
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingTxId, setRejectingTxId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userWalletData, setUserWalletData] = useState<any>(null);
   const [confirmCharge, setConfirmCharge] = useState<{ show: boolean; user: User | null }>({ show: false, user: null });
@@ -645,6 +666,105 @@ export default function AdminPage() {
     setWalletModalOpen(true);
   };
 
+  const formatCoinBalance = (coinBalance?: { fullCoin: number; halfCoin: number; quarterCoin: number }) => {
+    if (!coinBalance) return '-';
+    const parts: string[] = [];
+    if (coinBalance.fullCoin > 0) parts.push(`${coinBalance.fullCoin} تمام سکه`);
+    if (coinBalance.halfCoin > 0) parts.push(`${coinBalance.halfCoin} نیم سکه`);
+    if (coinBalance.quarterCoin > 0) parts.push(`${coinBalance.quarterCoin} ربع سکه`);
+    return parts.length > 0 ? parts.join('، ') : '-';
+  };
+
+  const getTransactionTypeLabel = (type: string) => {
+    const labels: { [key: string]: string } = {
+      'DEPOSIT': 'واریز',
+      'WITHDRAW': 'برداشت',
+      'TRANSFER': 'انتقال',
+      'COMMISSION': 'کارمزد',
+      'ORDER_PAYMENT': 'پرداخت سفارش',
+    };
+    return labels[type] || type;
+  };
+
+  const handleApproveTransaction = async (transactionId: string) => {
+    if (!token) return;
+    try {
+      const response = await apiFetch('/api/admin/wallet/deposit/confirm', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transactionId,
+          action: 'APPROVE'
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'خطا در تایید تراکنش' });
+        setTimeout(() => setMessage(null), 5000);
+        return;
+      }
+      setMessage({ type: 'success', text: 'تراکنش با موفقیت تایید شد' });
+      setTimeout(() => setMessage(null), 3000);
+      fetchUsersList();
+    } catch (error) {
+      console.error('خطا در تایید تراکنش:', error);
+      if (isSessionExpiredError(error)) {
+        handleUnauthorized();
+      } else {
+        setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+        setTimeout(() => setMessage(null), 5000);
+      }
+    }
+  };
+
+  const handleRejectTransaction = async () => {
+    if (!token || !rejectingTxId) return;
+    if (!rejectReason.trim()) {
+      setMessage({ type: 'error', text: 'لطفاً دلیل رد را وارد کنید' });
+      setTimeout(() => setMessage(null), 5000);
+      return;
+    }
+    try {
+      const response = await apiFetch('/api/admin/wallet/deposit/confirm', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transactionId: rejectingTxId,
+          action: 'REJECT',
+          reason: rejectReason.trim()
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setMessage({ type: 'error', text: data.error || 'خطا در رد تراکنش' });
+        setTimeout(() => setMessage(null), 5000);
+        return;
+      }
+      setMessage({ type: 'success', text: 'تراکنش با موفقیت رد شد' });
+      setTimeout(() => setMessage(null), 3000);
+      setRejectDialogOpen(false);
+      setRejectingTxId(null);
+      setRejectReason('');
+      fetchUsersList();
+    } catch (error) {
+      console.error('خطا در رد تراکنش:', error);
+      if (isSessionExpiredError(error)) {
+        handleUnauthorized();
+      } else {
+        setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+        setTimeout(() => setMessage(null), 5000);
+      }
+    }
+  };
+
   const getWalletBalance = (user: User, type: 'RIAL' | 'GOLD') => {
     if (!user.wallets) return 0;
     const wallet = user.wallets.find(w => w.type === type);
@@ -690,6 +810,47 @@ export default function AdminPage() {
             {message.text}
           </div>
         )}
+
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow-sm mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 space-x-reverse">
+              {[
+                { id: 'dashboard', name: 'داشبورد', icon: '📊' },
+                { id: 'users', name: 'کاربران', icon: '👥' },
+                { id: 'orders', name: 'سفارش‌ها', icon: '📋' },
+                { id: 'delivery', name: 'تحویل فیزیکی', icon: '🚚' },
+                { id: 'system', name: 'سیستم', icon: '⚙️' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === tab.id
+                      ? 'border-gold text-gold'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>{tab.icon}</span>
+                    <span>{tab.name}</span>
+                    {tab.id === 'orders' && pendingOrdersCount > 0 && (
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          newOrderIds.length
+                            ? 'bg-red-500 text-white animate-pulse'
+                            : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        {pendingOrdersCount}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
 
         {/* Delivery Requests Tab */}
         {activeTab === 'delivery' && (
@@ -887,47 +1048,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 space-x-reverse">
-              {[
-                { id: 'dashboard', name: 'داشبورد', icon: '📊' },
-                { id: 'users', name: 'کاربران', icon: '👥' },
-                { id: 'orders', name: 'سفارش‌ها', icon: '📋' },
-                { id: 'delivery', name: 'تحویل فیزیکی', icon: '🚚' },
-                { id: 'system', name: 'سیستم', icon: '⚙️' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-gold text-gold'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <span>{tab.icon}</span>
-                    <span>{tab.name}</span>
-                    {tab.id === 'orders' && pendingOrdersCount > 0 && (
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          newOrderIds.length
-                            ? 'bg-red-500 text-white animate-pulse'
-                            : 'bg-gray-200 text-gray-700'
-                        }`}
-                      >
-                        {pendingOrdersCount}
-                      </span>
-                    )}
-                  </span>
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
-
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -1052,6 +1172,15 @@ export default function AdminPage() {
                       موجودی طلایی
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      موجودی سکه
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      نوع تراکنش
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      مبلغ
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       وضعیت
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -1060,120 +1189,151 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {users.map((user) => (
-                    <tr key={user.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-full bg-gold flex items-center justify-center">
-                              <span className="text-sm font-medium text-white">
-                                {user.firstName.charAt(0)}{user.lastName.charAt(0)}
-                              </span>
+                  {users.map((user) => {
+                    const rialBalance = user.balanceBeforeTransaction?.rial ?? getWalletBalance(user, 'RIAL');
+                    const goldBalance = user.balanceBeforeTransaction?.gold ?? getWalletBalance(user, 'GOLD');
+                    const pendingTx = user.pendingTransaction;
+
+                    return (
+                      <tr key={user.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-full bg-gold flex items-center justify-center">
+                                <span className="text-sm font-medium text-white">
+                                  {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mr-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {user.firstName} {user.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500">{user.username}</div>
                             </div>
                           </div>
-                          <div className="mr-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {user.firstName} {user.lastName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {user.phoneNumber}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatRial(rialBalance)} تومان
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatGoldValue(goldBalance, 3)} گرم
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatCoinBalance(user.coinBalance)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {pendingTx ? getTransactionTypeLabel(pendingTx.type) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {pendingTx ? (
+                            pendingTx.walletType === 'RIAL' 
+                              ? `${formatRial(pendingTx.amount)} تومان`
+                              : `${formatGoldValue(pendingTx.amount, 3)} گرم`
+                          ) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {pendingTx ? (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleApproveTransaction(pendingTx.id)}
+                                className="px-3 py-1 rounded-md text-xs font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
+                              >
+                                تایید کردن
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setRejectingTxId(pendingTx.id);
+                                  setRejectDialogOpen(true);
+                                }}
+                                className="px-3 py-1 rounded-md text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                              >
+                                رد کردن
+                              </button>
                             </div>
-                            <div className="text-sm text-gray-500">{user.username}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {user.phoneNumber}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatRial(getWalletBalance(user, 'RIAL'))} تومان
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {formatGoldValue(getWalletBalance(user, 'GOLD'), 3)} گرم
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {user.isVerified ? (
+                          ) : (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               تایید شده
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                              در انتظار تایید
-                            </span>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-2">
-                          {!user.isVerified && (
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const response = await apiFetch('/api/admin/users', {
-                                    method: 'PATCH',
-                                    headers: {
-                                      'Authorization': `Bearer ${token}`,
-                                      'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({
-                                      userId: user.id,
-                                      isVerified: true
-                                    }),
-                                  });
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-2">
+                            {!user.isVerified && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const response = await apiFetch('/api/admin/users', {
+                                      method: 'PATCH',
+                                      headers: {
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: JSON.stringify({
+                                        userId: user.id,
+                                        isVerified: true
+                                      }),
+                                    });
 
-                                  if (!response.ok) {
-                                    const data = await response.json();
-                                    setMessage({ type: 'error', text: data.error || 'خطا در تایید کاربر' });
-                                    setTimeout(() => setMessage(null), 5000);
-                                    return;
+                                    if (!response.ok) {
+                                      const data = await response.json();
+                                      setMessage({ type: 'error', text: data.error || 'خطا در تایید کاربر' });
+                                      setTimeout(() => setMessage(null), 5000);
+                                      return;
+                                    }
+                                    setMessage({ type: 'success', text: 'کاربر با موفقیت تایید شد' });
+                                    setTimeout(() => setMessage(null), 3000);
+                                    fetchAdminData();
+                                  } catch (error) {
+                                    console.error('خطا در تایید کاربر:', error);
+                                    if (isSessionExpiredError(error)) {
+                                      handleUnauthorized();
+                                    } else {
+                                      setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
+                                      setTimeout(() => setMessage(null), 5000);
+                                    }
                                   }
-                                  setMessage({ type: 'success', text: 'کاربر با موفقیت تایید شد' });
-                                  setTimeout(() => setMessage(null), 3000);
-                                  fetchAdminData();
-                                } catch (error) {
-                                  console.error('خطا در تایید کاربر:', error);
-                                  if (isSessionExpiredError(error)) {
-                                    handleUnauthorized();
-                                  } else {
-                                    setMessage({ type: 'error', text: 'خطا در اتصال به سرور' });
-                                    setTimeout(() => setMessage(null), 5000);
-                                  }
-                                }
-                              }}
-                              className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white rounded-md text-xs font-medium hover:bg-green-700 transition-colors shadow-sm"
-                              title="تایید کاربر"
+                                }}
+                                className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white rounded-md text-xs font-medium hover:bg-green-700 transition-colors shadow-sm"
+                                title="تایید کاربر"
+                              >
+                                ✓ تایید
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleViewWallet(user)}
+                              className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 bg-white hover:bg-gray-50 transition-colors relative group"
+                              title="مشاهده موجودی و تراکنش‌های کاربر"
+                              aria-label="مشاهده موجودی"
                             >
-                              ✓ تایید
+                              <Eye className="w-3 h-3 ml-1" />
+                              مشاهده
+                              {/* Tooltip */}
+                              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                مشاهده موجودی و تراکنش‌ها
+                              </span>
                             </button>
-                          )}
-                          <button
-                            onClick={() => handleViewWallet(user)}
-                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs text-gray-700 bg-white hover:bg-gray-50 transition-colors relative group"
-                            title="مشاهده موجودی و تراکنش‌های کاربر"
-                            aria-label="مشاهده موجودی"
-                          >
-                            <Eye className="w-3 h-3 ml-1" />
-                            مشاهده
-                            {/* Tooltip */}
-                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                              مشاهده موجودی و تراکنش‌ها
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => handleChargeWallet(user)}
-                            className="inline-flex items-center px-3 py-1.5 border border-gold rounded-md text-xs text-gold bg-white hover:bg-gold hover:text-white transition-colors relative group"
-                            title="شارژ دستی موجودی کاربر"
-                            aria-label="شارژ موجودی"
-                          >
-                            <Wallet className="w-3 h-3 ml-1" />
-                            شارژ
-                            {/* Tooltip */}
-                            <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
-                              شارژ دستی موجودی
-                            </span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <button
+                              onClick={() => handleChargeWallet(user)}
+                              className="inline-flex items-center px-3 py-1.5 border border-gold rounded-md text-xs text-gold bg-white hover:bg-gold hover:text-white transition-colors relative group"
+                              title="شارژ دستی موجودی کاربر"
+                              aria-label="شارژ موجودی"
+                            >
+                              <Wallet className="w-3 h-3 ml-1" />
+                              شارژ
+                              {/* Tooltip */}
+                              <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                شارژ دستی موجودی
+                              </span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1651,6 +1811,15 @@ export default function AdminPage() {
           currentBalance={{
             rial: userWalletData?.summary?.totalRial || getWalletBalance(selectedUser, 'RIAL'),
             gold: userWalletData?.summary?.totalGold || getWalletBalance(selectedUser, 'GOLD'),
+            coins: userWalletData?.coins ? {
+              fullCoin: userWalletData.coins.fullCoin || 0,
+              halfCoin: userWalletData.coins.halfCoin || 0,
+              quarterCoin: userWalletData.coins.quarterCoin || 0
+            } : selectedUser.coinBalance ? {
+              fullCoin: selectedUser.coinBalance.fullCoin || 0,
+              halfCoin: selectedUser.coinBalance.halfCoin || 0,
+              quarterCoin: selectedUser.coinBalance.quarterCoin || 0
+            } : undefined
           }}
           onSuccess={() => {
             setMessage({ type: 'success', text: 'موجودی با موفقیت شارژ شد' });
@@ -1673,6 +1842,47 @@ export default function AdminPage() {
           userName={`${selectedUser.firstName} ${selectedUser.lastName}`}
           token={token || ''}
         />
+      )}
+
+      {/* Reject Transaction Dialog */}
+      {rejectDialogOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">رد تراکنش</h3>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-sm text-gray-600 mb-4">
+                لطفاً دلیل رد این تراکنش را وارد کنید:
+              </p>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="دلیل رد تراکنش..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                rows={4}
+              />
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setRejectDialogOpen(false);
+                  setRejectingTxId(null);
+                  setRejectReason('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                انصراف
+              </button>
+              <button
+                onClick={handleRejectTransaction}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+              >
+                رد تراکنش
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

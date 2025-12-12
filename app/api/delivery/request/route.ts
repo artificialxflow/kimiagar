@@ -46,19 +46,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // بررسی موجودی کیف پول طلایی
-    const goldWallet = await prisma.wallet.findFirst({
-      where: {
-        userId,
-        type: 'GOLD'
-      }
-    });
+    // بررسی موجودی بر اساس نوع محصول
+    if (productType === 'GOLD_18K') {
+      // بررسی موجودی کیف پول طلایی
+      const goldWallet = await prisma.wallet.findFirst({
+        where: {
+          userId,
+          type: 'GOLD'
+        }
+      });
 
-    if (!goldWallet || Number(goldWallet.balance) < amount) {
-      return NextResponse.json(
-        { error: 'موجودی طلا کافی نیست' },
-        { status: 400 }
-      );
+      if (!goldWallet || Number(goldWallet.balance) < amount) {
+        return NextResponse.json(
+          { error: 'موجودی طلا کافی نیست' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // بررسی موجودی سکه‌ها از سفارش‌های COMPLETED
+      const completedOrders = await prisma.order.findMany({
+        where: {
+          userId,
+          status: 'COMPLETED'
+        },
+        select: {
+          type: true,
+          productType: true,
+          amount: true
+        }
+      });
+
+      let coinBalance = 0;
+      completedOrders.forEach(order => {
+        if (order.productType === productType) {
+          if (order.type === 'BUY') {
+            coinBalance += Number(order.amount);
+          } else if (order.type === 'SELL') {
+            coinBalance -= Number(order.amount);
+          }
+        }
+      });
+
+      coinBalance = Math.max(0, coinBalance);
+
+      if (coinBalance < amount) {
+        return NextResponse.json(
+          { error: 'موجودی سکه کافی نیست' },
+          { status: 400 }
+        );
+      }
     }
 
     // بررسی حداقل مقدار تحویل (5 گرم)

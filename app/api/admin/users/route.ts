@@ -93,9 +93,126 @@ export async function GET(request: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
+    // محاسبه موجودی سکه و تراکنش‌های در انتظار برای هر کاربر
+    const usersWithDetails = await Promise.all(
+      users.map(async (user) => {
+        // محاسبه موجودی سکه از سفارش‌های COMPLETED
+        const completedOrders = await prisma.order.findMany({
+          where: {
+            userId: user.id,
+            status: 'COMPLETED'
+          },
+          select: {
+            type: true,
+            productType: true,
+            amount: true
+          }
+        });
+
+        let fullCoin = 0;
+        let halfCoin = 0;
+        let quarterCoin = 0;
+
+        completedOrders.forEach(order => {
+          if (order.type === 'BUY') {
+            if (order.productType === 'COIN_BAHAR_86') {
+              fullCoin += Number(order.amount);
+            } else if (order.productType === 'COIN_NIM_86') {
+              halfCoin += Number(order.amount);
+            } else if (order.productType === 'COIN_ROBE_86') {
+              quarterCoin += Number(order.amount);
+            }
+          } else if (order.type === 'SELL') {
+            if (order.productType === 'COIN_BAHAR_86') {
+              fullCoin -= Number(order.amount);
+            } else if (order.productType === 'COIN_NIM_86') {
+              halfCoin -= Number(order.amount);
+            } else if (order.productType === 'COIN_ROBE_86') {
+              quarterCoin -= Number(order.amount);
+            }
+          }
+        });
+
+        fullCoin = Math.max(0, fullCoin);
+        halfCoin = Math.max(0, halfCoin);
+        quarterCoin = Math.max(0, quarterCoin);
+
+        // دریافت آخرین تراکنش در انتظار تایید
+        const pendingTransaction = await prisma.transaction.findFirst({
+          where: {
+            userId: user.id,
+            status: 'PENDING'
+          },
+          orderBy: {
+            createdAt: 'desc'
+          },
+          select: {
+            id: true,
+            type: true,
+            amount: true,
+            description: true,
+            createdAt: true,
+            metadata: true,
+            wallet: {
+              select: {
+                type: true
+              }
+            }
+          }
+        });
+
+        // محاسبه موجودی قبل از تراکنش
+        const rialWallet = user.wallets.find(w => w.type === 'RIAL');
+        const goldWallet = user.wallets.find(w => w.type === 'GOLD');
+        
+        let rialBalanceBefore = rialWallet ? Number(rialWallet.balance) : 0;
+        let goldBalanceBefore = goldWallet ? Number(goldWallet.balance) : 0;
+
+        if (pendingTransaction) {
+          if (pendingTransaction.wallet.type === 'RIAL') {
+            if (pendingTransaction.type === 'DEPOSIT') {
+              // برای واریز، موجودی فعلی منهای مبلغ واریز = موجودی قبل از واریز
+              rialBalanceBefore = rialBalanceBefore - Number(pendingTransaction.amount);
+            } else if (pendingTransaction.type === 'WITHDRAW') {
+              // برای برداشت، موجودی فعلی به اضافه مبلغ برداشت = موجودی قبل از برداشت
+              rialBalanceBefore = rialBalanceBefore + Number(pendingTransaction.amount);
+            }
+          } else if (pendingTransaction.wallet.type === 'GOLD') {
+            if (pendingTransaction.type === 'DEPOSIT') {
+              goldBalanceBefore = goldBalanceBefore - Number(pendingTransaction.amount);
+            } else if (pendingTransaction.type === 'WITHDRAW') {
+              goldBalanceBefore = goldBalanceBefore + Number(pendingTransaction.amount);
+            }
+          }
+        }
+
+        return {
+          ...user,
+          coinBalance: {
+            fullCoin,
+            halfCoin,
+            quarterCoin
+          },
+          pendingTransaction: pendingTransaction ? {
+            id: pendingTransaction.id,
+            type: pendingTransaction.type,
+            amount: Number(pendingTransaction.amount),
+            description: pendingTransaction.description,
+            createdAt: pendingTransaction.createdAt,
+            metadata: pendingTransaction.metadata,
+            walletType: pendingTransaction.wallet.type
+          } : null,
+          balanceBeforeTransaction: {
+            rial: rialBalanceBefore,
+            gold: goldBalanceBefore
+          }
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      users,
+      users: usersWithDetails,
       pagination: {
         page,
         limit,

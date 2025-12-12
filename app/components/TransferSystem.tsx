@@ -154,34 +154,34 @@ export function TransferSystem() {
                 مبلغ / مقدار
               </label>
               {transferData.type === 'rial' ? (
-                <div className="relative">
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
                     inputMode="numeric"
                     dir="ltr"
                     value={rialAmount}
                     onChange={handleRialAmountChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold"
                     placeholder="مبلغ به تومان"
                     required
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 whitespace-nowrap">
                     تومان
                   </span>
                 </div>
               ) : (
-                <div className="relative">
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
                     inputMode="decimal"
                     dir="ltr"
                     value={goldAmount}
                     onChange={(e) => setGoldAmount(sanitizeDecimalInput(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold"
                     placeholder="مقدار به گرم"
                     required
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 whitespace-nowrap">
                     گرم
                   </span>
                 </div>

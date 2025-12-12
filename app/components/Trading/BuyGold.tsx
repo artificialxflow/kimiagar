@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShoppingCart,
   Calculator,
@@ -40,11 +40,17 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [lockVisible, setLockVisible] = useState(false);
   const [lockMessage, setLockMessage] = useState<string | null>(null);
-  const [finalStatus, setFinalStatus] = useState<'COMPLETED' | 'FAILED' | 'EXPIRED' | null>(null);
+  const [finalStatus, setFinalStatus] = useState<'COMPLETED' | 'FAILED' | 'EXPIRED' | 'CANCELLED' | 'REJECTED' | 'REJECTED_PRICE_CHANGE' | null>(null);
   const [finalStatusMessage, setFinalStatusMessage] = useState<string | null>(null);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [volatilityMessage, setVolatilityMessage] = useState('');
+  const finalStatusRef = useRef<'COMPLETED' | 'FAILED' | 'EXPIRED' | 'CANCELLED' | 'REJECTED' | 'REJECTED_PRICE_CHANGE' | null>(null);
   const { mode: tradingMode } = useTradingMode(15000);
+  
+  // به‌روزرسانی ref همزمان با state
+  useEffect(() => {
+    finalStatusRef.current = finalStatus;
+  }, [finalStatus]);
 
   const selectedPrice = prices.find(p => p.productType === productType);
 
@@ -57,15 +63,42 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
   // شمارنده معکوس
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (countdown > 0) {
-      interval = setInterval(() => {
-        setCountdown(prev => prev - 1);
-      }, 1000);
-    } else if (countdown === 0 && lockVisible && !finalStatus) {
-      // اگر تایمر تمام شد ولی هنوز وضعیت نهایی نیامده، پیام انتظار نمایش بده
-      setLockMessage('درخواست شما در صف بررسی ادمین است. لطفاً تا تعیین تکلیف نهایی منتظر بمانید.');
+    
+    // توقف شمارنده اگر وضعیت نهایی تنظیم شده
+    if (finalStatus) {
+      if (countdown > 0) {
+        setCountdown(0); // توقف فوری شمارنده
+      }
+      return;
     }
-    return () => clearInterval(interval);
+    
+    // توقف شمارنده اگر به صفر رسیده
+    if (countdown <= 0) {
+      if (lockVisible && !finalStatus) {
+        // اگر تایمر تمام شد ولی هنوز وضعیت نهایی نیامده، پیام انتظار نمایش بده
+        setLockMessage('درخواست شما در صف بررسی ادمین است. لطفاً تا تعیین تکلیف نهایی منتظر بمانید.');
+      }
+      return;
+    }
+    
+    // شروع شمارنده فقط اگر وضعیت نهایی تنظیم نشده و countdown > 0
+    if (countdown > 0 && !finalStatus) {
+      interval = setInterval(() => {
+        setCountdown(prev => {
+          // بررسی وضعیت نهایی با استفاده از ref برای دسترسی به آخرین مقدار
+          if (finalStatusRef.current) {
+            return 0;
+          }
+          return prev > 0 ? prev - 1 : 0;
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [countdown, lockVisible, finalStatus]);
 
   // پولینگ وضعیت سفارش تا زمانی که از حالت PENDING خارج شود
@@ -85,17 +118,36 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
         });
         if (!res.ok) return;
         const data = await res.json();
-        const status = data.order?.status as 'PENDING' | 'COMPLETED' | 'FAILED' | 'EXPIRED';
+        const status = data.order?.status as string;
 
+        // بررسی تمام وضعیت‌های غیر PENDING
         if (status && status !== 'PENDING') {
-          setFinalStatus(status);
+          // توقف فوری شمارنده
+          setCountdown(0);
+          setFinalStatus(status as 'COMPLETED' | 'FAILED' | 'EXPIRED' | 'CANCELLED' | 'REJECTED' | 'REJECTED_PRICE_CHANGE');
 
-          if (status === 'COMPLETED') {
-            setFinalStatusMessage('سفارش شما با موفقیت تکمیل شد. موجودی کیف پول به‌زودی به‌روز می‌شود.');
-          } else if (status === 'FAILED') {
-            setFinalStatusMessage(data.order?.adminMessage || 'سفارش شما توسط ادمین رد شد.');
-          } else if (status === 'EXPIRED') {
-            setFinalStatusMessage('مهلت انجام سفارش به پایان رسیده و سفارش منقضی شده است.');
+          // تنظیم پیام مناسب برای هر وضعیت
+          switch (status) {
+            case 'COMPLETED':
+              setFinalStatusMessage('معامله با موفقیت ثبت شد. موجودی کیف پول به‌زودی به‌روز می‌شود.');
+              break;
+            case 'FAILED':
+              setFinalStatusMessage(data.order?.adminMessage || 'معامله رد شد.');
+              break;
+            case 'EXPIRED':
+              setFinalStatusMessage('معامله منقضی شد.');
+              break;
+            case 'CANCELLED':
+              setFinalStatusMessage('معامله لغو شد.');
+              break;
+            case 'REJECTED':
+              setFinalStatusMessage(data.order?.adminMessage || 'معامله رد شد.');
+              break;
+            case 'REJECTED_PRICE_CHANGE':
+              setFinalStatusMessage('معامله به دلیل تغییر قیمت رد شد.');
+              break;
+            default:
+              setFinalStatusMessage('وضعیت سفارش تغییر کرده است.');
           }
 
           // پس از چند ثانیه، قفل را بردار و کاربر را به داشبورد ببر
@@ -429,35 +481,35 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
           </label>
           
           {inputType === 'weight' ? (
-            <div className="relative">
+            <div className="flex items-center gap-2">
               <input
                 type="number"
                 value={weightAmount}
                 onChange={(e) => setWeightAmount(e.target.value)}
                 placeholder={`مقدار را به ${getUnit()} وارد کنید`}
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
                 required
                 min={productType === 'GOLD_18K' ? "0.01" : "1"}
                 step={productType === 'GOLD_18K' ? "0.01" : "1"}
               />
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+              <span className="text-slate-500 whitespace-nowrap">
                 {getUnit()}
-              </div>
+              </span>
             </div>
           ) : (
-            <div className="relative">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 inputMode="numeric"
                 value={moneyAmount}
                 onChange={handleMoneyAmountChange}
                 placeholder="مبلغ را به تومان وارد کنید"
-                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
                 required
               />
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
+              <span className="text-slate-500 whitespace-nowrap">
                 تومان
-              </div>
+              </span>
             </div>
           )}
 
@@ -563,7 +615,7 @@ export default function BuyGold({ prices = [] }: BuyGoldProps) {
             <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5" />
             <div className="text-yellow-800 text-sm">
               <p className="font-semibold mb-1">تایید موجودی:</p>
-              <p>امکا نی لغو معامله پس از تایید وجود ندارد. لطفاً قبل از تأیید نهایی، موجودی کیف پول خود را بررسی کنید.</p>
+              <p>امکان لغو معامله پس از تایید وجود ندارد. لطفاً قبل از تأیید نهایی، موجودی کیف پول خود را بررسی کنید.</p>
             </div>
           </div>
         </div>

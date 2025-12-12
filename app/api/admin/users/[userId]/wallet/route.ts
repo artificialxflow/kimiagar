@@ -132,9 +132,51 @@ export async function GET(
       .filter(w => w.type === 'GOLD')
       .reduce((sum, w) => sum + Number(w.balance), 0);
 
+    // محاسبه موجودی سکه‌ها از سفارش‌های COMPLETED
+    const completedOrders = await prisma.order.findMany({
+      where: {
+        userId,
+        status: 'COMPLETED'
+      },
+      select: {
+        type: true,
+        productType: true,
+        amount: true
+      }
+    });
+
+    let fullCoin = 0;
+    let halfCoin = 0;
+    let quarterCoin = 0;
+
+    completedOrders.forEach(order => {
+      if (order.type === 'BUY') {
+        if (order.productType === 'COIN_BAHAR_86') {
+          fullCoin += Number(order.amount);
+        } else if (order.productType === 'COIN_NIM_86') {
+          halfCoin += Number(order.amount);
+        } else if (order.productType === 'COIN_ROBE_86') {
+          quarterCoin += Number(order.amount);
+        }
+      } else if (order.type === 'SELL') {
+        if (order.productType === 'COIN_BAHAR_86') {
+          fullCoin -= Number(order.amount);
+        } else if (order.productType === 'COIN_NIM_86') {
+          halfCoin -= Number(order.amount);
+        } else if (order.productType === 'COIN_ROBE_86') {
+          quarterCoin -= Number(order.amount);
+        }
+      }
+    });
+
+    fullCoin = Math.max(0, fullCoin);
+    halfCoin = Math.max(0, halfCoin);
+    quarterCoin = Math.max(0, quarterCoin);
+
     console.log('✅ [Admin Wallet] ========== دریافت موفق ==========');
     console.log('📊 [Admin Wallet] موجودی ریالی کل:', totalRial);
     console.log('📊 [Admin Wallet] موجودی طلایی کل:', totalGold);
+    console.log('📊 [Admin Wallet] موجودی سکه:', { fullCoin, halfCoin, quarterCoin });
 
     return NextResponse.json({
       success: true,
@@ -150,6 +192,11 @@ export async function GET(
         totalRial,
         totalGold,
         walletCount: wallets.length
+      },
+      coins: {
+        fullCoin,
+        halfCoin,
+        quarterCoin
       },
       recentTransactions: includeTransactions ? recentTransactions : undefined
     });

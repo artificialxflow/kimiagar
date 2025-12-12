@@ -19,6 +19,11 @@ interface ChargeWalletModalProps {
   currentBalance?: {
     rial?: number;
     gold?: number;
+    coins?: {
+      fullCoin: number;
+      halfCoin: number;
+      quarterCoin: number;
+    };
   };
   onSuccess?: () => void;
   token: string;
@@ -33,7 +38,7 @@ export default function ChargeWalletModal({
   onSuccess,
   token
 }: ChargeWalletModalProps) {
-  const [walletType, setWalletType] = useState<'RIAL' | 'GOLD'>('RIAL');
+  const [walletType, setWalletType] = useState<'RIAL' | 'GOLD' | 'COIN_FULL' | 'COIN_HALF' | 'COIN_QUARTER'>('RIAL');
   const [amount, setAmount] = useState('');
   const [receiptNumber, setReceiptNumber] = useState('');
   const [description, setDescription] = useState('');
@@ -52,7 +57,9 @@ export default function ChargeWalletModal({
   const numericAmount =
     walletType === 'RIAL'
       ? parseLocalizedNumber(amount)
-      : parseFloat(sanitizeGoldInput(amount)) || 0;
+      : walletType === 'GOLD'
+      ? parseFloat(sanitizeGoldInput(amount)) || 0
+      : parseInt(amount.replace(/[^0-9]/g, '')) || 0;
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -67,6 +74,14 @@ export default function ChargeWalletModal({
     }
   }, [isOpen]);
 
+  // Fetch coin balance when coin type is selected
+  useEffect(() => {
+    if (isOpen && (walletType === 'COIN_FULL' || walletType === 'COIN_HALF' || walletType === 'COIN_QUARTER')) {
+      // Coin balance should be passed via currentBalance prop
+      // This is handled by the parent component
+    }
+  }, [isOpen, walletType]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -74,12 +89,17 @@ export default function ChargeWalletModal({
 
     // Validation
     if (!amount || numericAmount <= 0) {
-      setError('مبلغ باید مثبت باشد');
+      setError(walletType.startsWith('COIN') ? 'تعداد باید مثبت باشد' : 'مبلغ باید مثبت باشد');
       return;
     }
 
-    if (numericAmount > 1000000000000) {
+    if (walletType === 'RIAL' && numericAmount > 1000000000000) {
       setError('مبلغ خیلی بزرگ است');
+      return;
+    }
+
+    if (walletType.startsWith('COIN') && !Number.isInteger(numericAmount)) {
+      setError('تعداد باید عدد صحیح باشد');
       return;
     }
 
@@ -95,7 +115,8 @@ export default function ChargeWalletModal({
         body: JSON.stringify({
           userId,
           amount: numericAmount,
-          walletType,
+          walletType: walletType.startsWith('COIN') ? 'COIN' : walletType,
+          coinType: walletType.startsWith('COIN') ? walletType : undefined,
           description: description || undefined,
           receiptNumber: receiptNumber || undefined,
           adminNotes: adminNotes || undefined,
@@ -125,8 +146,25 @@ export default function ChargeWalletModal({
 
   if (!isOpen) return null;
 
-  const currentBalanceDisplay =
-    walletType === 'RIAL' ? currentBalance?.rial || 0 : currentBalance?.gold || 0;
+  const getCurrentBalanceDisplay = () => {
+    if (walletType === 'RIAL') return currentBalance?.rial || 0;
+    if (walletType === 'GOLD') return currentBalance?.gold || 0;
+    if (walletType === 'COIN_FULL') return currentBalance?.coins?.fullCoin || 0;
+    if (walletType === 'COIN_HALF') return currentBalance?.coins?.halfCoin || 0;
+    if (walletType === 'COIN_QUARTER') return currentBalance?.coins?.quarterCoin || 0;
+    return 0;
+  };
+
+  const currentBalanceDisplay = getCurrentBalanceDisplay();
+  
+  const getWalletTypeLabel = () => {
+    if (walletType === 'RIAL') return 'ریالی';
+    if (walletType === 'GOLD') return 'طلایی';
+    if (walletType === 'COIN_FULL') return 'تمام سکه';
+    if (walletType === 'COIN_HALF') return 'نیم سکه';
+    if (walletType === 'COIN_QUARTER') return 'ربع سکه';
+    return '';
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" dir="rtl">
@@ -140,7 +178,7 @@ export default function ChargeWalletModal({
         {/* Modal */}
         <div className="inline-block align-bottom bg-white rounded-lg text-right overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           {/* Header */}
-          <div className="bg-gold px-6 py-4 flex items-center justify-between">
+          <div className="bg-gold-500 px-6 py-4 flex items-center justify-between">
             <h3 className="text-lg font-medium text-white">شارژ موجودی</h3>
             <button
               onClick={onClose}
@@ -162,11 +200,13 @@ export default function ChargeWalletModal({
             {/* Current Balance */}
             {currentBalanceDisplay !== undefined && (
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-600">موجودی فعلی ({walletType === 'RIAL' ? 'ریالی' : 'طلایی'}):</p>
+                <p className="text-sm text-gray-600">موجودی فعلی ({getWalletTypeLabel()}):</p>
                 <p className="text-lg font-bold text-blue-900">
                   {walletType === 'RIAL'
                     ? `${formatRial(currentBalanceDisplay)} تومان`
-                    : `${formatGoldValue(currentBalanceDisplay)} گرم`}
+                    : walletType === 'GOLD'
+                    ? `${formatGoldValue(currentBalanceDisplay)} گرم`
+                    : `${currentBalanceDisplay} عدد`}
                 </p>
               </div>
             )}
@@ -177,14 +217,14 @@ export default function ChargeWalletModal({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   نوع کیف پول
                 </label>
-                <div className="flex gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <label className="flex items-center">
                     <input
                       type="radio"
                       value="RIAL"
                       checked={walletType === 'RIAL'}
                       onChange={(e) => {
-                        setWalletType(e.target.value as 'RIAL' | 'GOLD');
+                        setWalletType(e.target.value as 'RIAL' | 'GOLD' | 'COIN_FULL' | 'COIN_HALF' | 'COIN_QUARTER');
                         setAmount('');
                       }}
                       className="ml-2"
@@ -197,12 +237,51 @@ export default function ChargeWalletModal({
                       value="GOLD"
                       checked={walletType === 'GOLD'}
                       onChange={(e) => {
-                        setWalletType(e.target.value as 'RIAL' | 'GOLD');
+                        setWalletType(e.target.value as 'RIAL' | 'GOLD' | 'COIN_FULL' | 'COIN_HALF' | 'COIN_QUARTER');
                         setAmount('');
                       }}
                       className="ml-2"
                     />
                     <span className="text-sm text-gray-700">طلایی</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="COIN_FULL"
+                      checked={walletType === 'COIN_FULL'}
+                      onChange={(e) => {
+                        setWalletType(e.target.value as 'RIAL' | 'GOLD' | 'COIN_FULL' | 'COIN_HALF' | 'COIN_QUARTER');
+                        setAmount('');
+                      }}
+                      className="ml-2"
+                    />
+                    <span className="text-sm text-gray-700">تمام سکه</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="COIN_HALF"
+                      checked={walletType === 'COIN_HALF'}
+                      onChange={(e) => {
+                        setWalletType(e.target.value as 'RIAL' | 'GOLD' | 'COIN_FULL' | 'COIN_HALF' | 'COIN_QUARTER');
+                        setAmount('');
+                      }}
+                      className="ml-2"
+                    />
+                    <span className="text-sm text-gray-700">نیم سکه</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="COIN_QUARTER"
+                      checked={walletType === 'COIN_QUARTER'}
+                      onChange={(e) => {
+                        setWalletType(e.target.value as 'RIAL' | 'GOLD' | 'COIN_FULL' | 'COIN_HALF' | 'COIN_QUARTER');
+                        setAmount('');
+                      }}
+                      className="ml-2"
+                    />
+                    <span className="text-sm text-gray-700">ربع سکه</span>
                   </label>
                 </div>
               </div>
@@ -210,10 +289,10 @@ export default function ChargeWalletModal({
               {/* Amount */}
               <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
-                  مبلغ {walletType === 'RIAL' ? '(تومان)' : '(گرم)'}
+                  {walletType.startsWith('COIN') ? 'تعداد' : walletType === 'RIAL' ? 'مبلغ (تومان)' : 'مبلغ (گرم)'}
                 </label>
                 {walletType === 'RIAL' ? (
-                  <div className="relative">
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       inputMode="numeric"
@@ -222,16 +301,16 @@ export default function ChargeWalletModal({
                       value={amount}
                       onChange={(e) => setAmount(formatInputNumber(e.target.value))}
                       placeholder="مثال: 1,000,000"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
                       required
                       disabled={loading}
                     />
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                    <span className="text-gray-500 text-sm whitespace-nowrap">
                       تومان
                     </span>
                   </div>
-                ) : (
-                  <div className="relative">
+                ) : walletType === 'GOLD' ? (
+                  <div className="flex items-center gap-2">
                     <input
                       type="text"
                       inputMode="decimal"
@@ -240,12 +319,30 @@ export default function ChargeWalletModal({
                       value={amount}
                       onChange={(e) => setAmount(sanitizeGoldInput(e.target.value))}
                       placeholder="مثال: 10.5"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
                       required
                       disabled={loading}
                     />
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                    <span className="text-gray-500 text-sm whitespace-nowrap">
                       گرم
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      dir="ltr"
+                      id="amount"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="مثال: 5"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent"
+                      required
+                      disabled={loading}
+                    />
+                    <span className="text-gray-500 text-sm whitespace-nowrap">
+                      عدد
                     </span>
                   </div>
                 )}
@@ -327,7 +424,7 @@ export default function ChargeWalletModal({
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gold text-white rounded-md hover:bg-gold-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-gold-500 text-white rounded-md hover:bg-gold-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
                   disabled={loading}
                 >
                   {loading ? (

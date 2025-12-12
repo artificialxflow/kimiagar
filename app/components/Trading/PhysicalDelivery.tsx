@@ -2,10 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { Truck, MapPin, Calendar, Clock, Phone, AlertCircle, CheckCircle, PauseCircle } from 'lucide-react';
 import { useTradingMode } from '@/app/hooks/useTradingMode';
+import { isCoinProductType } from '@/app/lib/utils';
 
 interface PhysicalDeliveryProps {
   prices?: any[];
 }
+
+const COIN_BALANCE_KEY_MAP: Record<string, 'fullCoin' | 'halfCoin' | 'quarterCoin'> = {
+  COIN_BAHAR_86: 'fullCoin',
+  COIN_NIM_86: 'halfCoin',
+  COIN_ROBE_86: 'quarterCoin',
+  COIN_BAHAR: 'fullCoin',
+  COIN_NIM: 'halfCoin',
+  COIN_ROBE: 'quarterCoin'
+};
 
 export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps) {
   const [selectedProduct, setSelectedProduct] = useState('');
@@ -19,9 +29,11 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
   const [success, setSuccess] = useState(false);
   const [deliveryRequests, setDeliveryRequests] = useState<any[]>([]);
   const [deliveryCommissionRate, setDeliveryCommissionRate] = useState(0.02); // 2% پیش‌فرض
+  const [availableBalance, setAvailableBalance] = useState(0);
   const { mode: tradingMode } = useTradingMode(15000);
 
   const selectedPrice = prices.find(p => p.productType === selectedProduct);
+  const isCoinProduct = selectedProduct ? isCoinProductType(selectedProduct) : false;
 
   // دریافت نرخ کارمزد تحویل از API
   useEffect(() => {
@@ -92,9 +104,8 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
       // کارمزد برای تحویل طلا (بر اساس وزن - 2% از وزن)
       return numAmount * deliveryCommissionRate;
     } else {
-      // کارمزد برای سکه‌ها (بر اساس تعداد × قیمت سکه)
-      const totalValue = numAmount * Number(selectedPrice.sellPrice);
-      return totalValue * deliveryCommissionRate;
+      // کارمزد ثابت 50,000 تومان برای سکه‌ها
+      return 50000;
     }
   };
 
@@ -127,6 +138,13 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
     // بررسی حداقل مقدار تحویل (5 گرم)
     if (selectedProduct === 'GOLD_18K' && parseFloat(amount) < 5) {
       setError('حداقل مقدار تحویل طلا 5 گرم است');
+      return false;
+    }
+
+    // بررسی موجودی کافی
+    const numAmount = parseFloat(amount);
+    if (numAmount > availableBalance) {
+      setError('موجودی کافی نیست');
       return false;
     }
 
@@ -298,7 +316,7 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
         <ul className="text-sm text-blue-700 space-y-1 text-right">
           <li>• حداقل مقدار تحویل طلا: 5 گرم</li>
           <li>• کارمزد تحویل طلا: {(deliveryCommissionRate * 100).toFixed(1)}% از وزن (به گرم)</li>
-          <li>• کارمزد تحویل سکه: {(deliveryCommissionRate * 100).toFixed(1)}% از ارزش سکه (به تومان)</li>
+          <li>• کارمزد تحویل سکه: 50,000 تومان (ثابت)</li>
           <li>• تحویل در فروشگاه: 24-48 ساعت کاری</li>
           <li>• مراجعه حضوری به فروشگاه برای تحویل</li>
         </ul>
@@ -399,6 +417,21 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
             ))}
           </select>
         </div>
+
+        {/* Available Balance Display */}
+        {selectedProduct && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Truck className="w-5 h-5 text-blue-600 mr-2" />
+                <span className="font-medium text-blue-800">موجودی موجود:</span>
+              </div>
+              <span className="font-bold text-blue-800">
+                {availableBalance.toLocaleString('fa-IR')} {selectedProduct === 'GOLD_18K' ? 'گرم' : 'عدد'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Amount Input */}
         <div>
@@ -531,8 +564,11 @@ export default function PhysicalDelivery({ prices = [] }: PhysicalDeliveryProps)
               
               <div className="flex justify-between">
                 <span className="text-slate-600">
-                  کارمزد تحویل ({(deliveryCommissionRate * 100).toFixed(1)}%):
-                  {selectedProduct === 'GOLD_18K' ? ' از وزن' : ' از ارزش'}
+                  کارمزد تحویل:
+                  {selectedProduct === 'GOLD_18K' 
+                    ? ` (${(deliveryCommissionRate * 100).toFixed(1)}% از وزن)`
+                    : ' (ثابت)'
+                  }
                 </span>
                 <span className="font-medium text-red-600">
                   {selectedProduct === 'GOLD_18K' 

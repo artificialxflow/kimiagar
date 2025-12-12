@@ -84,7 +84,7 @@ export default function ChargeWallet() {
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   مبلغ (تومان)
                 </label>
-                <div className="relative">
+                <div className="flex items-center gap-2">
                   <input
                     type="text"
                     inputMode="numeric"
@@ -92,12 +92,10 @@ export default function ChargeWallet() {
                     value={amount}
                     onChange={handleAmountChange}
                     placeholder="مبلغ را وارد کنید"
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500">
-                    تومان
-                  </div>
+                  <span className="text-slate-500 whitespace-nowrap">تومان</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
                   حداقل مبلغ: 1,000 تومان
